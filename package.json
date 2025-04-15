@@ -1,0 +1,40 @@
+{
+  "name": "storylist",
+  "version": "1.0.0",
+  "description": "A news headline aggregation web app.",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Joinable-Inc/storylist.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Joinable-Inc/storylist/issues"
+  },
+  "homepage": "https://github.com/Joinable-Inc/storylist#readme",
+  "dependencies": {
+    "@langchain/anthropic": "^0.3.17",
+    "@types/cheerio": "^0.22.35",
+    "@types/express": "^5.0.1",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^22.14.1",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "langchain": "^0.3.21",
+    "mongoose": "^8.13.2",
+    "scrapingbee": "^1.7.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
