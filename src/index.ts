@@ -72,36 +72,40 @@ app.get(
   }
 );
 
+// Scraping endpoints
+app.get("/api/scrape", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    console.log("Scraping all sources");
+    await scraperService.scrapeAll();
+    res.json({
+      status: "ok",
+      message: "All sources scraped successfully",
+    });
+  } catch (error) {
+    console.error("Error scraping sources:", error);
+    const message = error instanceof Error ? error.message : "Scraping failed";
+    res.status(500).json({ status: "error", message });
+  }
+});
+
 app.get(
-  "/api/scrape/:sourceId?",
+  "/api/scrape/:sourceId",
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { sourceId } = req.params;
-
-      if (sourceId) {
-        // Scrape single source
-        console.log(`Scraping source: ${sourceId}`);
-        const source = await Source.findById(sourceId);
-        if (!source) {
-          throw new Error(`Source with id ${sourceId} not found`);
-        }
-        const headlines = await scraperService.scrapeSource(source.id);
-        res.json({
-          status: "ok",
-          count: headlines.length,
-          headlines,
-        });
-      } else {
-        // Scrape all sources
-        console.log("Scraping all sources");
-        await scraperService.scrapeAll();
-        res.json({
-          status: "ok",
-          message: "All sources scraped successfully",
-        });
+      console.log(`Scraping source: ${sourceId}`);
+      const source = await Source.findById(sourceId);
+      if (!source) {
+        throw new Error(`Source with id ${sourceId} not found`);
       }
+      const headlines = await scraperService.scrapeSource(source.id);
+      res.json({
+        status: "ok",
+        count: headlines.length,
+        headlines,
+      });
     } catch (error) {
-      console.error("Error scraping source(s):", error);
+      console.error("Error scraping source:", error);
       const message =
         error instanceof Error ? error.message : "Scraping failed";
       res.status(500).json({ status: "error", message });
