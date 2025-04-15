@@ -1,63 +1,77 @@
-import { INewsSource, NEWS_SOURCES } from "../models/newssource.model";
+import { ISource, Source } from "../models/source.model";
 import { IHeadline } from "../models/headline.model";
-import { ScraperService } from "./scraper.service";
+import { scraperService } from "./scraper.service";
 import { connectDB, getCollection } from "./mongo.service";
 import mongoose from "mongoose";
 
 interface HeadlineDocument extends IHeadline, mongoose.Document {}
 
+interface SourceWithHeadlines extends ISource {
+  headlines: IHeadline[];
+}
+
 export class HeadlineService {
-  private readonly scraperService: ScraperService;
-  private readonly sources: Map<string, INewsSource>;
-
-  constructor() {
-    this.scraperService = new ScraperService();
-    this.sources = new Map(Object.entries(NEWS_SOURCES));
-  }
-
-  public async addSource(source: INewsSource): Promise<void> {
-    if (this.sources.has(source.name)) {
+  public async addSource(source: ISource): Promise<void> {
+    const exists = await Source.exists({ name: source.name });
+    if (exists) {
       throw new Error(`Source ${source.name} already exists`);
     }
-    this.sources.set(source.name, source);
+    await Source.create(source);
   }
 
-  public async updateSource(
+  public async updateSource(sourceId: string, source: ISource): Promise<void> {
+    const updated = await Source.findByIdAndUpdate(sourceId, source, {
+      new: true,
+    });
+    if (!updated) {
+      throw new Error(`Source with id ${sourceId} not found`);
+    }
+  }
+
+  public async getSources(): Promise<ISource[]> {
+    return Source.find();
+  }
+
+  public async addHeadlines(
     sourceId: string,
-    source: INewsSource
-  ): Promise<void> {
-    if (!this.sources.has(sourceId)) {
-      throw new Error(`Source ${sourceId} not found`);
-    }
-    this.sources.set(sourceId, source);
-  }
-
-  public async getSources(): Promise<INewsSource[]> {
-    return Array.from(this.sources.values());
-  }
-
-  public async getHeadlines(sourceId: string): Promise<IHeadline[]> {
-    if (!this.sources.has(sourceId)) {
-      throw new Error(`Source ${sourceId} not found`);
-    }
-    const headlines: IHeadline[] = await this.scraperService.scrapePage(
-      sourceId
-    );
-    return headlines.map((headline) => ({
+    headlines: IHeadline[]
+  ): Promise<boolean> {
+    const headlinesWithMetadata = headlines.map((headline, index) => ({
       ...headline,
       sourceId,
+      inPageRank: index + 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     }));
+
+    // Save to MongoDB
+    await getCollection<HeadlineDocument>("headlines").insertMany(
+      headlinesWithMetadata as HeadlineDocument[]
+    );
+    return true;
   }
 
-  public async addHeadlines(sourceId: string): Promise<void> {
-    if (!this.sources.has(sourceId)) {
-      throw new Error(`Source ${sourceId} not found`);
-    }
-    const headlines: IHeadline[] = await this.getHeadlines(sourceId);
-    await getCollection<HeadlineDocument>("headlines").insertMany(
-      headlines as HeadlineDocument[]
-    );
+  public async getRecentHeadlines(): Promise<IHeadline[]> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    return getCollection<HeadlineDocument>("headlines")
+      .find({ createdAt: { $gte: oneHourAgo } })
+      .sort({ createdAt: -1 })
+      .toArray();
+  }
+
+  public async getSourcesWithHeadlines(): Promise<SourceWithHeadlines[]> {
+    const sources = await Source.find().lean();
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const headlines = await getCollection<HeadlineDocument>("headlines")
+      .find({ createdAt: { $gte: oneHourAgo } })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return sources.map((source) => ({
+      ...source,
+      headlines: headlines.filter((h) => h.sourceId === source._id.toString()),
+    }));
   }
 }
+
+export const headlineService = new HeadlineService();

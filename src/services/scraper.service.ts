@@ -1,14 +1,14 @@
 import { ScrapingBeeClient } from "scrapingbee";
 import * as cheerio from "cheerio";
-import { INewsSource, NEWS_SOURCES } from "../models/newssource.model";
+import { ISource, Source } from "../models/source.model";
 import { IHeadline, NewsTopic, Section } from "../models/headline.model";
-import { LangChainService } from "./langchain.service";
+import { langChainService } from "./langchain.service";
 
 export class ScraperService {
   private readonly client: ScrapingBeeClient;
   private readonly apiKey: string;
   private readonly MAX_TOKENS: number = 100000;
-  private readonly langChainService: LangChainService;
+  private readonly langChainService = langChainService;
 
   constructor() {
     this.apiKey = process.env.SCRAPING_BEE_API_KEY ?? "";
@@ -16,31 +16,12 @@ export class ScraperService {
       throw new Error("SCRAPING_BEE_API_KEY environment variable is required");
     }
     this.client = new ScrapingBeeClient(this.apiKey);
-    this.langChainService = new LangChainService();
   }
 
-  private extractHeadlineContent(html: string): string {
-    const $ = cheerio.load(html);
-    const headlineElements: string[] = [];
-
-    // Common headline selectors
-    $(
-      'h1, h2, h3, .headline, .article-title, .story-title, [class*="headline"], [class*="title"]'
-    ).each((_, el) => {
-      const text = $(el).text().trim();
-      if (text) {
-        headlineElements.push(text);
-      }
-    });
-
-    return headlineElements.join("\n");
-  }
-
-  private cleanHtml(html: string, sourceName: string): string {
+  private cleanHtml(html: string, source: ISource): string {
     console.log("Length before:", html.length);
     const $ = cheerio.load(html);
-    const config = NEWS_SOURCES[sourceName];
-    const mainContent = config ? $(config.cssSelector).html() || html : html;
+    const mainContent = $(source.cssSelector).html() || html;
     console.log("Length after selector:", mainContent.length);
     const truncated = mainContent.slice(0, this.MAX_TOKENS);
     console.log("Length after truncation:", truncated.length);
@@ -59,14 +40,15 @@ export class ScraperService {
     const prompt: string = `Extract headlines from this HTML, which has been extracted from the front page of a news site. For each headline, provide:
 1. The full headline text, e.g., "Biden's State of the Union Address: A Look at the President's Speech" (required)
 2. The URL link to the full article (required)
-3. The section of the paper the article belongs to. Section can be one of the following: ${Object.values(
+3. A summary of the article, e.g., "Biden's State of the Union Address: A Look at the President's Speech" (if provided in the HTML)
+4. The section of the paper the article belongs to. Section can be one of the following: ${Object.values(
       Section
     ).join(", ")} (required)
-4. The topic of the article, if it's in the news or opinion sections. Topic can be one of the following: ${Object.values(
+5. The topic of the article, if it's in the news or opinion sections. Topic can be one of the following: ${Object.values(
       NewsTopic
     ).join(", ")} (required)
 
-Format the response as a correctly formatted JSON array of objects with these fields: fullHeadline, articleUrl, section, type.
+Format the response as a correctly formatted JSON array of objects with these fields: fullHeadline, articleUrl, summary, section, type.
 IMPORTANT: 
 - Keep the JSON response under 4000 characters
 - No markdown formatting
@@ -94,14 +76,14 @@ ${htmlString}`;
     }
   }
 
-  public async scrapePage(sourceName: string): Promise<IHeadline[]> {
-    const config = NEWS_SOURCES[sourceName];
-    if (!config) {
-      throw new Error(`Unknown news source: ${sourceName}`);
+  public async scrapeSource(sourceId: string): Promise<IHeadline[]> {
+    const source = await Source.findById(sourceId);
+    if (!source) {
+      throw new Error(`Unknown source: ${sourceId}`);
     }
     try {
       const response = await this.client.get({
-        url: config.homepageUrl,
+        url: source.homepageUrl,
         params: {
           render_js: false,
           premium_proxy: true,
@@ -109,7 +91,7 @@ ${htmlString}`;
       });
 
       const html: string = response.data.toString("utf-8");
-      const cleanedHtml: string = this.cleanHtml(html, sourceName);
+      const cleanedHtml: string = this.cleanHtml(html, source);
       return await this.parseHeadlines(cleanedHtml);
     } catch (error) {
       console.error("Error scraping page:", error);
@@ -117,3 +99,5 @@ ${htmlString}`;
     }
   }
 }
+
+export const scraperService = new ScraperService();

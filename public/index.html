@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StoryList - The world's headlines at a glance</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { primary: "#1a56db", secondary: "#4f46e5" },
+            borderRadius: {
+              none: "0px",
+              sm: "4px",
+              DEFAULT: "8px",
+              md: "12px",
+              lg: "16px",
+              xl: "20px",
+              "2xl": "24px",
+              "3xl": "32px",
+              full: "9999px",
+              button: "8px",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Serif+Pro:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css"
+      rel="stylesheet"
+    />
+    <style>
+      :where([class^="ri-"])::before {
+        content: "\f3c2";
+      }
+      body {
+        font-family: "Source Serif Pro", serif;
+        background-color: #f9f9f9;
+      }
+      .masthead {
+        font-family: "Playfair Display", serif;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+      .motto {
+        font-family: "Playfair Display", serif;
+        font-style: italic;
+        font-weight: 400;
+      }
+      .column-header {
+        font-family: "Playfair Display", serif;
+        font-weight: 700;
+      }
+      .news-headline {
+        transition: all 0.2s ease;
+        position: relative;
+      }
+      .group:hover .news-headline {
+        color: #1a56db;
+      }
+      .news-headline:after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 1px;
+        bottom: -2px;
+        left: 0;
+        background-color: #1a56db;
+        transform: scaleX(0);
+        transform-origin: bottom left;
+        transition: transform 0.3s ease;
+      }
+      .group:hover .news-headline:after {
+        transform: scaleX(1);
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .news-column {
+        min-width: 252px;
+        max-width: 252px;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <!-- Source Settings Modal -->
+    <div
+      id="sourceSettingsModal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-lg">
+        <div class="flex justify-between items-center mb-4">
+          <h3 id="modalTitle" class="text-xl font-bold">Source Settings</h3>
+          <button
+            onclick="closeSourceSettingsModal()"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            <i class="ri-close-line text-2xl"></i>
+          </button>
+        </div>
+        <form
+          id="sourceSettingsForm"
+          onsubmit="handleSourceSubmit(event)"
+          class="space-y-4"
+        >
+          <input type="hidden" id="sourceId" />
+          <div id="objectIdField" class="hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Object ID</label
+            >
+            <input
+              type="text"
+              id="displayObjectId"
+              readonly
+              class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-500 cursor-not-allowed"
+            />
+          </div>
+          <div>
+            <label
+              for="name"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Name</label
+            >
+            <input
+              type="text"
+              id="name"
+              name="name"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label
+              for="homepageUrl"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Homepage URL</label
+            >
+            <input
+              type="url"
+              id="homepageUrl"
+              name="homepageUrl"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label
+              for="cssSelector"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >CSS Selector</label
+            >
+            <input
+              type="text"
+              id="cssSelector"
+              name="cssSelector"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label
+              for="biasScore"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Bias Score</label
+            >
+            <input
+              type="number"
+              id="biasScore"
+              name="biasScore"
+              step="0.01"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onclick="closeSourceSettingsModal()"
+              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              id="submitButton"
+              class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Update
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <header
+      class="fixed top-0 left-0 right-0 bg-white z-10 border-b border-gray-200 shadow-sm"
+    >
+      <div class="container mx-auto px-4 py-4">
+        <div class="flex items-center justify-center relative mb-2">
+          <h1 class="masthead text-4xl">StoryList</h1>
+          <div id="adminControls" class="hidden absolute right-0">
+            <button
+              onclick="openSourceSettingsModal()"
+              class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center"
+            >
+              <i class="ri-add-line mr-1"></i>Add
+            </button>
+          </div>
+        </div>
+        <p class="motto text-center text-gray-600 text-sm">
+          The world's headlines at a glance
+        </p>
+      </div>
+    </header>
+    <main class="pt-28 pb-8 px-4">
+      <div class="scrollbar-hide overflow-x-auto flex space-x-0 pb-4">
+        <!-- Content will be dynamically populated here -->
+      </div>
+    </main>
+    <script>
+      let currentSources = [];
+
+      function openSourceSettingsModal(sourceId) {
+        const form = document.getElementById("sourceSettingsForm");
+        const modalTitle = document.getElementById("modalTitle");
+        const submitButton = document.getElementById("submitButton");
+        const objectIdField = document.getElementById("objectIdField");
+
+        // Reset form
+        form.reset();
+
+        if (sourceId) {
+          // Edit mode
+          const source = currentSources.find((s) => s._id === sourceId);
+          if (!source) return;
+
+          modalTitle.textContent = "Edit Source";
+          submitButton.textContent = "Update";
+
+          document.getElementById("sourceId").value = source._id;
+          document.getElementById("displayObjectId").value = source._id;
+          objectIdField.classList.remove("hidden");
+
+          document.getElementById("name").value = source.name;
+          document.getElementById("homepageUrl").value = source.homepageUrl;
+          document.getElementById("cssSelector").value = source.cssSelector;
+          document.getElementById("biasScore").value = source.biasScore || 0;
+        } else {
+          // Add mode
+          modalTitle.textContent = "Add New Source";
+          submitButton.textContent = "Add";
+          document.getElementById("sourceId").value = "";
+          objectIdField.classList.add("hidden");
+        }
+
+        document
+          .getElementById("sourceSettingsModal")
+          .classList.remove("hidden");
+      }
+
+      function closeSourceSettingsModal() {
+        document.getElementById("sourceSettingsModal").classList.add("hidden");
+      }
+
+      async function handleSourceSubmit(event) {
+        event.preventDefault();
+
+        const sourceId = document.getElementById("sourceId").value;
+        const formData = {
+          name: document.getElementById("name").value,
+          homepageUrl: document.getElementById("homepageUrl").value,
+          cssSelector: document.getElementById("cssSelector").value,
+          biasScore: parseFloat(document.getElementById("biasScore").value),
+        };
+
+        try {
+          const isEdit = sourceId !== "";
+          const response = await fetch(
+            isEdit ? `/api/sources/${sourceId}` : "/api/sources",
+            {
+              method: isEdit ? "PUT" : "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(formData),
+            }
+          );
+
+          if (!response.ok)
+            throw new Error(
+              isEdit ? "Failed to update source" : "Failed to add source"
+            );
+
+          // Refresh the page to show updated data
+          window.location.reload();
+        } catch (error) {
+          console.error("Error:", error);
+          alert(error.message);
+        }
+      }
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(";").shift();
+        return null;
+      }
+
+      document.addEventListener("DOMContentLoaded", async function () {
+        const scrollContainer = document.querySelector(".scrollbar-hide");
+        const adminControls = document.getElementById("adminControls");
+        const isAdmin = getCookie("role") === "admin";
+
+        console.log("Cookie value:", document.cookie);
+        console.log("Is admin?", isAdmin);
+
+        if (isAdmin && adminControls) {
+          adminControls.classList.remove("hidden");
+        }
+
+        if (!scrollContainer) return;
+
+        try {
+          const response = await fetch("/api/headlines");
+          const data = await response.json();
+
+          if (data.status === "ok" && Array.isArray(data.sources)) {
+            currentSources = data.sources;
+            scrollContainer.innerHTML = data.sources
+              .map(
+                (source) => `
+                <div class="news-column flex-shrink-0 border-r border-gray-200 px-5">
+                  <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-4 flex items-center justify-between">
+                    <h2 class="flex-grow">${source.name}</h2>
+                    ${
+                      isAdmin
+                        ? `
+                      <button onclick="openSourceSettingsModal('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors ml-2">
+                        <i class="ri-settings-4-line text-lg"></i>
+                      </button>
+                    `
+                        : ""
+                    }
+                  </div>
+                  <div class="space-y-3">
+                    ${source.headlines
+                      .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
+                      .map(
+                        (headline) => `
+                        <div>
+                          <a href="${
+                            headline.articleUrl
+                          }" class="news-headline block mb-0.5 font-semibold text-base leading-tight" target="_blank" rel="noopener">
+                            ${headline.fullHeadline}
+                          </a>
+                          ${
+                            headline.summary
+                              ? `
+                            <p class="text-gray-600 text-xs leading-snug">
+                              ${headline.summary}
+                            </p>
+                          `
+                              : ""
+                          }
+                        </div>
+                      `
+                      )
+                      .join("")}
+                  </div>
+                </div>
+              `
+              )
+              .join("");
+          }
+        } catch (error) {
+          console.error("Failed to fetch headlines:", error);
+          scrollContainer.innerHTML = `
+            <div class="w-full text-center py-8">
+              <p class="text-red-600 text-sm">Failed to load headlines. Please try again later.</p>
+            </div>
+          `;
+        }
+
+        // Add smooth scrolling with arrow keys
+        window.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight") {
+            scrollContainer.scrollBy({ left: 100, behavior: "smooth" });
+          } else if (e.key === "ArrowLeft") {
+            scrollContainer.scrollBy({ left: -100, behavior: "smooth" });
+          }
+        });
+
+        // Add scroll indicators if needed
+        const checkScroll = () => {
+          const isScrollable =
+            scrollContainer.scrollWidth > scrollContainer.clientWidth;
+          if (isScrollable) {
+            document.body.classList.add("has-horizontal-scroll");
+          } else {
+            document.body.classList.remove("has-horizontal-scroll");
+          }
+        };
+
+        // Check on load and resize
+        checkScroll();
+        window.addEventListener("resize", checkScroll);
+      });
+    </script>
+  </body>
+</html>

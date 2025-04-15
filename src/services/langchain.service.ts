@@ -33,3 +33,5 @@ export class LangChainService {
     }
   }
 }
+
+export const langChainService = new LangChainService();

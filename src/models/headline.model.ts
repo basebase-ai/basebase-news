@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 export enum Section {
   NEWS = "news",
   OPINION = "opinion",
@@ -17,11 +19,26 @@ export enum NewsTopic {
 }
 
 export interface IHeadline {
+  sourceId: string;
   fullHeadline: string;
+  summary: string;
   articleUrl: string;
   section: Section;
   type: NewsTopic;
-  sourceId: string;
+  inPageRank: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export const Headline = mongoose.model<IHeadline>(
+  "Headline",
+  new mongoose.Schema({
+    sourceId: String,
+    fullHeadline: String,
+    summary: String,
+    articleUrl: String,
+    section: String,
+    type: String,
+    inPageRank: Number,
+  })
+);
