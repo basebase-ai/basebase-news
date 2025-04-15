@@ -10,7 +10,7 @@ import { scraperService } from "./services/scraper.service";
 import { agendaService } from "./services/agenda.service";
 
 const app: express.Application = express();
-const port: number = 3000;
+const port: number = parseInt(process.env.PORT || "3000", 10);
 const headlineService: HeadlineService = new HeadlineService();
 
 app.use(express.json());
