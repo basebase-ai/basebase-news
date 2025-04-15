@@ -7,6 +7,7 @@ import { connectDB } from "./services/mongo.service";
 import { Source } from "./models/source.model";
 import { IHeadline } from "./models/headline.model";
 import { scraperService } from "./services/scraper.service";
+import { agendaService } from "./services/agenda.service";
 
 const app: express.Application = express();
 const port: number = 3000;
@@ -72,27 +73,38 @@ app.get(
 );
 
 app.get(
-  "/api/scrape/:sourceId",
+  "/api/scrape/:sourceId?",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log(`Scraping ${req.params.sourceId}`);
-      const source = await Source.findById(req.params.sourceId);
-      if (!source) {
-        throw new Error(`Source with id ${req.params.sourceId} not found`);
+      const { sourceId } = req.params;
+
+      if (sourceId) {
+        // Scrape single source
+        console.log(`Scraping source: ${sourceId}`);
+        const source = await Source.findById(sourceId);
+        if (!source) {
+          throw new Error(`Source with id ${sourceId} not found`);
+        }
+        const headlines = await scraperService.scrapeSource(source.id);
+        res.json({
+          status: "ok",
+          count: headlines.length,
+          headlines,
+        });
+      } else {
+        // Scrape all sources
+        console.log("Scraping all sources");
+        await scraperService.scrapeAll();
+        res.json({
+          status: "ok",
+          message: "All sources scraped successfully",
+        });
       }
-      const headlines: IHeadline[] = await scraperService.scrapeSource(
-        source.id
-      );
-      console.log(`Got ${headlines.length} headlines`);
-      const result = await headlineService.addHeadlines(source.id, headlines);
-      res.json({
-        status: "ok",
-        count: headlines.length,
-        headlines,
-      });
     } catch (error) {
-      console.error("Error scraping source:", error);
-      res.status(500).json({ status: "error", message: "Scraping failed" });
+      console.error("Error scraping source(s):", error);
+      const message =
+        error instanceof Error ? error.message : "Scraping failed";
+      res.status(500).json({ status: "error", message });
     }
   }
 );
@@ -149,9 +161,32 @@ app.delete(
   }
 );
 
-// Connect to MongoDB before starting the server
-connectDB().then(() => {
-  app.listen(port, (): void => {
-    console.log(`Server running at http://localhost:${port}`);
-  });
+// Start the server and agenda service
+async function startServer(): Promise<void> {
+  try {
+    await connectDB();
+    await agendaService.start();
+
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+// Handle graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received. Shutting down gracefully...");
+  await agendaService.stop();
+  process.exit(0);
 });
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received. Shutting down gracefully...");
+  await agendaService.stop();
+  process.exit(0);
+});
+
+startServer();

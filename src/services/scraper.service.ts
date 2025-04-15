@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { ISource, Source } from "../models/source.model";
 import { IHeadline, NewsTopic, Section } from "../models/headline.model";
 import { langChainService } from "./langchain.service";
+import { headlineService } from "./headline.service";
 
 export class ScraperService {
   private readonly client: ScrapingBeeClient;
@@ -76,6 +77,27 @@ ${htmlString}`;
     }
   }
 
+  public async scrapeAll(): Promise<void> {
+    try {
+      // Get all sources
+      const sources = await Source.find();
+
+      // Scrape each source one at a time
+      for (const source of sources) {
+        try {
+          console.log(`Scraping source: ${source.name}`);
+          await this.scrapeSource(source.id);
+        } catch (error) {
+          console.error(`Error scraping source ${source.name}:`, error);
+          // Continue with next source even if one fails
+        }
+      }
+    } catch (error) {
+      console.error("Error in scrapeAll:", error);
+      throw error;
+    }
+  }
+
   public async scrapeSource(sourceId: string): Promise<IHeadline[]> {
     const source = await Source.findById(sourceId);
     if (!source) {
@@ -92,7 +114,13 @@ ${htmlString}`;
 
       const html: string = response.data.toString("utf-8");
       const cleanedHtml: string = this.cleanHtml(html, source);
-      return await this.parseHeadlines(cleanedHtml);
+      const headlines = await this.parseHeadlines(cleanedHtml);
+
+      // Save headlines to database
+      await headlineService.addHeadlines(sourceId, headlines);
+      console.log(`Saved ${headlines.length} headlines for ${source.name}`);
+
+      return headlines;
     } catch (error) {
       console.error("Error scraping page:", error);
       throw error;

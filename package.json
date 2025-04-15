@@ -27,6 +27,7 @@
     "@types/express": "^5.0.1",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^22.14.1",
+    "agenda": "^5.0.0",
     "cheerio": "^1.0.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.5.0",
