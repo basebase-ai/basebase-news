@@ -98,6 +98,23 @@
       .group:hover .news-headline:not(.read):after {
         transform: scaleX(1);
       }
+      .tooltip {
+        display: none;
+        position: absolute;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: max-content;
+        max-width: 300px;
+        z-index: 1000;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+      }
       .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
       }
@@ -590,10 +607,13 @@
                 .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
                 .map(
                   (headline) => `
-                  <div class="truncate">
+                  <div class="truncate relative">
                     <a href="${headline.articleUrl}"
                        onmousedown="markAsRead('${headline._id}')"
                        data-headline-id="${headline._id}"
+                       title="${headline.fullHeadline}"
+                       onmouseenter="showTooltip(this)"
+                       onmouseleave="hideTooltip(this)"
                        class="news-headline block font-semibold text-base leading-tight truncate ${
                          readIds.has(headline._id) ? "read" : ""
                        }"
@@ -601,6 +621,10 @@
                        rel="noopener">
                       ${headline.fullHeadline}
                     </a>
+                    <div class="tooltip">
+                      ${headline.fullHeadline}
+                      ${headline.summary ? "<br><br>" + headline.summary : ""}
+                    </div>
                   </div>
                 `
                 )
@@ -885,6 +909,24 @@
         checkScroll();
         window.addEventListener("resize", checkScroll);
       });
+
+      function showTooltip(element) {
+        console.log("Showing tooltip");
+        const tooltip = element.nextElementSibling;
+        if (tooltip && tooltip.classList.contains("tooltip")) {
+          setTimeout(() => {
+            tooltip.style.display = "block";
+          }, 100);
+        }
+      }
+
+      function hideTooltip(element) {
+        console.log("Hiding tooltip");
+        const tooltip = element.nextElementSibling;
+        if (tooltip && tooltip.classList.contains("tooltip")) {
+          tooltip.style.display = "none";
+        }
+      }
     </script>
   </body>
 </html>
