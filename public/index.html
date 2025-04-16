@@ -76,7 +76,11 @@
         transition: all 0.2s ease;
         position: relative;
       }
-      .group:hover .news-headline {
+      .news-headline.read {
+        color: #9ca3af;
+        font-weight: normal;
+      }
+      .group:hover .news-headline:not(.read) {
         color: #1a56db;
       }
       .news-headline:after {
@@ -91,7 +95,7 @@
         transform-origin: bottom left;
         transition: transform 0.3s ease;
       }
-      .group:hover .news-headline:after {
+      .group:hover .news-headline:not(.read):after {
         transform: scaleX(1);
       }
       .custom-scrollbar::-webkit-scrollbar {
@@ -287,6 +291,9 @@
       let searchTimeout = null;
       let allHeadlines = [];
       let isAdmin = false;
+      let readIds = new Set(
+        JSON.parse(localStorage.getItem("readIds") || "[]")
+      );
 
       function debounce(func, wait) {
         return function executedFunction(...args) {
@@ -364,6 +371,21 @@
         return "now";
       }
 
+      function markAsRead(headlineId) {
+        readIds.add(headlineId);
+        if (readIds.size > 100) {
+          const idsArray = Array.from(readIds);
+          readIds = new Set(idsArray.slice(-100));
+        }
+        localStorage.setItem("readIds", JSON.stringify([...readIds]));
+        const headlineElement = document.querySelector(
+          `[data-headline-id="${headlineId}"]`
+        );
+        if (headlineElement) {
+          headlineElement.classList.add("read");
+        }
+      }
+
       function generateSourceHTML(source) {
         return `
           <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col">
@@ -415,7 +437,14 @@
                 .map(
                   (headline) => `
                   <div class="truncate">
-                    <a href="${headline.articleUrl}" class="news-headline block font-semibold text-base leading-tight truncate" target="_blank" rel="noopener">
+                    <a href="${headline.articleUrl}" 
+                       onmousedown="markAsRead('${headline._id}')"
+                       data-headline-id="${headline._id}"
+                       class="news-headline block font-semibold text-base leading-tight truncate ${
+                         readIds.has(headline._id) ? "read" : ""
+                       }" 
+                       target="_blank" 
+                       rel="noopener">
                       ${headline.fullHeadline}
                     </a>
                   </div>
