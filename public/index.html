@@ -94,16 +94,19 @@
       .group:hover .news-headline:after {
         transform: scaleX(1);
       }
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
       }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
       }
-      .news-column {
-        min-width: 252px;
-        max-width: 252px;
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #a1a1a1;
       }
       .highlight {
         background-color: #fef08a;
@@ -273,7 +276,7 @@
       </div>
     </header>
     <main class="pt-28">
-      <div class="scrollbar-hide overflow-x-auto flex space-x-0 pb-4">
+      <div class="grid grid-cols-3 gap-4 px-4 max-w-7xl mx-auto">
         <!-- Content will be dynamically populated here -->
       </div>
     </main>
@@ -301,7 +304,7 @@
       }
 
       function filterHeadlines(searchTerm) {
-        const scrollContainer = document.querySelector(".scrollbar-hide");
+        const scrollContainer = document.querySelector(".grid");
         if (!scrollContainer) return;
 
         if (!searchTerm || searchTerm.trim() === "") {
@@ -345,78 +348,74 @@
           .join("");
       }
 
+      function formatTimeAgo(date) {
+        const seconds = Math.floor(
+          (new Date().getTime() - date.getTime()) / 1000
+        );
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) return `${days}d`;
+        if (hours > 0) return `${hours}h`;
+        if (minutes > 0) return `${minutes}m`;
+        return "now";
+      }
+
       function generateSourceHTML(source) {
         return `
-          <div class="news-column flex-shrink-0 border-r border-gray-200 px-5">
-            <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between">
+          <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col">
+            <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between px-4">
               <div class="flex-grow">
-                <h2 class="flex items-center gap-1">
+                <h2 class="flex items-baseline gap-2">
                   <a href="${
                     source.homepageUrl
                   }" target="_blank" rel="noopener" class="hover:text-blue-600 transition-colors">${
           source.name
         }</a>
-                  <a href="https://adfontesmedia.com/rankings-by-individual-news-source/" target="_blank" rel="noopener" class="text-xs font-bold px-2 pt-0.5 pb-0 rounded-full font-poppins tracking-tight ${
-                    source.biasScore > 5
-                      ? "bg-red-100 text-red-700 hover:bg-red-200"
-                      : source.biasScore < -5
-                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }">${source.biasScore.toFixed(1)}</a>
                   ${
-                    isAdmin
-                      ? `
-                    <div class="relative inline-block">
-                      <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors ml-1">
-                        <i class="ri-settings-4-line text-lg"></i>
-                      </button>
-                      <div id="dropdown-${source._id}" class="hidden absolute left-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
-                        <div class="py-1">
-                          <button onclick="scrapeSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                            <i class="ri-refresh-line mr-2"></i>Refresh
-                          </button>
-                          <button onclick="openSourceSettingsModal('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                            <i class="ri-edit-line mr-2"></i>Edit
-                          </button>
-                          <button onclick="deleteSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
-                            <i class="ri-delete-bin-line mr-2"></i>Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  `
+                    source.lastScrapedAt
+                      ? `<span class="text-[0.675rem] text-gray-500 font-poppins font-normal">${formatTimeAgo(
+                          new Date(source.lastScrapedAt)
+                        )}</span>`
                       : ""
                   }
                 </h2>
-                ${
-                  source.lastScrapedAt
-                    ? `<p class="text-[0.675rem] text-gray-500 font-poppins -mt-1 font-normal">Updated ${formatTimeAgo(
-                        new Date(source.lastScrapedAt)
-                      )}</p>`
-                    : ""
-                }
               </div>
+              ${
+                isAdmin
+                  ? `
+                <div class="relative inline-block">
+                  <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
+                    <i class="ri-settings-4-line text-lg"></i>
+                  </button>
+                  <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                    <div class="py-1">
+                      <button onclick="scrapeSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                        <i class="ri-refresh-line mr-2"></i>Refresh
+                      </button>
+                      <button onclick="openSourceSettingsModal('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                        <i class="ri-edit-line mr-2"></i>Edit
+                      </button>
+                      <button onclick="deleteSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
+                        <i class="ri-delete-bin-line mr-2"></i>Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `
+                  : ""
+              }
             </div>
-            <div class="space-y-3">
+            <div class="space-y-2 flex-1 overflow-y-auto custom-scrollbar px-4">
               ${source.headlines
                 .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
                 .map(
                   (headline) => `
-                  <div>
-                    <a href="${
-                      headline.articleUrl
-                    }" class="news-headline block mb-0.5 font-semibold text-base leading-tight" target="_blank" rel="noopener">
+                  <div class="truncate">
+                    <a href="${headline.articleUrl}" class="news-headline block font-semibold text-base leading-tight truncate" target="_blank" rel="noopener">
                       ${headline.fullHeadline}
                     </a>
-                    ${
-                      headline.summary
-                        ? `
-                      <p class="text-gray-600 text-xs leading-snug">
-                        ${headline.summary}
-                      </p>
-                    `
-                        : ""
-                    }
                   </div>
                 `
                 )
@@ -516,20 +515,6 @@
         return null;
       }
 
-      function formatTimeAgo(date) {
-        const seconds = Math.floor(
-          (new Date().getTime() - date.getTime()) / 1000
-        );
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
-
-        if (days > 0) return `${days}d ago`;
-        if (hours > 0) return `${hours}h ago`;
-        if (minutes > 0) return `${minutes}m ago`;
-        return "just now";
-      }
-
       function toggleDropdown(sourceId) {
         const dropdown = document.getElementById(`dropdown-${sourceId}`);
         if (dropdown) {
@@ -586,7 +571,7 @@
       }
 
       document.addEventListener("DOMContentLoaded", async function () {
-        const scrollContainer = document.querySelector(".scrollbar-hide");
+        const scrollContainer = document.querySelector(".grid");
         const adminControls = document.getElementById("adminControls");
         const searchInput = document.getElementById("searchInput");
         isAdmin = getCookie("role") === "admin";
