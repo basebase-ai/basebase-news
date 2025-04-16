@@ -57,14 +57,27 @@ app.get(
   "/api/headlines",
   async (_req: Request, res: Response): Promise<void> => {
     try {
+      console.log("Fetching headlines...");
       const sourcesWithHeadlines =
         await headlineService.getSourcesWithHeadlines();
+      console.log(
+        `Found ${sourcesWithHeadlines.length} sources with headlines`
+      );
+      console.log(
+        "Sample source:",
+        JSON.stringify(sourcesWithHeadlines[0], null, 2)
+      );
       res.json({
         status: "ok",
         sources: sourcesWithHeadlines,
       });
     } catch (error) {
       console.error("Error getting headlines:", error);
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       res
         .status(500)
         .json({ status: "error", message: "Failed to get headlines" });
@@ -75,14 +88,22 @@ app.get(
 // Scraping endpoints
 app.get("/api/scrape", async (_req: Request, res: Response): Promise<void> => {
   try {
-    console.log("Scraping all sources");
+    console.log("Starting scrape of all sources...");
+    const sources = await Source.find();
+    console.log(`Found ${sources.length} sources to scrape`);
     await scraperService.scrapeAll();
+    console.log("Scrape completed successfully");
     res.json({
       status: "ok",
       message: "All sources scraped successfully",
     });
   } catch (error) {
     console.error("Error scraping sources:", error);
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
     const message = error instanceof Error ? error.message : "Scraping failed";
     res.status(500).json({ status: "error", message });
   }

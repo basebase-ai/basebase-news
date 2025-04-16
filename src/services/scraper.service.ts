@@ -49,7 +49,20 @@ export class ScraperService {
     return str;
   }
 
-  private async parseHeadlines(htmlString: string): Promise<IHeadline[]> {
+  private makeUrlAbsolute(url: string, baseUrl: string): string {
+    if (!url) return "";
+    try {
+      return new URL(url, baseUrl).toString();
+    } catch (error) {
+      console.error("Error making URL absolute:", error);
+      return url;
+    }
+  }
+
+  private async parseHeadlines(
+    htmlString: string,
+    baseUrl: string
+  ): Promise<IHeadline[]> {
     const prompt: string = `Extract headlines from this HTML, which has been extracted from the front page of a news site. For each headline, provide:
 1. The full headline text, e.g., "Biden's State of the Union Address: A Look at the President's Speech" (required)
 2. The URL link to the full article (required)
@@ -81,7 +94,10 @@ ${htmlString}`;
       console.log(`Got cleaned response with length ${cleanedResponse.length}`);
       const headlines: IHeadline[] = JSON.parse(cleanedResponse);
       console.log(`Got ${headlines.length} headlines`);
-      return headlines;
+      return headlines.map((headline) => ({
+        ...headline,
+        articleUrl: this.makeUrlAbsolute(headline.articleUrl, baseUrl),
+      }));
     } catch (error) {
       console.error("Error parsing headlines:", error);
       console.error("Raw response:", response);
@@ -119,19 +135,36 @@ ${htmlString}`;
     try {
       // Get all sources
       const sources = await Source.find();
+      console.log(`Found ${sources.length} sources to scrape`);
 
       // Scrape each source one at a time
       for (const source of sources) {
         try {
-          console.log(`Scraping source: ${source.name}`);
-          await this.scrapeSource(source.id);
+          console.log(
+            `Starting scrape of source: ${source.name} (${source.homepageUrl})`
+          );
+          const headlines = await this.scrapeSource(source.id);
+          console.log(
+            `Successfully scraped ${headlines.length} headlines from ${source.name}`
+          );
         } catch (error) {
           console.error(`Error scraping source ${source.name}:`, error);
+          if (error instanceof Error) {
+            console.error("Error name:", error.name);
+            console.error("Error message:", error.message);
+            console.error("Error stack:", error.stack);
+          }
           // Continue with next source even if one fails
         }
       }
+      console.log("Completed scraping all sources");
     } catch (error) {
       console.error("Error in scrapeAll:", error);
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       throw error;
     }
   }
@@ -149,7 +182,10 @@ ${htmlString}`;
 
       const html: string = response.data.toString("utf-8");
       const cleanedHtml: string = this.cleanHtml(html, source);
-      const headlines = await this.parseHeadlines(cleanedHtml);
+      const headlines = await this.parseHeadlines(
+        cleanedHtml,
+        source.homepageUrl
+      );
 
       // Save headlines to database
       await headlineService.addHeadlines(sourceId, headlines);

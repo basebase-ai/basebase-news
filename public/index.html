@@ -105,6 +105,11 @@
         min-width: 252px;
         max-width: 252px;
       }
+      .highlight {
+        background-color: #fef08a;
+        padding: 0 2px;
+        border-radius: 2px;
+      }
     </style>
   </head>
   <body class="min-h-screen">
@@ -221,29 +226,192 @@
       class="fixed top-0 left-0 right-0 bg-white z-10 border-b border-gray-200 shadow-sm"
     >
       <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-center relative mb-2">
-          <h1 class="masthead text-4xl">StoryList</h1>
-          <div id="adminControls" class="hidden absolute right-0">
-            <button
-              onclick="openSourceSettingsModal()"
-              class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center"
-            >
-              <i class="ri-add-line mr-1"></i>Add
-            </button>
+        <div class="flex items-center justify-between relative mb-2">
+          <div>
+            <h1 class="masthead text-3xl">StoryList</h1>
+            <p class="motto text-gray-600 text-xs">
+              The world's headlines at a glance
+            </p>
+          </div>
+          <div class="flex items-center">
+            <div class="relative">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search headlines..."
+                class="w-64 px-4 py-1.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em]"
+              />
+              <button
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <i class="ri-search-line"></i>
+              </button>
+            </div>
+            <div id="adminControls" class="hidden ml-4">
+              <button
+                onclick="openSourceSettingsModal()"
+                class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center font-poppins"
+              >
+                <i class="ri-add-line mr-1"></i>Add
+              </button>
+            </div>
           </div>
         </div>
-        <p class="motto text-center text-gray-600 text-sm">
-          The world's headlines at a glance
-        </p>
       </div>
     </header>
-    <main class="pt-28 pb-8 px-4">
+    <main class="pt-28">
       <div class="scrollbar-hide overflow-x-auto flex space-x-0 pb-4">
         <!-- Content will be dynamically populated here -->
       </div>
     </main>
     <script>
       let currentSources = [];
+      let searchTimeout = null;
+      let allHeadlines = [];
+      let isAdmin = false;
+
+      function debounce(func, wait) {
+        return function executedFunction(...args) {
+          const later = () => {
+            searchTimeout = null;
+            func(...args);
+          };
+          if (searchTimeout) clearTimeout(searchTimeout);
+          searchTimeout = window.setTimeout(later, wait);
+        };
+      }
+
+      function highlightText(text, searchTerm) {
+        if (!searchTerm) return text;
+        const regex = new RegExp(`(${searchTerm})`, "gi");
+        return text.replace(regex, '<span class="highlight">$1</span>');
+      }
+
+      function filterHeadlines(searchTerm) {
+        const scrollContainer = document.querySelector(".scrollbar-hide");
+        if (!scrollContainer) return;
+
+        if (!searchTerm || searchTerm.trim() === "") {
+          // Reset to original view
+          scrollContainer.innerHTML = currentSources
+            .map((source) => generateSourceHTML(source))
+            .join("");
+          return;
+        }
+
+        const filteredSources = currentSources
+          .map((source) => {
+            const filteredHeadlines = source.headlines.filter(
+              (headline) =>
+                headline.fullHeadline
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase()) ||
+                (headline.summary &&
+                  headline.summary
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase()))
+            );
+
+            if (filteredHeadlines.length === 0) return null;
+
+            return {
+              ...source,
+              headlines: filteredHeadlines.map((headline) => ({
+                ...headline,
+                fullHeadline: highlightText(headline.fullHeadline, searchTerm),
+                summary: headline.summary
+                  ? highlightText(headline.summary, searchTerm)
+                  : "",
+              })),
+            };
+          })
+          .filter(Boolean);
+
+        scrollContainer.innerHTML = filteredSources
+          .map((source) => generateSourceHTML(source))
+          .join("");
+      }
+
+      function generateSourceHTML(source) {
+        return `
+          <div class="news-column flex-shrink-0 border-r border-gray-200 px-5">
+            <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between">
+              <div class="flex-grow">
+                <h2 class="flex items-center gap-1">
+                  <a href="${
+                    source.homepageUrl
+                  }" target="_blank" rel="noopener" class="hover:text-blue-600 transition-colors">${
+          source.name
+        }</a>
+                  <span class="text-xs font-bold px-2 pt-0.5 pb-0 rounded-full font-poppins tracking-tight ${
+                    source.biasScore > 5
+                      ? "bg-red-100 text-red-700"
+                      : source.biasScore < -5
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-200 text-gray-800"
+                  }">${source.biasScore.toFixed(1)}</span>
+                  ${
+                    isAdmin
+                      ? `
+                    <div class="relative inline-block">
+                      <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors ml-1">
+                        <i class="ri-settings-4-line text-lg"></i>
+                      </button>
+                      <div id="dropdown-${source._id}" class="hidden absolute left-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                        <div class="py-1">
+                          <button onclick="scrapeSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                            <i class="ri-refresh-line mr-2"></i>Refresh
+                          </button>
+                          <button onclick="openSourceSettingsModal('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                            <i class="ri-edit-line mr-2"></i>Edit
+                          </button>
+                          <button onclick="deleteSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
+                            <i class="ri-delete-bin-line mr-2"></i>Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  `
+                      : ""
+                  }
+                </h2>
+                ${
+                  source.lastScrapedAt
+                    ? `<p class="text-[0.675rem] text-gray-500 font-poppins -mt-1 font-normal">Updated ${formatTimeAgo(
+                        new Date(source.lastScrapedAt)
+                      )}</p>`
+                    : ""
+                }
+              </div>
+            </div>
+            <div class="space-y-3">
+              ${source.headlines
+                .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
+                .map(
+                  (headline) => `
+                  <div>
+                    <a href="${
+                      headline.articleUrl
+                    }" class="news-headline block mb-0.5 font-semibold text-base leading-tight" target="_blank" rel="noopener">
+                      ${headline.fullHeadline}
+                    </a>
+                    ${
+                      headline.summary
+                        ? `
+                      <p class="text-gray-600 text-xs leading-snug">
+                        ${headline.summary}
+                      </p>
+                    `
+                        : ""
+                    }
+                  </div>
+                `
+                )
+                .join("")}
+            </div>
+          </div>
+        `;
+      }
 
       function openSourceSettingsModal(sourceId) {
         const form = document.getElementById("sourceSettingsForm");
@@ -403,7 +571,19 @@
       document.addEventListener("DOMContentLoaded", async function () {
         const scrollContainer = document.querySelector(".scrollbar-hide");
         const adminControls = document.getElementById("adminControls");
-        const isAdmin = getCookie("role") === "admin";
+        const searchInput = document.getElementById("searchInput");
+        isAdmin = getCookie("role") === "admin";
+
+        if (searchInput) {
+          searchInput.addEventListener(
+            "input",
+            debounce((e) => {
+              const target = e.target;
+              const value = target.value.trim();
+              filterHeadlines(value);
+            }, 300)
+          );
+        }
 
         console.log("Cookie value:", document.cookie);
         console.log("Is admin?", isAdmin);
@@ -423,86 +603,7 @@
               (a, b) => (a.biasScore ?? 0) - (b.biasScore ?? 0)
             );
             scrollContainer.innerHTML = currentSources
-              .map(
-                (source) => `
-                <div class="news-column flex-shrink-0 border-r border-gray-200 px-5">
-                  <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between">
-                    <div class="flex-grow">
-                      <h2 class="flex items-center gap-1">
-                        <a href="${
-                          source.homepageUrl
-                        }" target="_blank" rel="noopener" class="hover:text-blue-600 transition-colors">${
-                  source.name
-                }</a>
-                        <span class="text-xs font-bold px-2 pt-0.5 pb-0 rounded-full font-poppins tracking-tight ${
-                          source.biasScore > 5
-                            ? "bg-red-100 text-red-700"
-                            : source.biasScore < -5
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-200 text-gray-800"
-                        }">${source.biasScore.toFixed(1)}</span>
-                        ${
-                          isAdmin
-                            ? `
-                          <div class="relative inline-block">
-                            <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors ml-1">
-                              <i class="ri-settings-4-line text-lg"></i>
-                            </button>
-                            <div id="dropdown-${source._id}" class="hidden absolute left-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
-                              <div class="py-1">
-                                <button onclick="scrapeSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                                  <i class="ri-refresh-line mr-2"></i>Refresh
-                                </button>
-                                <button onclick="openSourceSettingsModal('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                                  <i class="ri-edit-line mr-2"></i>Edit
-                                </button>
-                                <button onclick="deleteSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
-                                  <i class="ri-delete-bin-line mr-2"></i>Delete
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        `
-                            : ""
-                        }
-                      </h2>
-                      ${
-                        source.lastScrapedAt
-                          ? `<p class="text-[0.675rem] text-gray-500 font-poppins -mt-1 font-normal">Updated ${formatTimeAgo(
-                              new Date(source.lastScrapedAt)
-                            )}</p>`
-                          : ""
-                      }
-                    </div>
-                  </div>
-                  <div class="space-y-3">
-                    ${source.headlines
-                      .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
-                      .map(
-                        (headline) => `
-                        <div>
-                          <a href="${
-                            headline.articleUrl
-                          }" class="news-headline block mb-0.5 font-semibold text-base leading-tight" target="_blank" rel="noopener">
-                            ${headline.fullHeadline}
-                          </a>
-                          ${
-                            headline.summary
-                              ? `
-                            <p class="text-gray-600 text-xs leading-snug">
-                              ${headline.summary}
-                            </p>
-                          `
-                              : ""
-                          }
-                        </div>
-                      `
-                      )
-                      .join("")}
-                  </div>
-                </div>
-              `
-              )
+              .map((source) => generateSourceHTML(source))
               .join("");
           }
         } catch (error) {

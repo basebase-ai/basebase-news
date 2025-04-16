@@ -72,16 +72,28 @@ export class HeadlineService {
 
   public async getSourcesWithHeadlines(): Promise<SourceWithHeadlines[]> {
     const sources = await Source.find().lean();
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    console.log(`Found ${sources.length} sources`);
+
     const headlines = await getCollection<HeadlineDocument>("headlines")
-      .find({ createdAt: { $gte: oneHourAgo } })
+      .find({ archived: { $ne: true } })
       .sort({ createdAt: -1 })
       .toArray();
+    console.log(`Found ${headlines.length} non-archived headlines`);
 
-    return sources.map((source) => ({
-      ...source,
-      headlines: headlines.filter((h) => h.sourceId === source._id.toString()),
-    }));
+    const sourcesWithHeadlines = sources.map((source) => {
+      const sourceHeadlines = headlines.filter(
+        (h) => h.sourceId === source._id.toString()
+      );
+      console.log(
+        `Source ${source.name} has ${sourceHeadlines.length} headlines`
+      );
+      return {
+        ...source,
+        headlines: sourceHeadlines,
+      };
+    });
+
+    return sourcesWithHeadlines;
   }
 }
 
