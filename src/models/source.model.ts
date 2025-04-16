@@ -5,6 +5,7 @@ export interface ISource {
   homepageUrl: string;
   cssSelector: string;
   biasScore?: number;
+  lastScrapedAt?: Date;
 }
 
 export const Source = mongoose.model<ISource>(
@@ -14,5 +15,6 @@ export const Source = mongoose.model<ISource>(
     homepageUrl: { type: String, unique: true },
     cssSelector: String,
     biasScore: Number,
+    lastScrapedAt: Date,
   })
 );

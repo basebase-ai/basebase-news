@@ -1,4 +1,4 @@
-import { ISource, Source } from "../models/source.model";
+import { Source, ISource } from "../models/source.model";
 import { IHeadline } from "../models/headline.model";
 import { scraperService } from "./scraper.service";
 import { connectDB, getCollection } from "./mongo.service";
@@ -55,6 +55,10 @@ export class HeadlineService {
     await getCollection<HeadlineDocument>("headlines").insertMany(
       headlinesWithMetadata as HeadlineDocument[]
     );
+
+    // Update source lastScrapedAt
+    await Source.findByIdAndUpdate(sourceId, { lastScrapedAt: new Date() });
+
     return true;
   }
 

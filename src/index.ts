@@ -34,7 +34,7 @@ const isAdmin = (
 app.get("/topsecret", (req: Request, res: Response): void => {
   res.cookie("role", "admin", {
     httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV !== "development",
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   });
   res.redirect("/");
@@ -88,27 +88,29 @@ app.get("/api/scrape", async (_req: Request, res: Response): Promise<void> => {
   }
 });
 
-app.get(
-  "/api/scrape/:sourceId",
+app.post(
+  "/api/sources/:sourceId/scrape",
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { sourceId } = req.params;
-      console.log(`Scraping source: ${sourceId}`);
       const source = await Source.findById(sourceId);
       if (!source) {
         throw new Error(`Source with id ${sourceId} not found`);
       }
-      const headlines = await scraperService.scrapeSource(source.id);
+
+      // Return success immediately
       res.json({
         status: "ok",
-        count: headlines.length,
-        headlines,
+        message: "Source queued for scraping",
       });
+
+      // Process scraping asynchronously
+      console.log(`Scraping source: ${source.name}`);
+      const headlines = await scraperService.scrapeSource(source.id);
+      console.log(`Scraped ${headlines.length} headlines for ${source.name}`);
     } catch (error) {
       console.error("Error scraping source:", error);
-      const message =
-        error instanceof Error ? error.message : "Scraping failed";
-      res.status(500).json({ status: "error", message });
+      // Don't send response here since we already sent it
     }
   }
 );

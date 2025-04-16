@@ -34,6 +34,16 @@ export class ScraperService {
   private cleanJsonString(str: string): string {
     // Remove markdown code block markers if any
     str = str.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+    // Find the first occurrence of a JSON array
+    const jsonMatch: RegExpMatchArray | null = str.match(/\[\s*\{/);
+    if (jsonMatch) {
+      str = str.slice(jsonMatch.index);
+    }
+    // Remove any trailing content after the last closing bracket
+    const lastBracket: number = str.lastIndexOf("]");
+    if (lastBracket !== -1) {
+      str = str.slice(0, lastBracket + 1);
+    }
     // Remove any leading/trailing whitespace
     str = str.trim();
     return str;
