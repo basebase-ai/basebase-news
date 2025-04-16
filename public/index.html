@@ -343,13 +343,13 @@
                   }" target="_blank" rel="noopener" class="hover:text-blue-600 transition-colors">${
           source.name
         }</a>
-                  <span class="text-xs font-bold px-2 pt-0.5 pb-0 rounded-full font-poppins tracking-tight ${
+                  <a href="https://adfontesmedia.com/rankings-by-individual-news-source/" target="_blank" rel="noopener" class="text-xs font-bold px-2 pt-0.5 pb-0 rounded-full font-poppins tracking-tight ${
                     source.biasScore > 5
-                      ? "bg-red-100 text-red-700"
+                      ? "bg-red-100 text-red-700 hover:bg-red-200"
                       : source.biasScore < -5
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-200 text-gray-800"
-                  }">${source.biasScore.toFixed(1)}</span>
+                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }">${source.biasScore.toFixed(1)}</a>
                   ${
                     isAdmin
                       ? `

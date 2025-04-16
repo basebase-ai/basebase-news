@@ -82,6 +82,7 @@ IMPORTANT:
 - Each object must be complete with all fields
 - If you can't fit all headlines, return fewer but complete ones.
 - Return headlines in the order they appear in the HTML, starting with the first one.
+- Ensure all JSON is properly escaped and formatted
 
 HTML content:
 ${htmlString}`;
@@ -92,12 +93,24 @@ ${htmlString}`;
       console.log(`Got response from AI with length ${response.length}`);
       const cleanedResponse: string = this.cleanJsonString(response);
       console.log(`Got cleaned response with length ${cleanedResponse.length}`);
-      const headlines: IHeadline[] = JSON.parse(cleanedResponse);
-      console.log(`Got ${headlines.length} headlines`);
-      return headlines.map((headline) => ({
-        ...headline,
-        articleUrl: this.makeUrlAbsolute(headline.articleUrl, baseUrl),
-      }));
+      console.log("Cleaned response:", cleanedResponse);
+
+      try {
+        const headlines: IHeadline[] = JSON.parse(cleanedResponse);
+        console.log(`Got ${headlines.length} headlines`);
+        return headlines.map((headline) => ({
+          ...headline,
+          articleUrl: this.makeUrlAbsolute(headline.articleUrl, baseUrl),
+        }));
+      } catch (parseError: unknown) {
+        console.error("JSON Parse Error:", parseError);
+        console.error("Failed to parse response:", cleanedResponse);
+        const errorMessage =
+          parseError instanceof Error
+            ? parseError.message
+            : "Unknown parse error";
+        throw new Error(`Failed to parse headlines JSON: ${errorMessage}`);
+      }
     } catch (error) {
       console.error("Error parsing headlines:", error);
       console.error("Raw response:", response);
