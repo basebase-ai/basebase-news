@@ -340,8 +340,10 @@
           const data = await response.json();
 
           if (data.status === "ok" && Array.isArray(data.sources)) {
-            currentSources = data.sources;
-            scrollContainer.innerHTML = data.sources
+            currentSources = data.sources.sort(
+              (a, b) => (a.biasScore ?? 0) - (b.biasScore ?? 0)
+            );
+            scrollContainer.innerHTML = currentSources
               .map(
                 (source) => `
                 <div class="news-column flex-shrink-0 border-r border-gray-200 px-5">

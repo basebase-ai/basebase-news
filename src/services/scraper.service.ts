@@ -10,6 +10,8 @@ export class ScraperService {
   private readonly apiKey: string;
   private readonly MAX_TOKENS: number = 100000;
   private readonly langChainService = langChainService;
+  private readonly MAX_RETRIES: number = 3;
+  private readonly RETRY_DELAY: number = 1000; // 1 second
 
   constructor() {
     this.apiKey = process.env.SCRAPING_BEE_API_KEY ?? "";
@@ -77,6 +79,32 @@ ${htmlString}`;
     }
   }
 
+  private async retryableRequest(
+    url: string,
+    params: Record<string, boolean>
+  ): Promise<{ data: Buffer }> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        return await this.client.get({ url, params });
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Attempt ${attempt} failed:`, error);
+
+        if (attempt < this.MAX_RETRIES) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.RETRY_DELAY * attempt)
+          );
+        }
+      }
+    }
+
+    throw new Error(
+      `Failed after ${this.MAX_RETRIES} attempts. Last error: ${lastError?.message}`
+    );
+  }
+
   public async scrapeAll(): Promise<void> {
     try {
       // Get all sources
@@ -104,12 +132,9 @@ ${htmlString}`;
       throw new Error(`Unknown source: ${sourceId}`);
     }
     try {
-      const response = await this.client.get({
-        url: source.homepageUrl,
-        params: {
-          render_js: false,
-          premium_proxy: true,
-        },
+      const response = await this.retryableRequest(source.homepageUrl, {
+        render_js: false,
+        premium_proxy: true,
       });
 
       const html: string = response.data.toString("utf-8");
