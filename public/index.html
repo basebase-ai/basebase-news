@@ -144,7 +144,9 @@
     >
       <div class="bg-white rounded-lg p-6 w-full max-w-lg">
         <div class="flex justify-between items-center mb-4">
-          <h3 id="modalTitle" class="text-xl font-bold">Source Settings</h3>
+          <h3 id="modalTitle" class="text-xl font-bold font-poppins">
+            Source Settings
+          </h3>
           <button
             onclick="closeSourceSettingsModal()"
             class="text-gray-500 hover:text-gray-700"
@@ -155,7 +157,7 @@
         <form
           id="sourceSettingsForm"
           onsubmit="handleSourceSubmit(event)"
-          class="space-y-4"
+          class="space-y-4 font-poppins"
         >
           <input type="hidden" id="sourceId" />
           <div id="objectIdField" class="hidden">
@@ -239,6 +241,20 @@
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <div>
+            <label
+              for="tags"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Tags (comma separated)</label
+            >
+            <input
+              type="text"
+              id="tags"
+              name="tags"
+              placeholder="politics, technology, local"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           <div class="flex justify-end space-x-3 pt-4">
             <button
               type="button"
@@ -266,7 +282,7 @@
     >
       <div class="bg-white rounded-lg p-6 w-full max-w-lg">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold">Sign In</h3>
+          <h3 class="text-xl font-bold font-poppins">Sign In</h3>
           <button
             onclick="closeSignInModal()"
             class="text-gray-500 hover:text-gray-700"
@@ -278,7 +294,7 @@
           <form
             id="signInForm"
             onsubmit="handleSignInSubmit(event)"
-            class="space-y-4"
+            class="space-y-4 font-poppins"
           >
             <div>
               <label
@@ -340,7 +356,7 @@
             </div>
           </form>
         </div>
-        <div id="signInConfirmation" class="hidden">
+        <div id="signInConfirmation" class="hidden font-poppins">
           <div class="text-center py-4">
             <i class="ri-mail-line text-4xl text-blue-600 mb-4"></i>
             <h3 class="text-xl font-bold mb-2">Check your email</h3>
@@ -364,11 +380,8 @@
     >
       <div class="container mx-auto px-8 py-4 max-w-none mx-4">
         <div class="flex items-center justify-between relative mb-2">
-          <div>
-            <h1 class="masthead text-3xl">StoryList</h1>
-            <p class="motto text-gray-600 text-xs">
-              The world's headlines at a glance
-            </p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold">Storylist</h1>
           </div>
           <div class="flex items-center">
             <div class="relative">

@@ -18,26 +18,45 @@ document.addEventListener("DOMContentLoaded", async function () {
   if (!scrollContainer) return;
 
   try {
-    const response = await fetch("/api/headlines");
-    const data = await response.json();
+    // Get list of source IDs to fetch
+    const sourceIds = currentUser?.sourceIds || [];
 
-    if (data.status === "ok" && Array.isArray(data.sources)) {
-      currentSources = data.sources.sort(
-        (a, b) => (a.biasScore ?? 0) - (b.biasScore ?? 0)
-      );
-      scrollContainer.innerHTML =
-        currentSources.map((source) => generateSourceHTML(source)).join("") +
-        (currentUser
-          ? `
-        <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col items-center justify-center">
-          <button class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:bg-blue-700 transition-colors mb-4">
-            <i class="ri-add-line"></i>
-          </button>
-          <p class="text-gray-600 font-poppins">Add News Source</p>
-        </div>
-        `
-          : "");
+    // If no user sources, get default sources
+    if (sourceIds.length === 0) {
+      const sourcesResponse = await fetch("/api/sources");
+      const sources = await sourcesResponse.json();
+      sourceIds.push(...sources.slice(0, 5).map((s) => s._id));
     }
+
+    // Fetch each source with its headlines
+    const sourcesWithHeadlines = await Promise.all(
+      sourceIds.map(async (sourceId) => {
+        const response = await fetch(`/api/sources/${sourceId}`);
+        const data = await response.json();
+        if (data.status === "ok") {
+          return data.source;
+        }
+        return null;
+      })
+    );
+
+    // Filter out any failed requests and sort by bias score
+    currentSources = sourcesWithHeadlines
+      .filter(Boolean)
+      .sort((a, b) => (a.biasScore ?? 0) - (b.biasScore ?? 0));
+
+    scrollContainer.innerHTML =
+      currentSources.map((source) => generateSourceHTML(source)).join("") +
+      (currentUser
+        ? `
+      <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col items-center justify-center">
+        <button class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:bg-blue-700 transition-colors mb-4">
+          <i class="ri-add-line"></i>
+        </button>
+        <p class="text-gray-600 font-poppins">Add News Source</p>
+      </div>
+      `
+        : "");
   } catch (error) {
     console.error("Failed to fetch headlines:", error);
     scrollContainer.innerHTML = `

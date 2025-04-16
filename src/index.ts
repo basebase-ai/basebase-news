@@ -53,68 +53,13 @@ app.get("/hello", (req: Request, res: Response): void => {
   res.json({ status: "ok", message: "Hello from Express!" });
 });
 
-app.get("/sources", async (_req: Request, res: Response): Promise<void> => {
+// returns all of the possible sources
+app.get("/api/sources", async (_req: Request, res: Response): Promise<void> => {
   try {
     const sources = await headlineService.getSources();
     res.json(sources);
   } catch (error) {
     res.status(500).json({ status: "error", message: "Failed to get sources" });
-  }
-});
-
-app.get(
-  "/api/headlines",
-  async (_req: Request, res: Response): Promise<void> => {
-    try {
-      console.log("Fetching headlines...");
-      const sourcesWithHeadlines =
-        await headlineService.getSourcesWithHeadlines();
-      console.log(
-        `Found ${sourcesWithHeadlines.length} sources with headlines`
-      );
-      console.log(
-        "Sample source:",
-        JSON.stringify(sourcesWithHeadlines[0], null, 2)
-      );
-      res.json({
-        status: "ok",
-        sources: sourcesWithHeadlines,
-      });
-    } catch (error) {
-      console.error("Error getting headlines:", error);
-      if (error instanceof Error) {
-        console.error("Error name:", error.name);
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
-      }
-      res
-        .status(500)
-        .json({ status: "error", message: "Failed to get headlines" });
-    }
-  }
-);
-
-// Scraping endpoints
-app.get("/api/scrape", async (_req: Request, res: Response): Promise<void> => {
-  try {
-    console.log("Starting scrape of all sources...");
-    const sources = await Source.find();
-    console.log(`Found ${sources.length} sources to scrape`);
-    await scraperService.scrapeAll();
-    console.log("Scrape completed successfully");
-    res.json({
-      status: "ok",
-      message: "All sources scraped successfully",
-    });
-  } catch (error) {
-    console.error("Error scraping sources:", error);
-    if (error instanceof Error) {
-      console.error("Error name:", error.name);
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-    }
-    const message = error instanceof Error ? error.message : "Scraping failed";
-    res.status(500).json({ status: "error", message });
   }
 });
 
@@ -164,13 +109,55 @@ app.post(
   }
 );
 
+// get a source by id with most recent headlines
+app.get(
+  "/api/sources/:sourceId",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { sourceId } = req.params;
+      const source = await Source.findById(sourceId);
+      if (!source) {
+        res.status(404).json({ status: "error", message: "Source not found" });
+        return;
+      }
+      const headlines = await headlineService.getHeadlines(sourceId);
+      res.json({
+        status: "ok",
+        source: {
+          ...source.toObject(),
+          headlines,
+        },
+      });
+    } catch (error) {
+      console.error("Error getting source:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to get source" });
+    }
+  }
+);
+
+// update a source (admin only)
 app.put(
   "/api/sources/:sourceId",
-  isAdmin,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { sourceId } = req.params;
       const source = req.body;
+      const token = req.cookies?.auth;
+
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId } = userService.verifyToken(token);
+      const user = await User.findById(userId);
+      if (!user || !user.isAdmin) {
+        res.status(403).json({ status: "error", message: "Not authorized" });
+        return;
+      }
+
       await headlineService.updateSource(sourceId, source);
       res.json({ status: "ok", message: "Source updated successfully" });
     } catch (error) {
@@ -193,6 +180,28 @@ app.delete(
       const message: string =
         error instanceof Error ? error.message : "Failed to delete source";
       res.status(400).json({ status: "error", message });
+    }
+  }
+);
+
+// get sources by tag
+app.get(
+  "/api/sources/tag/:tag",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { tag } = req.params;
+      const sources = await Source.find({ tags: tag });
+      const sourceIds = sources.map((source) => source._id.toString());
+
+      res.json({
+        status: "ok",
+        sourceIds,
+      });
+    } catch (error) {
+      console.error("Error getting sources by tag:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to get sources by tag" });
     }
   }
 );
@@ -273,6 +282,7 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
         first: user.first,
         last: user.last,
         isAdmin: user.isAdmin,
+        sourceIds: user.sourceIds || [],
       },
     });
   } catch (error) {

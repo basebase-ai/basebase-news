@@ -94,7 +94,6 @@ function markAsRead(headlineId) {
 }
 
 function showTooltip(element) {
-  console.log("Showing tooltip");
   const tooltip = element.nextElementSibling;
   if (tooltip && tooltip.classList.contains("tooltip")) {
     setTimeout(() => {
@@ -104,7 +103,6 @@ function showTooltip(element) {
 }
 
 function hideTooltip(element) {
-  console.log("Hiding tooltip");
   const tooltip = element.nextElementSibling;
   if (tooltip && tooltip.classList.contains("tooltip")) {
     tooltip.style.display = "none";

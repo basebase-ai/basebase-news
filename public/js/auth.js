@@ -9,12 +9,11 @@ function getRandomColor() {
   const colors = [
     "bg-blue-500",
     "bg-green-500",
+    "bg-yellow-500",
+    "bg-red-500",
     "bg-purple-500",
     "bg-pink-500",
-    "bg-red-500",
-    "bg-yellow-500",
     "bg-indigo-500",
-    "bg-teal-500",
   ];
   return colors[Math.floor(Math.random() * colors.length)];
 }
@@ -30,7 +29,6 @@ function updateUserAvatar(user) {
     userSection?.classList.remove("hidden");
     if (signInButton) {
       signInButton.style.display = "none";
-      console.log("Hiding sign in button");
     }
 
     if (user.imageUrl) {
@@ -50,20 +48,22 @@ function updateUserAvatar(user) {
 }
 
 function openSignInModal() {
-  document.getElementById("signInModal").classList.remove("hidden");
+  document.getElementById("signInModal")?.classList.remove("hidden");
+  document.getElementById("signInFormContainer")?.classList.remove("hidden");
+  document.getElementById("signInConfirmation")?.classList.add("hidden");
 }
 
 function closeSignInModal() {
-  document.getElementById("signInModal").classList.add("hidden");
+  document.getElementById("signInModal")?.classList.add("hidden");
 }
 
 async function handleSignInSubmit(event) {
   event.preventDefault();
 
   const formData = {
+    email: document.getElementById("email").value,
     first: document.getElementById("firstName").value,
     last: document.getElementById("lastName").value,
-    email: document.getElementById("email").value,
   };
 
   try {
@@ -77,9 +77,8 @@ async function handleSignInSubmit(event) {
 
     if (!response.ok) throw new Error("Failed to sign in");
 
-    const data = await response.json();
-    document.getElementById("signInFormContainer").classList.add("hidden");
-    document.getElementById("signInConfirmation").classList.remove("hidden");
+    document.getElementById("signInFormContainer")?.classList.add("hidden");
+    document.getElementById("signInConfirmation")?.classList.remove("hidden");
   } catch (error) {
     console.error("Error:", error);
     alert(error.message);
@@ -89,20 +88,29 @@ async function handleSignInSubmit(event) {
 async function fetchCurrentUser() {
   try {
     const response = await fetch("/api/auth/me");
-    if (response.ok) {
-      const data = await response.json();
-      currentUser = data.user;
-      isAdmin = currentUser.isAdmin;
-      const adminControls = document.getElementById("adminControls");
-      if (isAdmin && adminControls) {
-        adminControls.classList.remove("hidden");
-      }
+    const data = await response.json();
+
+    if (data.status === "ok" && data.user) {
+      currentUser = {
+        ...data.user,
+        sourceIds: data.user.sourceIds || [],
+      };
+      isAdmin = data.user.isAdmin;
       updateUserAvatar(currentUser);
+      document
+        .getElementById("adminControls")
+        ?.classList.toggle("hidden", !isAdmin);
     } else {
+      currentUser = null;
+      isAdmin = false;
       updateUserAvatar(null);
+      document.getElementById("adminControls")?.classList.add("hidden");
     }
   } catch (error) {
-    console.error("Failed to fetch user:", error);
+    console.error("Error fetching current user:", error);
+    currentUser = null;
+    isAdmin = false;
     updateUserAvatar(null);
+    document.getElementById("adminControls")?.classList.add("hidden");
   }
 }

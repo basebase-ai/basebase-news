@@ -114,6 +114,9 @@ function openSourceSettingsModal(sourceId) {
     document.getElementById("excludeSelector").value =
       source.excludeSelector || "";
     document.getElementById("biasScore").value = source.biasScore || 0;
+    document.getElementById("tags").value = source.tags
+      ? source.tags.join(", ")
+      : "";
   } else {
     modalTitle.textContent = "Add New Source";
     submitButton.textContent = "Add";
@@ -132,12 +135,21 @@ async function handleSourceSubmit(event) {
   event.preventDefault();
 
   const sourceId = document.getElementById("sourceId").value;
+  const tagsInput = document.getElementById("tags").value;
+  const tags = tagsInput
+    ? tagsInput
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag)
+    : [];
+
   const formData = {
     name: document.getElementById("name").value,
     homepageUrl: document.getElementById("homepageUrl").value,
     includeSelector: document.getElementById("includeSelector").value,
     excludeSelector: document.getElementById("excludeSelector").value,
     biasScore: parseFloat(document.getElementById("biasScore").value),
+    tags: tags,
   };
 
   try {

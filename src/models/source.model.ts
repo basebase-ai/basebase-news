@@ -7,6 +7,7 @@ export interface ISource {
   excludeSelector?: string;
   biasScore?: number;
   lastScrapedAt?: Date;
+  tags?: string[];
 }
 
 export const Source = mongoose.model<ISource>(
@@ -18,5 +19,6 @@ export const Source = mongoose.model<ISource>(
     excludeSelector: String,
     biasScore: Number,
     lastScrapedAt: Date,
+    tags: { type: [String], default: [] },
   })
 );

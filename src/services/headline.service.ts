@@ -62,38 +62,16 @@ export class HeadlineService {
     return true;
   }
 
-  public async getRecentHeadlines(): Promise<IHeadline[]> {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  public async getHeadlines(sourceId: string): Promise<IHeadline[]> {
+    const oneHourAgo = new Date(Date.now() - 90 * 60 * 1000); // 90 minutes ago
     return getCollection<HeadlineDocument>("headlines")
-      .find({ createdAt: { $gte: oneHourAgo }, archived: { $ne: true } })
+      .find({
+        sourceId,
+        createdAt: { $gte: oneHourAgo },
+        archived: { $ne: true },
+      })
       .sort({ createdAt: -1 })
       .toArray();
-  }
-
-  public async getSourcesWithHeadlines(): Promise<SourceWithHeadlines[]> {
-    const sources = await Source.find().lean();
-    console.log(`Found ${sources.length} sources`);
-
-    const headlines = await getCollection<HeadlineDocument>("headlines")
-      .find({ archived: { $ne: true } })
-      .sort({ createdAt: -1 })
-      .toArray();
-    console.log(`Found ${headlines.length} non-archived headlines`);
-
-    const sourcesWithHeadlines = sources.map((source) => {
-      const sourceHeadlines = headlines.filter(
-        (h) => h.sourceId === source._id.toString()
-      );
-      console.log(
-        `Source ${source.name} has ${sourceHeadlines.length} headlines`
-      );
-      return {
-        ...source,
-        headlines: sourceHeadlines,
-      };
-    });
-
-    return sourcesWithHeadlines;
   }
 }
 
