@@ -242,10 +242,110 @@
       </div>
     </div>
 
+    <!-- Sign In Modal -->
+    <div
+      id="signInModal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-lg">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold">Sign In</h3>
+          <button
+            onclick="closeSignInModal()"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            <i class="ri-close-line text-2xl"></i>
+          </button>
+        </div>
+        <div id="signInFormContainer">
+          <form
+            id="signInForm"
+            onsubmit="handleSignInSubmit(event)"
+            class="space-y-4"
+          >
+            <div>
+              <label
+                for="firstName"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >First Name</label
+              >
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label
+                for="lastName"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Last Name</label
+              >
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label
+                for="email"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Email</label
+              >
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div class="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onclick="closeSignInModal()"
+                class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                id="signInButton"
+                class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </form>
+        </div>
+        <div id="signInConfirmation" class="hidden">
+          <div class="text-center py-4">
+            <i class="ri-mail-line text-4xl text-blue-600 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Check your email</h3>
+            <p class="text-gray-600 mb-4">
+              We've sent a special sign-in link to your email address. Click the
+              link to complete signing in.
+            </p>
+            <button
+              onclick="closeSignInModal()"
+              class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <header
       class="fixed top-0 left-0 right-0 bg-white z-10 border-b border-gray-200 shadow-sm"
     >
-      <div class="container mx-auto px-4 py-4">
+      <div class="container mx-auto px-8 py-4 max-w-none mx-4">
         <div class="flex items-center justify-between relative mb-2">
           <div>
             <h1 class="masthead text-3xl">StoryList</h1>
@@ -267,6 +367,19 @@
                 <i class="ri-search-line"></i>
               </button>
             </div>
+            <div id="userSection" class="hidden ml-4 flex items-center">
+              <div
+                id="userAvatar"
+                class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white font-medium text-sm"
+              ></div>
+            </div>
+            <button
+              id="signInButton"
+              onclick="openSignInModal()"
+              class="ml-4 text-gray-600 hover:text-gray-800 font-poppins text-sm hidden"
+            >
+              Sign In
+            </button>
             <div id="adminControls" class="hidden ml-4">
               <button
                 onclick="openSourceSettingsModal()"
@@ -291,9 +404,50 @@
       let searchTimeout = null;
       let allHeadlines = [];
       let isAdmin = false;
+      let currentUser = null;
       let readIds = new Set(
         JSON.parse(localStorage.getItem("readIds") || "[]")
       );
+
+      function getInitials(first, last) {
+        return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+      }
+
+      function getRandomColor() {
+        const colors = [
+          "bg-blue-500",
+          "bg-green-500",
+          "bg-purple-500",
+          "bg-pink-500",
+          "bg-red-500",
+          "bg-yellow-500",
+          "bg-indigo-500",
+          "bg-teal-500",
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      function updateUserAvatar(user) {
+        const userSection = document.getElementById("userSection");
+        const userAvatar = document.getElementById("userAvatar");
+        const signInButton = document.getElementById("signInButton");
+
+        if (user) {
+          userSection?.classList.remove("hidden");
+          signInButton?.classList.add("hidden");
+
+          if (user.imageUrl) {
+            userAvatar.innerHTML = `<img src="${user.imageUrl}" alt="${user.first} ${user.last}" class="w-full h-full object-cover rounded-full">`;
+          } else {
+            const color = getRandomColor();
+            userAvatar.className = `w-8 h-8 rounded-full overflow-hidden flex items-center justify-center ${color} text-white font-medium text-sm`;
+            userAvatar.textContent = getInitials(user.first, user.last);
+          }
+        } else {
+          userSection?.classList.add("hidden");
+          signInButton?.classList.remove("hidden");
+        }
+      }
 
       function debounce(func, wait) {
         return function executedFunction(...args) {
@@ -437,13 +591,13 @@
                 .map(
                   (headline) => `
                   <div class="truncate">
-                    <a href="${headline.articleUrl}" 
+                    <a href="${headline.articleUrl}"
                        onmousedown="markAsRead('${headline._id}')"
                        data-headline-id="${headline._id}"
                        class="news-headline block font-semibold text-base leading-tight truncate ${
                          readIds.has(headline._id) ? "read" : ""
-                       }" 
-                       target="_blank" 
+                       }"
+                       target="_blank"
                        rel="noopener">
                       ${headline.fullHeadline}
                     </a>
@@ -601,11 +755,77 @@
         }
       }
 
+      function openSignInModal() {
+        document.getElementById("signInModal").classList.remove("hidden");
+      }
+
+      function closeSignInModal() {
+        document.getElementById("signInModal").classList.add("hidden");
+      }
+
+      async function handleSignInSubmit(event) {
+        event.preventDefault();
+
+        const formData = {
+          first: document.getElementById("firstName").value,
+          last: document.getElementById("lastName").value,
+          email: document.getElementById("email").value,
+        };
+
+        try {
+          const response = await fetch("/api/auth/signin", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          });
+
+          if (!response.ok) throw new Error("Failed to sign in");
+
+          const data = await response.json();
+          document
+            .getElementById("signInFormContainer")
+            .classList.add("hidden");
+          document
+            .getElementById("signInConfirmation")
+            .classList.remove("hidden");
+        } catch (error) {
+          console.error("Error:", error);
+          alert(error.message);
+        }
+      }
+
+      async function fetchCurrentUser() {
+        try {
+          const response = await fetch("/api/auth/me");
+          if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            isAdmin = currentUser.isAdmin;
+            const adminControls = document.getElementById("adminControls");
+            const signInButton = document.getElementById("signInButton");
+            if (isAdmin && adminControls) {
+              adminControls.classList.remove("hidden");
+            }
+            if (signInButton) {
+              signInButton.classList.add("hidden");
+            }
+            updateUserAvatar(currentUser);
+          } else {
+            updateUserAvatar(null);
+          }
+        } catch (error) {
+          console.error("Failed to fetch user:", error);
+          updateUserAvatar(null);
+        }
+      }
+
       document.addEventListener("DOMContentLoaded", async function () {
         const scrollContainer = document.querySelector(".grid");
-        const adminControls = document.getElementById("adminControls");
         const searchInput = document.getElementById("searchInput");
-        isAdmin = getCookie("role") === "admin";
+
+        await fetchCurrentUser();
 
         if (searchInput) {
           searchInput.addEventListener(
@@ -616,13 +836,6 @@
               filterHeadlines(value);
             }, 300)
           );
-        }
-
-        console.log("Cookie value:", document.cookie);
-        console.log("Is admin?", isAdmin);
-
-        if (isAdmin && adminControls) {
-          adminControls.classList.remove("hidden");
         }
 
         if (!scrollContainer) return;

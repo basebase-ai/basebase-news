@@ -8,10 +8,28 @@ import { Source } from "./models/source.model";
 import { IHeadline } from "./models/headline.model";
 import { scraperService } from "./services/scraper.service";
 import { agendaService } from "./services/agenda.service";
+import { User } from "./models/user.model";
+import { userService } from "./services/user.service";
+import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 const app: express.Application = express();
 const port: number = parseInt(process.env.PORT || "3000", 10);
 const headlineService: HeadlineService = new HeadlineService();
+const JWT_SECRET: string =
+  process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+
+// Email configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || "587"),
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 app.use(express.json());
 app.use(cookieParser());
@@ -30,15 +48,6 @@ const isAdmin = (
   }
   next();
 };
-
-app.get("/topsecret", (req: Request, res: Response): void => {
-  res.cookie("role", "admin", {
-    httpOnly: false,
-    secure: process.env.NODE_ENV !== "development",
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  });
-  res.redirect("/");
-});
 
 app.get("/hello", (req: Request, res: Response): void => {
   res.json({ status: "ok", message: "Hello from Express!" });
@@ -187,6 +196,90 @@ app.delete(
     }
   }
 );
+
+// Auth endpoints
+app.post(
+  "/api/auth/signin",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email, first, last } = req.body;
+      await userService.authenticateUser(
+        email,
+        first,
+        last,
+        req.get("host") || "",
+        req.protocol
+      );
+      res.json({ status: "ok", message: "Sign-in email sent" });
+    } catch (error) {
+      console.error("Sign-in error:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to process sign-in" });
+    }
+  }
+);
+
+app.get("/auth/verify", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== "string") {
+      throw new Error("Invalid token");
+    }
+
+    const { userId } = userService.verifyToken(token);
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Set JWT cookie
+    res.cookie("auth", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    res.redirect("/");
+  } catch (error) {
+    console.error("Token verification error:", error);
+    res.status(400).send("Invalid or expired sign-in link");
+  }
+});
+
+// Get current user endpoint
+app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const token = req.cookies?.auth;
+    if (!token) {
+      res.status(401).json({ status: "error", message: "Not authenticated" });
+      return;
+    }
+
+    const { userId } = userService.verifyToken(token);
+    const user = await User.findById(userId);
+
+    if (!user) {
+      res.status(404).json({ status: "error", message: "User not found" });
+      return;
+    }
+
+    res.json({
+      status: "ok",
+      user: {
+        id: user._id,
+        email: user.email,
+        first: user.first,
+        last: user.last,
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (error) {
+    console.error("Get user error:", error);
+    res.status(401).json({ status: "error", message: "Invalid token" });
+  }
+});
 
 // Start the server and agenda service
 async function startServer(): Promise<void> {
