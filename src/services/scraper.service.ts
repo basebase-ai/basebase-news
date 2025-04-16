@@ -24,9 +24,16 @@ export class ScraperService {
   private cleanHtml(html: string, source: ISource): string {
     console.log("Length before:", html.length);
     const $ = cheerio.load(html);
-    const mainContent = $(source.cssSelector).html() || html;
-    console.log("Length after selector:", mainContent.length);
-    const truncated = mainContent.slice(0, this.MAX_TOKENS);
+    const mainContent = $(source.includeSelector);
+
+    // Remove excluded elements if excludeSelector is defined
+    if (source.excludeSelector) {
+      mainContent.find(source.excludeSelector).remove();
+    }
+
+    const cleanedHtml = mainContent.html() || html;
+    console.log("Length after selector:", cleanedHtml.length);
+    const truncated = cleanedHtml.slice(0, this.MAX_TOKENS);
     console.log("Length after truncation:", truncated.length);
     return truncated;
   }
