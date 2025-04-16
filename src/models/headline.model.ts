@@ -26,6 +26,7 @@ export interface IHeadline {
   section: Section;
   type: NewsTopic;
   inPageRank: number;
+  archived?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -40,5 +41,6 @@ export const Headline = mongoose.model<IHeadline>(
     section: String,
     type: String,
     inPageRank: Number,
+    archived: { type: Boolean, default: false },
   })
 );

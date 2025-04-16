@@ -36,10 +36,17 @@ export class HeadlineService {
     sourceId: string,
     headlines: IHeadline[]
   ): Promise<boolean> {
+    // Archive existing headlines for this source
+    await getCollection<HeadlineDocument>("headlines").updateMany(
+      { sourceId, archived: { $ne: true } },
+      { $set: { archived: true } }
+    );
+
     const headlinesWithMetadata = headlines.map((headline, index) => ({
       ...headline,
       sourceId,
       inPageRank: index + 1,
+      archived: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     }));
@@ -54,7 +61,7 @@ export class HeadlineService {
   public async getRecentHeadlines(): Promise<IHeadline[]> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     return getCollection<HeadlineDocument>("headlines")
-      .find({ createdAt: { $gte: oneHourAgo } })
+      .find({ createdAt: { $gte: oneHourAgo }, archived: { $ne: true } })
       .sort({ createdAt: -1 })
       .toArray();
   }
