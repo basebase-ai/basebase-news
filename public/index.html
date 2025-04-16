@@ -140,7 +140,7 @@
     <!-- Source Settings Modal -->
     <div
       id="sourceSettingsModal"
-      class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center"
     >
       <div class="bg-white rounded-lg p-6 w-full max-w-lg">
         <div class="flex justify-between items-center mb-4">
@@ -398,6 +398,12 @@
               </button>
             </div>
             <div id="userSection" class="hidden ml-4 flex items-center">
+              <button
+                onclick="openCustomizeModal()"
+                class="text-gray-600 hover:text-gray-800 font-poppins text-sm mr-4"
+              >
+                Customize
+              </button>
               <div
                 id="userAvatar"
                 class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white font-medium text-sm font-poppins"
@@ -410,14 +416,6 @@
             >
               Sign In
             </button>
-            <div id="adminControls" class="hidden ml-4">
-              <button
-                onclick="openSourceSettingsModal()"
-                class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center font-poppins"
-              >
-                <i class="ri-add-line mr-1"></i>Add
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -429,6 +427,60 @@
         <!-- Content will be dynamically populated here -->
       </div>
     </main>
+
+    <!-- Customize Sources Modal -->
+    <div
+      id="customizeModal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-8"
+    >
+      <div
+        class="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
+      >
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-bold font-poppins">
+            Customize Your News Sources
+          </h3>
+          <button
+            onclick="closeCustomizeModal()"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            <i class="ri-close-line text-2xl"></i>
+          </button>
+        </div>
+        <div class="relative mb-6">
+          <div class="flex items-center gap-4">
+            <div class="relative flex-1">
+              <input
+                type="text"
+                id="sourceSearchInput"
+                placeholder="Search news sources..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins"
+              />
+              <button
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <i class="ri-search-line"></i>
+              </button>
+            </div>
+            <div id="adminControlsModal" class="hidden shrink-0">
+              <button
+                onclick="openSourceSettingsModal()"
+                class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center font-poppins"
+              >
+                <i class="ri-add-line mr-1"></i>Add
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          id="sourcesGrid"
+          class="grid grid-cols-4 gap-4 overflow-y-auto flex-1 custom-scrollbar"
+        >
+          <!-- Sources will be dynamically populated here -->
+        </div>
+      </div>
+    </div>
+
     <script src="/js/auth.js"></script>
     <script src="/js/sources.js"></script>
     <script src="/js/headlines.js"></script>

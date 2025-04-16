@@ -12,7 +12,7 @@ function formatTimeAgo(date) {
   return "now";
 }
 
-function generateSourceHTML(source) {
+function generateSourceHTML(source, showSettings = false) {
   return `
     <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col">
       <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between px-4">
@@ -33,7 +33,7 @@ function generateSourceHTML(source) {
           </h2>
         </div>
         ${
-          isAdmin
+          showSettings && isAdmin
             ? `
           <div class="relative inline-block">
             <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
@@ -58,32 +58,36 @@ function generateSourceHTML(source) {
         }
       </div>
       <div class="space-y-2 flex-1 overflow-y-auto custom-scrollbar px-4">
-        ${source.headlines
-          .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
-          .map(
-            (headline) => `
-            <div class="truncate relative">
-              <a href="${headline.articleUrl}"
-                 onmousedown="markAsRead('${headline._id}')"
-                 data-headline-id="${headline._id}"
-                 title="${headline.fullHeadline}"
-                 onmouseenter="showTooltip(this)"
-                 onmouseleave="hideTooltip(this)"
-                 class="news-headline block font-semibold text-base leading-tight truncate ${
-                   readIds.has(headline._id) ? "read" : ""
-                 }"
-                 target="_blank"
-                 rel="noopener">
-                ${headline.fullHeadline}
-              </a>
-              <div class="tooltip">
-                ${headline.fullHeadline}
-                ${headline.summary ? "<br><br>" + headline.summary : ""}
-              </div>
-            </div>
-          `
-          )
-          .join("")}
+        ${
+          source.headlines
+            ? source.headlines
+                .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
+                .map(
+                  (headline) => `
+                <div class="truncate relative">
+                  <a href="${headline.articleUrl}"
+                     onmousedown="markAsRead('${headline._id}')"
+                     data-headline-id="${headline._id}"
+                     title="${headline.fullHeadline}"
+                     onmouseenter="showTooltip(this)"
+                     onmouseleave="hideTooltip(this)"
+                     class="news-headline block font-semibold text-base leading-tight truncate ${
+                       readIds.has(headline._id) ? "read" : ""
+                     }"
+                     target="_blank"
+                     rel="noopener">
+                    ${headline.fullHeadline}
+                  </a>
+                  <div class="tooltip">
+                    ${headline.fullHeadline}
+                    ${headline.summary ? "<br><br>" + headline.summary : ""}
+                  </div>
+                </div>
+              `
+                )
+                .join("")
+            : `<div class="text-gray-500 text-sm">No headlines available</div>`
+        }
       </div>
     </div>
   `;

@@ -291,6 +291,47 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+app.put(
+  "/api/users/me/sources",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId } = userService.verifyToken(token);
+      const user = await User.findById(userId);
+      if (!user) {
+        res.status(404).json({ status: "error", message: "User not found" });
+        return;
+      }
+
+      const { sourceIds } = req.body;
+      user.sourceIds = sourceIds;
+      await user.save();
+
+      res.json({
+        status: "ok",
+        user: {
+          id: user._id,
+          email: user.email,
+          first: user.first,
+          last: user.last,
+          isAdmin: user.isAdmin,
+          sourceIds: user.sourceIds,
+        },
+      });
+    } catch (error) {
+      console.error("Error updating user sources:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to update sources" });
+    }
+  }
+);
+
 // Start the server and agenda service
 async function startServer(): Promise<void> {
   try {

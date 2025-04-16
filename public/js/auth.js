@@ -100,11 +100,15 @@ async function fetchCurrentUser() {
       document
         .getElementById("adminControls")
         ?.classList.toggle("hidden", !isAdmin);
+      document
+        .getElementById("adminControlsModal")
+        ?.classList.toggle("hidden", !isAdmin);
     } else {
       currentUser = null;
       isAdmin = false;
       updateUserAvatar(null);
       document.getElementById("adminControls")?.classList.add("hidden");
+      document.getElementById("adminControlsModal")?.classList.add("hidden");
     }
   } catch (error) {
     console.error("Error fetching current user:", error);
@@ -112,5 +116,6 @@ async function fetchCurrentUser() {
     isAdmin = false;
     updateUserAvatar(null);
     document.getElementById("adminControls")?.classList.add("hidden");
+    document.getElementById("adminControlsModal")?.classList.add("hidden");
   }
 }
