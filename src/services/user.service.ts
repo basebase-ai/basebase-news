@@ -33,8 +33,7 @@ export class UserService {
     email: string,
     first: string,
     last: string,
-    host: string,
-    protocol: string
+    host: string
   ): Promise<void> {
     // Find or create user
     let user = await User.findOne({ email });
@@ -48,7 +47,9 @@ export class UserService {
     });
 
     // Create sign-in link
-    const signInLink = `${protocol}://${host}/auth/verify?token=${token}`;
+    const signInLink = host.includes("localhost")
+      ? `http://${host}/auth/verify?token=${token}`
+      : `https://${host}/auth/verify?token=${token}`;
 
     // Log email content instead of sending
     console.log("\n=== Sign In Email ===");

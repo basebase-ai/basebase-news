@@ -245,8 +245,7 @@ app.post(
         email,
         first,
         last,
-        req.get("host") || "",
-        req.protocol
+        req.get("host") || ""
       );
       res.json({ status: "ok", message: "Sign-in email sent" });
     } catch (error) {
