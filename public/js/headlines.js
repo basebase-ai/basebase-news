@@ -38,11 +38,11 @@ function generateSourceHTML(source) {
     <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col" data-source-id="${sourceId}">
       <div class="px-4 py-2 border-b border-gray-200">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 min-w-0">
             ${
               state.currentUser
                 ? `
-              <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6">
+              <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6 shrink-0">
                 <i class="ri-drag-move-fill text-xl"></i>
               </div>
             `
@@ -50,12 +50,23 @@ function generateSourceHTML(source) {
             }
             ${
               source.imageUrl
-                ? `<img src="${source.imageUrl}" alt="${sourceName}" class="w-6 h-6 rounded-sm object-cover" />`
+                ? `<img src="${source.imageUrl}" alt="${sourceName}" class="w-6 h-6 rounded-sm object-cover shrink-0" />`
                 : ""
             }
-            <a href="${
-              source.homepageUrl
-            }" target="_blank" rel="noopener" class="column-header text-lg hover:text-blue-600 transition-colors">${sourceName}</a>
+            <div class="flex items-baseline gap-2 min-w-0">
+              <a href="${
+                source.homepageUrl
+              }" target="_blank" rel="noopener" class="column-header text-lg hover:text-blue-600 transition-colors truncate">${sourceName}</a>
+              ${
+                source.lastScrapedAt
+                  ? `
+                <span class="text-[0.675rem] text-gray-500 font-poppins font-normal shrink-0">${sourceService.formatTimeAgo(
+                  new Date(source.lastScrapedAt)
+                )}</span>
+              `
+                  : ""
+              }
+            </div>
           </div>
         </div>
       </div>
