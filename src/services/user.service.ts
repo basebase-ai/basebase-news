@@ -1,9 +1,9 @@
-import { User, IUser } from "../models/user.model";
+import "dotenv/config";
+import { User } from "../models/user.model";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { Source } from "../models/source.model";
-import mongoose from "mongoose";
 
 export class UserService {
   private static instance: UserService;
@@ -69,15 +69,19 @@ export class UserService {
     console.log("Link:", signInLink);
     console.log("===================\n");
 
-    // Comment out actual email sending for now
-    /*
-    await this.transporter.sendMail({
-      from: process.env.SMTP_FROM,
-      to: email,
-      subject: "Sign in to StoryList",
-      html: `Click <a href="${signInLink}">here</a> to sign in to StoryList. This link will expire in 7 days.`,
-    });
-    */
+    try {
+      console.log("Attempting to send email...");
+      await this.transporter.sendMail({
+        from: "noreply@joinable.us",
+        to: email,
+        subject: "Sign in to StoryList",
+        html: `Click <a href="${signInLink}">here</a> to sign in to StoryList. This link will expire in 7 days.`,
+      });
+      console.log("Email sent successfully!");
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      throw error;
+    }
   }
 
   public verifyToken(token: string): { userId: string } {
