@@ -1,7 +1,7 @@
 import { Source, ISource } from "../models/source.model";
-import { IHeadline } from "../models/headline.model";
+import { Headline, IHeadline } from "../models/headline.model";
 import { scraperService } from "./scraper.service";
-import { connectDB, getCollection } from "./mongo.service";
+import { connectDB } from "./mongo.service";
 import mongoose from "mongoose";
 
 interface HeadlineDocument extends IHeadline, mongoose.Document {}
@@ -36,15 +36,17 @@ export class HeadlineService {
     sourceId: string,
     headlines: IHeadline[]
   ): Promise<boolean> {
+    const objectId = new mongoose.Types.ObjectId(sourceId);
+
     // Archive existing headlines for this source
-    await getCollection<HeadlineDocument>("headlines").updateMany(
-      { sourceId, archived: { $ne: true } },
+    await Headline.updateMany(
+      { sourceId: objectId, archived: { $ne: true } },
       { $set: { archived: true } }
     );
 
     const headlinesWithMetadata = headlines.map((headline, index) => ({
       ...headline,
-      sourceId,
+      sourceId: objectId,
       inPageRank: index + 1,
       archived: false,
       createdAt: new Date(),
@@ -52,26 +54,22 @@ export class HeadlineService {
     }));
 
     // Save to MongoDB
-    await getCollection<HeadlineDocument>("headlines").insertMany(
-      headlinesWithMetadata as HeadlineDocument[]
-    );
-
-    // Update source lastScrapedAt
-    await Source.findByIdAndUpdate(sourceId, { lastScrapedAt: new Date() });
+    await Headline.insertMany(headlinesWithMetadata);
 
     return true;
   }
 
   public async getHeadlines(sourceId: string): Promise<IHeadline[]> {
-    const oneHourAgo = new Date(Date.now() - 90 * 60 * 1000); // 90 minutes ago
-    return getCollection<HeadlineDocument>("headlines")
-      .find({
-        sourceId,
-        createdAt: { $gte: oneHourAgo },
-        archived: { $ne: true },
-      })
-      .sort({ createdAt: -1 })
-      .toArray();
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const objectId = new mongoose.Types.ObjectId(sourceId);
+
+    const headlines = await Headline.find({
+      sourceId: objectId,
+      createdAt: { $gte: oneHourAgo },
+      archived: { $ne: true },
+    }).sort({ createdAt: -1 });
+
+    return headlines;
   }
 }
 

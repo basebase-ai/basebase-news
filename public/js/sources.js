@@ -114,6 +114,7 @@ function openSourceSettingsModal(sourceId) {
 
     document.getElementById("name").value = source.name;
     document.getElementById("homepageUrl").value = source.homepageUrl;
+    document.getElementById("rssUrl").value = source.rssUrl || "";
     document.getElementById("includeSelector").value = source.includeSelector;
     document.getElementById("excludeSelector").value =
       source.excludeSelector || "";
@@ -150,10 +151,15 @@ async function handleSourceSubmit(event) {
   const formData = {
     name: document.getElementById("name").value,
     homepageUrl: document.getElementById("homepageUrl").value,
-    includeSelector: document.getElementById("includeSelector").value,
-    excludeSelector: document.getElementById("excludeSelector").value,
-    biasScore: parseFloat(document.getElementById("biasScore").value),
-    tags: tags,
+    rssUrl: document.getElementById("rssUrl").value || undefined,
+    includeSelector:
+      document.getElementById("includeSelector").value || undefined,
+    excludeSelector:
+      document.getElementById("excludeSelector").value || undefined,
+    biasScore: document.getElementById("biasScore").value
+      ? parseFloat(document.getElementById("biasScore").value)
+      : undefined,
+    tags: tags.length > 0 ? tags : undefined,
   };
 
   try {

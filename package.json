@@ -38,6 +38,7 @@
     "langchain": "^0.3.21",
     "mongoose": "^8.13.2",
     "nodemailer": "^6.10.1",
+    "rss-parser": "^3.13.0",
     "scrapingbee": "^1.7.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

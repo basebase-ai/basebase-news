@@ -36,17 +36,28 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "../public")));
 
 // Middleware to check if user is admin
-const isAdmin = (
+const isAdmin = async (
   req: Request,
   res: Response,
   next: express.NextFunction
-): void => {
-  const role: string | undefined = req.cookies?.role;
-  if (role !== "admin") {
-    res.status(403).json({ status: "error", message: "Unauthorized" });
-    return;
+): Promise<void> => {
+  try {
+    const token = req.cookies?.auth;
+    if (!token) {
+      res.status(401).json({ status: "error", message: "Not authenticated" });
+      return;
+    }
+
+    const { userId } = userService.verifyToken(token);
+    const user = await User.findById(userId);
+    if (!user || !user.isAdmin) {
+      res.status(403).json({ status: "error", message: "Not authorized" });
+      return;
+    }
+    next();
+  } catch (error) {
+    res.status(401).json({ status: "error", message: "Invalid token" });
   }
-  next();
 };
 
 app.get("/hello", (req: Request, res: Response): void => {
@@ -81,7 +92,7 @@ app.post(
 
       // Process scraping asynchronously
       console.log(`Scraping source: ${source.name}`);
-      const headlines = await scraperService.scrapeSource(source.id);
+      const headlines = await scraperService.scrapeHomepage(source.id);
       console.log(`Scraped ${headlines.length} headlines for ${source.name}`);
     } catch (error) {
       console.error("Error scraping source:", error);

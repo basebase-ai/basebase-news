@@ -4,6 +4,8 @@ import { ISource, Source } from "../models/source.model";
 import { IHeadline, NewsTopic, Section } from "../models/headline.model";
 import { langChainService } from "./langchain.service";
 import { headlineService } from "./headline.service";
+import Parser from "rss-parser";
+import mongoose from "mongoose";
 
 export class ScraperService {
   private readonly client: ScrapingBeeClient;
@@ -151,35 +153,19 @@ ${htmlString}`;
     );
   }
 
-  public async scrapeAll(): Promise<void> {
+  public async collectAll(): Promise<void> {
     try {
       // Get all sources
       const sources = await Source.find();
-      console.log(`Found ${sources.length} sources to scrape`);
+      console.log(`Found ${sources.length} sources to collect from`);
 
       // Scrape each source one at a time
       for (const source of sources) {
-        try {
-          console.log(
-            `Starting scrape of source: ${source.name} (${source.homepageUrl})`
-          );
-          const headlines = await this.scrapeSource(source.id);
-          console.log(
-            `Successfully scraped ${headlines.length} headlines from ${source.name}`
-          );
-        } catch (error) {
-          console.error(`Error scraping source ${source.name}:`, error);
-          if (error instanceof Error) {
-            console.error("Error name:", error.name);
-            console.error("Error message:", error.message);
-            console.error("Error stack:", error.stack);
-          }
-          // Continue with next source even if one fails
-        }
+        await this.collectOne(source._id.toString());
       }
-      console.log("Completed scraping all sources");
+      console.log("Completed collecting from all sources");
     } catch (error) {
-      console.error("Error in scrapeAll:", error);
+      console.error("Error in collectAll:", error);
       if (error instanceof Error) {
         console.error("Error name:", error.name);
         console.error("Error message:", error.message);
@@ -189,7 +175,41 @@ ${htmlString}`;
     }
   }
 
-  public async scrapeSource(sourceId: string): Promise<IHeadline[]> {
+  public async collectOne(sourceId: string): Promise<void> {
+    const source = await Source.findById(sourceId);
+    if (!source) {
+      throw new Error(`Source not found: ${sourceId}`);
+    }
+
+    try {
+      console.log(
+        `Starting collection for source: ${source.name} (${source.homepageUrl})`
+      );
+
+      let headlines: IHeadline[];
+      if (source.rssUrl) {
+        console.log(`Using RSS feed for ${source.name}`);
+        headlines = await this.readRss(source._id.toString());
+      } else {
+        console.log(`Scraping webpage for ${source.name}`);
+        headlines = await this.scrapeHomepage(source._id.toString());
+      }
+
+      console.log(
+        `Successfully collected ${headlines.length} headlines from ${source.name}`
+      );
+    } catch (error) {
+      console.error(`Error collecting from source ${source.name}:`, error);
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      // Continue with next source even if one fails
+    }
+  }
+
+  public async scrapeHomepage(sourceId: string): Promise<IHeadline[]> {
     const source = await Source.findById(sourceId);
     if (!source) {
       throw new Error(`Unknown source: ${sourceId}`);
@@ -214,6 +234,45 @@ ${htmlString}`;
       return headlines;
     } catch (error) {
       console.error("Error scraping page:", error);
+      throw error;
+    }
+  }
+
+  public async readRss(sourceId: string): Promise<IHeadline[]> {
+    const source = await Source.findById(sourceId);
+    if (!source) {
+      throw new Error(`Unknown source: ${sourceId}`);
+    }
+    if (!source.rssUrl) {
+      throw new Error(`No RSS URL configured for source: ${source.name}`);
+    }
+
+    try {
+      const parser = new Parser();
+      const feed = await parser.parseURL(source.rssUrl);
+
+      const headlines: IHeadline[] = feed.items.map((item, index) => ({
+        fullHeadline: item.title || "",
+        articleUrl: item.link || "",
+        summary: item.contentSnippet || item.content || "",
+        section: Section.NEWS, // Default to NEWS, can be updated by AI later
+        type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
+        inPageRank: index + 1,
+        sourceId: new mongoose.Types.ObjectId(sourceId),
+        archived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+
+      // Save headlines to database
+      await headlineService.addHeadlines(sourceId, headlines);
+      console.log(
+        `Saved ${headlines.length} headlines from RSS for ${source.name}`
+      );
+
+      return headlines;
+    } catch (error) {
+      console.error("Error reading RSS feed:", error);
       throw error;
     }
   }

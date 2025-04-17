@@ -19,7 +19,7 @@ export enum NewsTopic {
 }
 
 export interface IHeadline {
-  sourceId: string;
+  sourceId: mongoose.Types.ObjectId;
   fullHeadline: string;
   summary: string;
   articleUrl: string;
@@ -34,7 +34,11 @@ export interface IHeadline {
 export const Headline = mongoose.model<IHeadline>(
   "Headline",
   new mongoose.Schema({
-    sourceId: String,
+    sourceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Source",
+      required: true,
+    },
     fullHeadline: String,
     summary: String,
     articleUrl: String,
