@@ -41,7 +41,7 @@ export const Headline = mongoose.model<IHeadline>(
     },
     fullHeadline: String,
     summary: String,
-    articleUrl: String,
+    articleUrl: { type: String, unique: true },
     section: String,
     type: String,
     inPageRank: Number,
