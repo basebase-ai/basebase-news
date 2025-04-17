@@ -17,7 +17,12 @@ function generateSourceHTML(source, showSettings = false) {
     <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col">
       <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between px-4">
         <div class="flex-grow">
-          <h2 class="flex items-baseline gap-2">
+          <h2 class="flex items-center gap-2">
+            ${
+              source.imageUrl
+                ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-8 h-8 object-cover mr-2" />`
+                : ""
+            }
             <a href="${
               source.homepageUrl
             }" target="_blank" rel="noopener" class="hover:text-blue-600 transition-colors">${
@@ -64,26 +69,26 @@ function generateSourceHTML(source, showSettings = false) {
                 .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
                 .map(
                   (headline) => `
-                <div class="truncate relative">
-                  <a href="${headline.articleUrl}"
-                     onmousedown="markAsRead('${headline._id}')"
-                     data-headline-id="${headline._id}"
-                     title="${headline.fullHeadline}"
-                     onmouseenter="showTooltip(this)"
-                     onmouseleave="hideTooltip(this)"
-                     class="news-headline block font-semibold text-base leading-tight truncate ${
-                       readIds.has(headline._id) ? "read" : ""
-                     }"
-                     target="_blank"
-                     rel="noopener">
-                    ${headline.fullHeadline}
-                  </a>
-                  <div class="tooltip">
-                    ${headline.fullHeadline}
-                    ${headline.summary ? "<br><br>" + headline.summary : ""}
-                  </div>
-                </div>
-              `
+            <div class="truncate relative">
+              <a href="${headline.articleUrl}"
+                 onmousedown="markAsRead('${headline._id}')"
+                 data-headline-id="${headline._id}"
+                 title="${headline.fullHeadline}"
+                 onmouseenter="showTooltip(this)"
+                 onmouseleave="hideTooltip(this)"
+                 class="news-headline block font-semibold text-base leading-tight truncate ${
+                   readIds.has(headline._id) ? "read" : ""
+                 }"
+                 target="_blank"
+                 rel="noopener">
+                ${headline.fullHeadline}
+              </a>
+              <div class="tooltip">
+                ${headline.fullHeadline}
+                ${headline.summary ? "<br><br>" + headline.summary : ""}
+              </div>
+            </div>
+          `
                 )
                 .join("")
             : `<div class="text-gray-500 text-sm">No headlines available</div>`
@@ -122,6 +127,7 @@ function openSourceSettingsModal(sourceId) {
     document.getElementById("tags").value = source.tags
       ? source.tags.join(", ")
       : "";
+    document.getElementById("imageUrl").value = source.imageUrl || "";
   } else {
     modalTitle.textContent = "Add New Source";
     submitButton.textContent = "Add";
@@ -160,6 +166,7 @@ async function handleSourceSubmit(event) {
       ? parseFloat(document.getElementById("biasScore").value)
       : undefined,
     tags: tags.length > 0 ? tags : undefined,
+    imageUrl: document.getElementById("imageUrl").value || undefined,
   };
 
   try {

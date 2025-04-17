@@ -266,6 +266,20 @@
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <div>
+            <label
+              for="imageUrl"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Image URL (optional)</label
+            >
+            <input
+              type="url"
+              id="imageUrl"
+              name="imageUrl"
+              placeholder="https://example.com/icon.png"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           <div class="flex justify-end space-x-3 pt-4">
             <button
               type="button"
@@ -496,5 +510,31 @@
     <script src="/js/sources.js"></script>
     <script src="/js/headlines.js"></script>
     <script src="/js/main.js"></script>
+    <script>
+      function createSourceCard(source) {
+        const card = document.createElement("div");
+        card.className =
+          "bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+
+        const sourceName = document.createElement("div");
+        sourceName.className = "flex items-center gap-2 mb-2";
+
+        if (source.imageUrl) {
+          const img = document.createElement("img");
+          img.src = source.imageUrl;
+          img.alt = source.name;
+          img.className = "w-8 h-8 rounded-full object-cover";
+          sourceName.appendChild(img);
+        }
+
+        const name = document.createElement("h3");
+        name.className = "font-medium text-gray-900";
+        name.textContent = source.name;
+        sourceName.appendChild(name);
+
+        card.appendChild(sourceName);
+        // ... rest of the card creation code ...
+      }
+    </script>
   </body>
 </html>

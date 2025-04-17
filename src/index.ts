@@ -13,6 +13,7 @@ import { userService } from "./services/user.service";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import mongoose from "mongoose";
 
 const app: express.Application = express();
 const port: number = parseInt(process.env.PORT || "3000", 10);
@@ -337,7 +338,9 @@ app.put(
       }
 
       const { sourceIds } = req.body;
-      user.sourceIds = sourceIds;
+      user.sourceIds = sourceIds.map(
+        (id: string) => new mongoose.Types.ObjectId(id)
+      );
       await user.save();
 
       res.json({
@@ -348,7 +351,7 @@ app.put(
           first: user.first,
           last: user.last,
           isAdmin: user.isAdmin,
-          sourceIds: user.sourceIds,
+          sourceIds: user.sourceIds.map((id) => id.toString()),
         },
       });
     } catch (error) {

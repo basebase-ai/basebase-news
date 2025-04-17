@@ -9,6 +9,7 @@ export interface ISource extends Document {
   biasScore?: number;
   lastScrapedAt?: Date;
   tags?: string[];
+  imageUrl?: string;
 }
 
 export const Source = mongoose.model<ISource>(
@@ -22,5 +23,6 @@ export const Source = mongoose.model<ISource>(
     biasScore: Number,
     lastScrapedAt: Date,
     tags: { type: [String], default: [] },
+    imageUrl: String,
   })
 );

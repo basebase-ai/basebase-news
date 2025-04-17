@@ -202,10 +202,8 @@ async function handleSourceToggle(sourceId) {
       },
       body: JSON.stringify({
         sourceIds: isChecked
-          ? [...(currentUser.sourceIds || []), sourceId.toString()]
-          : (currentUser.sourceIds || []).filter(
-              (id) => id !== sourceId.toString()
-            ),
+          ? [...(currentUser.sourceIds || []), sourceId]
+          : (currentUser.sourceIds || []).filter((id) => id !== sourceId),
       }),
     });
 
