@@ -35,10 +35,19 @@ function generateSourceHTML(source) {
       : "text-gray-600";
 
   return `
-    <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col">
+    <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col" data-source-id="${sourceId}">
       <div class="px-4 py-2 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
+            ${
+              state.currentUser
+                ? `
+              <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6">
+                <i class="ri-drag-move-fill text-xl"></i>
+              </div>
+            `
+                : ""
+            }
             ${
               source.imageUrl
                 ? `<img src="${source.imageUrl}" alt="${sourceName}" class="w-6 h-6 rounded-sm object-cover" />`
@@ -192,10 +201,10 @@ async function loadHeadlines(sourceIds) {
       })
     );
 
+    // Filter out invalid sources and those without headlines, but preserve order
     const validSources = sources
       .filter(Boolean)
-      .filter((source) => source.headlines && source.headlines.length > 0)
-      .sort((a, b) => Math.abs(b.biasScore || 0) - Math.abs(a.biasScore || 0));
+      .filter((source) => source.headlines && source.headlines.length > 0);
 
     state.currentSources = validSources;
 
@@ -216,6 +225,40 @@ async function loadHeadlines(sourceIds) {
     scrollContainer.innerHTML =
       validSources.map((source) => generateSourceHTML(source)).join("") +
       addSourceButton;
+
+    // Initialize Sortable on the main grid
+    if (state.currentUser) {
+      new Sortable(scrollContainer, {
+        animation: 150,
+        handle: ".cursor-move",
+        onEnd: async function (evt) {
+          const newOrder = Array.from(scrollContainer.children)
+            .filter((el) => el.dataset.sourceId) // Filter out the "Add Source" button
+            .map((el) => el.dataset.sourceId);
+          try {
+            const response = await fetch("/api/users/me/sources", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                sourceIds: newOrder,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to update source order");
+            }
+
+            const updatedUser = await response.json();
+            state.currentUser = updatedUser.user;
+          } catch (error) {
+            console.error("Failed to update source order:", error);
+            alert("Failed to update source order. Please try again.");
+          }
+        },
+      });
+    }
 
     return validSources;
   } catch (error) {

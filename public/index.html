@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StoryList - The world's headlines at a glance</title>
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -515,11 +516,11 @@
     <script src="/js/main.js" type="module"></script>
     <script>
       // Wait for modules to load
-      window.addEventListener('load', () => {
+      window.addEventListener("load", () => {
         if (!window.sourceService) {
-          console.error('sourceService not loaded');
+          console.error("sourceService not loaded");
         } else {
-          console.log('sourceService loaded successfully');
+          console.log("sourceService loaded successfully");
         }
       });
     </script>
@@ -547,7 +548,82 @@
 
         card.appendChild(sourceName);
         // ... rest of the card creation code ...
-      </script>
-    </div>
+      }
+
+      function renderSourcesGrid(sources, searchTerm = "") {
+        const grid = document.getElementById("sourcesGrid");
+        const filteredSources = searchTerm
+          ? sources.filter(
+              (source) =>
+                source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (source.tags &&
+                  source.tags.some((tag) =>
+                    tag.toLowerCase().includes(searchTerm.toLowerCase())
+                  ))
+            )
+          : sources;
+
+        grid.innerHTML = filteredSources
+          .map((source) => {
+            const sourceId = source._id.toString();
+            const isChecked = state.currentUser?.sourceIds?.includes(sourceId);
+
+            return `
+              <div class="border border-gray-200 rounded-lg p-4" data-source-id="${sourceId}">
+                <div class="flex items-start justify-between">
+                  <div class="flex items-start gap-3">
+                    <div class="cursor-move text-gray-400 hover:text-gray-600">
+                      <i class="ri-drag-move-line"></i>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id="source-${source._id}"
+                      ${isChecked ? "checked" : ""}
+                      onchange="handleSourceToggle('${source._id}')"
+                      class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <!-- Rest of the source card HTML -->
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        // Initialize Sortable
+        if (state.currentUser) {
+          new Sortable(grid, {
+            animation: 150,
+            handle: ".cursor-move",
+            onEnd: async function (evt) {
+              const newOrder = Array.from(grid.children).map(
+                (el) => el.dataset.sourceId
+              );
+              try {
+                const response = await fetch("/api/users/me/sources", {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    sourceIds: newOrder,
+                  }),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Failed to update source order");
+                }
+
+                const updatedUser = await response.json();
+                state.currentUser = updatedUser.user;
+              } catch (error) {
+                console.error("Failed to update source order:", error);
+                alert("Failed to update source order. Please try again.");
+              }
+            },
+          });
+        }
+      }
+    </script>
   </body>
 </html>
