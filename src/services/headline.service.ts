@@ -85,7 +85,7 @@ export class HeadlineService {
       sourceId: objectId,
       archived: { $ne: true },
     })
-      .sort({ createdAt: -1 })
+      .sort({ inPageRank: 1 })
       .limit(20);
 
     return headlines;

@@ -170,8 +170,7 @@ async function handleSourceSubmit(event) {
     name: document.getElementById("name").value,
     homepageUrl: document.getElementById("homepageUrl").value,
     rssUrl: document.getElementById("rssUrl").value || undefined,
-    includeSelector:
-      document.getElementById("includeSelector").value || undefined,
+    includeSelector: document.getElementById("includeSelector").value || "",
     excludeSelector:
       document.getElementById("excludeSelector").value || undefined,
     biasScore: document.getElementById("biasScore").value

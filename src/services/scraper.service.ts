@@ -106,7 +106,10 @@ ${htmlString}`;
 
       try {
         const headlines: IHeadline[] = JSON.parse(cleanedResponse);
-        console.log(`Got ${headlines.length} headlines`);
+        console.log(
+          `Got ${headlines.length} headlines: `,
+          headlines.map((h) => h.fullHeadline).join("\n")
+        );
         return headlines.map((headline) => ({
           ...headline,
           articleUrl: this.makeUrlAbsolute(headline.articleUrl, baseUrl),
@@ -262,18 +265,31 @@ ${htmlString}`;
         await Source.findByIdAndUpdate(sourceId, { imageUrl: feed.image.url });
       }
 
-      const headlines: IHeadline[] = feed.items.map((item, index) => ({
-        fullHeadline: item.title || "",
-        articleUrl: item.link || "",
-        summary: item.contentSnippet || item.content || "",
-        section: Section.NEWS, // Default to NEWS, can be updated by AI later
-        type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
-        inPageRank: index + 1,
-        sourceId: new mongoose.Types.ObjectId(sourceId),
-        archived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }));
+      const headlines: IHeadline[] = feed.items.map((item, index) => {
+        const hasAudioEnclosure: boolean =
+          (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
+        const hasVideoEnclosure: boolean =
+          (item.enclosure && item.enclosure.type === "video/mp4") ?? false;
+        const summary: string =
+          item.contentSnippet ||
+          item.content ||
+          item.description ||
+          (hasAudioEnclosure ? "Audio recording" : "") ||
+          (hasVideoEnclosure ? "Video recording" : "");
+
+        return {
+          fullHeadline: item.title || "",
+          articleUrl: item.link || "",
+          summary,
+          section: Section.NEWS, // Default to NEWS, can be updated by AI later
+          type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
+          inPageRank: index + 1,
+          sourceId: new mongoose.Types.ObjectId(sourceId),
+          archived: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      });
 
       // Save headlines to database
       await headlineService.addHeadlines(sourceId, headlines);
