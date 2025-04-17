@@ -50,16 +50,16 @@ function generateSourceHTML(source) {
         </div>
       </div>
       <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
-        <div class="space-y-2">
+        <div class="space-y-1.4">
           ${headlines
             .map(
               (headline) => `
-            <div class="group">
+            <div class="group relative">
               <a 
                 href="${headline.articleUrl}" 
                 target="_blank" 
                 rel="noopener"
-                class="block"
+                class="block relative"
                 data-headline-id="${headline._id}"
                 onmouseover="headlineService.showTooltip(this)"
                 onmouseout="headlineService.hideTooltip(this)"
@@ -71,10 +71,15 @@ function generateSourceHTML(source) {
                 }">
                   ${headline.fullHeadline}
                 </div>
+                <div class="tooltip">
+                  <div class="font-semibold">${headline.fullHeadline}</div>
+                  ${
+                    headline.summary
+                      ? `<div class="mt-2 text-gray-600">${headline.summary}</div>`
+                      : ""
+                  }
+                </div>
               </a>
-              <div class="tooltip">
-                ${headline.fullHeadline}
-              </div>
             </div>
           `
             )
@@ -157,17 +162,15 @@ function markAsRead(headlineId) {
 }
 
 function showTooltip(element) {
-  const tooltip = element.nextElementSibling;
-  if (tooltip && tooltip.classList.contains("tooltip")) {
-    setTimeout(() => {
-      tooltip.style.display = "block";
-    }, 100);
+  const tooltip = element.querySelector(".tooltip");
+  if (tooltip) {
+    tooltip.style.display = "block";
   }
 }
 
 function hideTooltip(element) {
-  const tooltip = element.nextElementSibling;
-  if (tooltip && tooltip.classList.contains("tooltip")) {
+  const tooltip = element.querySelector(".tooltip");
+  if (tooltip) {
     tooltip.style.display = "none";
   }
 }
