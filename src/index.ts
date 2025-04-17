@@ -275,7 +275,8 @@ app.get("/auth/verify", async (req: Request, res: Response): Promise<void> => {
     // Set JWT cookie
     res.cookie("auth", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: req.protocol === "https",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 

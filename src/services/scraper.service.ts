@@ -138,7 +138,7 @@ ${htmlString}`;
         return await this.client.get({ url, params });
       } catch (error) {
         lastError = error as Error;
-        console.error(`Attempt ${attempt} failed:`, error);
+        console.error(`Attempt ${attempt} failed:`, lastError.message); // don't need the whole stack trace
 
         if (attempt < this.MAX_RETRIES) {
           await new Promise((resolve) =>
