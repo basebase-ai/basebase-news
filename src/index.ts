@@ -81,7 +81,9 @@ app.post(
       const { sourceId } = req.params;
       const source = await Source.findById(sourceId);
       if (!source) {
-        throw new Error(`Source with id ${sourceId} not found`);
+        console.error(`Source not found: ${sourceId}`);
+        res.status(404).json({ status: "error", message: "Source not found" });
+        return;
       }
 
       // Return success immediately
@@ -92,10 +94,19 @@ app.post(
 
       // Process scraping asynchronously
       console.log(`Scraping source: ${source.name}`);
-      const headlines = await scraperService.scrapeHomepage(source.id);
-      console.log(`Scraped ${headlines.length} headlines for ${source.name}`);
+      try {
+        const headlines = await scraperService.collectOne(source);
+        console.log(`Scraped ${headlines.length} headlines for ${source.name}`);
+      } catch (error) {
+        console.error(`Error scraping source ${source.name}:`, error);
+        if (error instanceof Error) {
+          console.error("Error name:", error.name);
+          console.error("Error message:", error.message);
+          console.error("Error stack:", error.stack);
+        }
+      }
     } catch (error) {
-      console.error("Error scraping source:", error);
+      console.error("Error in scrape endpoint:", error);
       // Don't send response here since we already sent it
     }
   }
@@ -108,10 +119,16 @@ app.post(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const source = req.body;
-      await headlineService.addSource(source);
+      const newSource = await Source.create(source);
       res
         .status(201)
         .json({ status: "ok", message: "Source added successfully" });
+
+      console.log(`Scraping new source: ${newSource.name}`);
+      const headlines = await scraperService.collectOne(newSource.id);
+      console.log(
+        `Scraped ${headlines.length} headlines for ${newSource.name}`
+      );
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : "Failed to add source";
@@ -202,7 +219,7 @@ app.get(
     try {
       const { tag } = req.params;
       const sources = await Source.find({ tags: tag });
-      const sourceIds = sources.map((source) => source._id.toString());
+      const sourceIds = sources.map((source) => source.id);
 
       res.json({
         status: "ok",

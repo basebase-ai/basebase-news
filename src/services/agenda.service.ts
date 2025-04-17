@@ -33,9 +33,7 @@ class AgendaService {
 
         for (const source of sourcesToScrape) {
           try {
-            await scraperService.collectOne(source._id.toString());
-            source.lastScrapedAt = new Date();
-            await source.save();
+            await scraperService.collectOne(source);
           } catch (error) {
             console.error(`Error scraping source ${source.name}:`, error);
           }

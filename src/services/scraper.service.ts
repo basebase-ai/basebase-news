@@ -161,7 +161,7 @@ ${htmlString}`;
 
       // Scrape each source one at a time
       for (const source of sources) {
-        await this.collectOne(source._id.toString());
+        await this.collectOne(source);
       }
       console.log("Completed collecting from all sources");
     } catch (error) {
@@ -175,29 +175,27 @@ ${htmlString}`;
     }
   }
 
-  public async collectOne(sourceId: string): Promise<void> {
-    const source = await Source.findById(sourceId);
-    if (!source) {
-      throw new Error(`Source not found: ${sourceId}`);
-    }
-
+  public async collectOne(source: ISource): Promise<IHeadline[]> {
     try {
       console.log(
         `Starting collection for source: ${source.name} (${source.homepageUrl})`
       );
+      // do this first to avoid race condition
+      await Source.findByIdAndUpdate(source.id, { lastScrapedAt: new Date() });
 
       let headlines: IHeadline[];
       if (source.rssUrl) {
         console.log(`Using RSS feed for ${source.name}`);
-        headlines = await this.readRss(source._id.toString());
+        headlines = await this.readRss(source.id);
       } else {
         console.log(`Scraping webpage for ${source.name}`);
-        headlines = await this.scrapeHomepage(source._id.toString());
+        headlines = await this.scrapeHomepage(source.id);
       }
 
       console.log(
         `Successfully collected ${headlines.length} headlines from ${source.name}`
       );
+      return headlines;
     } catch (error) {
       console.error(`Error collecting from source ${source.name}:`, error);
       if (error instanceof Error) {
@@ -205,7 +203,8 @@ ${htmlString}`;
         console.error("Error message:", error.message);
         console.error("Error stack:", error.stack);
       }
-      // Continue with next source even if one fails
+
+      return [];
     }
   }
 

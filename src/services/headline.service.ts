@@ -60,14 +60,14 @@ export class HeadlineService {
   }
 
   public async getHeadlines(sourceId: string): Promise<IHeadline[]> {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const objectId = new mongoose.Types.ObjectId(sourceId);
 
     const headlines = await Headline.find({
       sourceId: objectId,
-      createdAt: { $gte: oneHourAgo },
       archived: { $ne: true },
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .limit(20);
 
     return headlines;
   }

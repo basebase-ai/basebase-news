@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
-export interface ISource {
+export interface ISource extends Document {
   name: string;
   homepageUrl: string;
   rssUrl?: string;
