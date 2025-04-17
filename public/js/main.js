@@ -112,10 +112,16 @@ export function renderSourcesGrid(sources, searchTerm = "") {
       )
     : sources;
 
+  // Get the most recently added source ID from the URL if it exists
+  const urlParams = new URLSearchParams(window.location.search);
+  const newSourceId = urlParams.get("newSource");
+
   grid.innerHTML = filteredSources
     .map((source) => {
       const sourceId = source._id.toString();
-      const isChecked = state.currentUser?.sourceIds?.includes(sourceId);
+      const isChecked =
+        state.currentUser?.sourceIds?.includes(sourceId) ||
+        sourceId === newSourceId;
       return sourceService.generateSourceHTML(source, {
         isCustomizeView: true,
         showSettings: true,

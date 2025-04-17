@@ -172,7 +172,9 @@ function generateSourceHTML(source, options = {}) {
                 <div class="news-headline truncate ${
                   readIds.has(headline._id) ? "read" : ""
                 }" data-original-text="${headline.fullHeadline}">
-                  ${headline.fullHeadline}
+                  ${headline.fullHeadline}${
+                      headline.summary ? ` - ${headline.summary}` : ""
+                    }
                 </div>
                 <div class="tooltip">
                   <div class="font-semibold">${headline.fullHeadline}</div>
@@ -315,6 +317,11 @@ async function handleSourceSubmit(event) {
 
         const updatedUser = await userResponse.json();
         state.currentUser = updatedUser.user;
+
+        // Add the new source ID to the URL
+        const url = new URL(window.location.href);
+        url.searchParams.set("newSource", result.source._id);
+        window.history.replaceState({}, "", url);
       } catch (error) {
         console.error("Failed to update user sources:", error);
         alert(
@@ -329,10 +336,12 @@ async function handleSourceSubmit(event) {
 
     // Check the checkbox for the new source after grid is rendered
     if (!isEdit && result.source && result.source._id) {
-      const checkbox = document.getElementById(`source-${result.source._id}`);
-      if (checkbox) {
-        checkbox.checked = true;
-      }
+      setTimeout(() => {
+        const checkbox = document.getElementById(`source-${result.source._id}`);
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      }, 100);
     }
   } catch (error) {
     console.error("Error:", error);
