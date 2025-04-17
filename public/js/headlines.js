@@ -36,7 +36,7 @@ function generateSourceHTML(source) {
 
   return `
     <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col">
-      <div class="p-4 border-b border-gray-200">
+      <div class="px-4 py-2 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             ${
@@ -44,9 +44,10 @@ function generateSourceHTML(source) {
                 ? `<img src="${source.imageUrl}" alt="${sourceName}" class="w-6 h-6 rounded-sm object-cover" />`
                 : ""
             }
-            <h2 class="column-header text-lg">${sourceName}</h2>
+            <a href="${
+              source.homepageUrl
+            }" target="_blank" rel="noopener" class="column-header text-lg hover:text-blue-600 transition-colors">${sourceName}</a>
           </div>
-          <span class="text-sm ${biasClass}">${biasScore.toFixed(2)}</span>
         </div>
       </div>
       <div class="flex-1 overflow-y-auto custom-scrollbar p-4">

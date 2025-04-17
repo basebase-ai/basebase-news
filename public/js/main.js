@@ -1,6 +1,7 @@
 import { authService } from "./auth.js";
 import { headlineService } from "./headlines.js";
 import { state } from "./state.js";
+import { sourceService } from "./sources.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
   const scrollContainer = document.querySelector(".grid");
@@ -72,6 +73,10 @@ async function loadAllSources() {
     const response = await fetch("/api/sources");
     if (!response.ok) throw new Error("Failed to fetch sources");
     const sources = await response.json();
+    sourceService.setCurrentSources(sources);
+    if (state.currentUser?.isAdmin) {
+      document.getElementById("adminControlsModal")?.classList.remove("hidden");
+    }
     renderSourcesGrid(sources);
   } catch (error) {
     console.error("Error loading sources:", error);
@@ -109,15 +114,22 @@ function renderSourcesGrid(sources, searchTerm = "") {
                 class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
               />
               <div>
-                <label for="source-${
-                  source._id
-                }" class="font-medium cursor-pointer">
+                <div class="flex items-start gap-2">
+                  <label for="source-${
+                    source._id
+                  }" class="font-medium cursor-pointer">
+                    ${
+                      source.imageUrl
+                        ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover" />`
+                        : ""
+                    }
+                  </label>
                   <a href="${
                     source.homepageUrl
-                  }" target="_blank" rel="noopener" class="hover:text-blue-600 transition-colors">${
+                  }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors">${
         source.name
       }</a>
-                </label>
+                </div>
                 ${
                   source.tags?.length
                     ? `
@@ -133,18 +145,18 @@ function renderSourcesGrid(sources, searchTerm = "") {
               state.isAdmin
                 ? `
               <div class="relative inline-block">
-                <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
+                <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
                   <i class="ri-settings-4-line text-lg"></i>
                 </button>
                 <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
                   <div class="py-1">
-                    <button onclick="scrapeSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                    <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
                       <i class="ri-refresh-line mr-2"></i>Refresh
                     </button>
-                    <button onclick="openSourceSettingsModal('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                    <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
                       <i class="ri-edit-line mr-2"></i>Edit
                     </button>
-                    <button onclick="deleteSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
+                    <button onclick="sourceService.deleteSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
                       <i class="ri-delete-bin-line mr-2"></i>Delete
                     </button>
                   </div>

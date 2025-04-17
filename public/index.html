@@ -151,7 +151,7 @@
             Source Settings
           </h3>
           <button
-            onclick="closeSourceSettingsModal()"
+            onclick="sourceService.closeSourceSettingsModal()"
             class="text-gray-500 hover:text-gray-700"
           >
             <i class="ri-close-line text-2xl"></i>
@@ -159,7 +159,7 @@
         </div>
         <form
           id="sourceSettingsForm"
-          onsubmit="handleSourceSubmit(event)"
+          onsubmit="sourceService.handleSourceSubmit(event)"
           class="space-y-4 font-poppins"
         >
           <input type="hidden" id="sourceId" />
@@ -286,7 +286,7 @@
           <div class="flex justify-end space-x-3 pt-4">
             <button
               type="button"
-              onclick="closeSourceSettingsModal()"
+              onclick="sourceService.closeSourceSettingsModal()"
               class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
             >
               Cancel
@@ -492,7 +492,7 @@
             </div>
             <div id="adminControlsModal" class="hidden shrink-0">
               <button
-                onclick="openSourceSettingsModal()"
+                onclick="sourceService.openSourceSettingsModal()"
                 class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-sm flex items-center font-poppins"
               >
                 <i class="ri-add-line mr-1"></i>Add
@@ -513,6 +513,16 @@
     <script src="/js/sources.js" type="module"></script>
     <script src="/js/headlines.js" type="module"></script>
     <script src="/js/main.js" type="module"></script>
+    <script>
+      // Wait for modules to load
+      window.addEventListener('load', () => {
+        if (!window.sourceService) {
+          console.error('sourceService not loaded');
+        } else {
+          console.log('sourceService loaded successfully');
+        }
+      });
+    </script>
     <script>
       function createSourceCard(source) {
         const card = document.createElement("div");

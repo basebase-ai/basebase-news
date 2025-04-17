@@ -17,17 +17,15 @@ function generateSourceHTML(source, showSettings = false) {
     <div class="border border-gray-200 rounded-lg h-[255px] flex flex-col">
       <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between px-4">
         <div class="flex-grow">
-          <h2 class="flex items-baseline gap-2">
+          <a href="${
+            source.homepageUrl
+          }" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-blue-600 transition-colors">
             ${
               source.imageUrl
-                ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-8 h-8 object-cover mr-2" />`
+                ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover" />`
                 : ""
             }
-            <a href="${
-              source.homepageUrl
-            }" target="_blank" rel="noopener" class="hover:text-blue-600 transition-colors">${
-    source.name
-  }</a>
+            <span class="text-lg font-bold">${source.name}</span>
             ${
               source.lastScrapedAt
                 ? `<span class="text-[0.675rem] text-gray-500 font-poppins font-normal">${formatTimeAgo(
@@ -35,24 +33,24 @@ function generateSourceHTML(source, showSettings = false) {
                   )}</span>`
                 : ""
             }
-          </h2>
+          </a>
         </div>
         ${
           showSettings && isAdmin
             ? `
           <div class="relative inline-block">
-            <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
+            <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
               <i class="ri-settings-4-line text-lg"></i>
             </button>
             <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
               <div class="py-1">
-                <button onclick="scrapeSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
                   <i class="ri-refresh-line mr-2"></i>Refresh
                 </button>
-                <button onclick="openSourceSettingsModal('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
                   <i class="ri-edit-line mr-2"></i>Edit
                 </button>
-                <button onclick="deleteSource('${source._id}'); toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
+                <button onclick="sourceService.deleteSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
                   <i class="ri-delete-bin-line mr-2"></i>Delete
                 </button>
               </div>
@@ -232,4 +230,24 @@ async function scrapeSource(sourceId) {
     console.error("Error:", error);
     alert(error.message);
   }
+}
+
+export const sourceService = {
+  formatTimeAgo,
+  generateSourceHTML,
+  openSourceSettingsModal,
+  closeSourceSettingsModal,
+  handleSourceSubmit,
+  toggleDropdown,
+  deleteSource,
+  scrapeSource,
+  setCurrentSources(sources) {
+    currentSources = sources;
+  },
+};
+
+// Make service available globally
+if (typeof window !== "undefined") {
+  window.sourceService = sourceService;
+  console.log("sourceService initialized:", window.sourceService);
 }
