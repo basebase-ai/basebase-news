@@ -35,7 +35,7 @@ function generateSourceHTML(source) {
       : "text-gray-600";
 
   return `
-    <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col" data-source-id="${sourceId}">
+    <div class="border border-gray-200 rounded-lg h-[255px] flex flex-col" data-source-id="${sourceId}">
       <div class="px-4 py-2 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 min-w-0">
@@ -91,7 +91,7 @@ function generateSourceHTML(source) {
               >
                 <div class="news-headline truncate ${
                   readIds.has(headline._id) ? "read" : ""
-                }">
+                }" data-original-text="${headline.fullHeadline}">
                   ${headline.fullHeadline}
                 </div>
                 <div class="tooltip">
@@ -119,58 +119,66 @@ function generateSourceHTML(source) {
   `;
 }
 
+function clearSearch() {
+  const searchInput = document.getElementById("searchInput");
+  const searchIcon = document.getElementById("searchIcon");
+  const searchClearButton = document.getElementById("searchClearButton");
+
+  searchInput.value = "";
+  searchIcon.classList.remove("hidden");
+  searchClearButton.classList.add("hidden");
+  filterHeadlines("");
+}
+
 function filterHeadlines(searchTerm) {
   const scrollContainer = document.querySelector(".grid");
   if (!scrollContainer) return;
 
-  const addSourceButton = state.currentUser
-    ? `
-    <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="openCustomizeModal()">
-      <button class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:bg-blue-700 transition-colors mb-4">
-        <i class="ri-add-line"></i>
-      </button>
-      <p class="text-gray-600 font-poppins">Add News Source</p>
-    </div>
-    `
-    : "";
+  const searchIcon = document.getElementById("searchIcon");
+  const searchClearButton = document.getElementById("searchClearButton");
 
-  if (!searchTerm || searchTerm.trim() === "") {
-    scrollContainer.innerHTML =
-      state.currentSources
-        .map((source) => generateSourceHTML(source))
-        .join("") + addSourceButton;
-    return;
+  if (searchTerm && searchTerm.trim() !== "") {
+    searchIcon.classList.add("hidden");
+    searchClearButton.classList.remove("hidden");
+  } else {
+    searchIcon.classList.remove("hidden");
+    searchClearButton.classList.add("hidden");
   }
 
-  const filteredSources = state.currentSources
-    .map((source) => {
-      const filteredHeadlines = source.headlines.filter(
-        (headline) =>
-          headline.fullHeadline
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          (headline.summary &&
-            headline.summary.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+  const sourceElements = scrollContainer.querySelectorAll("[data-source-id]");
 
-      if (filteredHeadlines.length === 0) return null;
+  sourceElements.forEach((sourceElement) => {
+    const headlines = sourceElement.querySelectorAll(".news-headline");
+    let hasVisibleHeadlines = false;
 
-      return {
-        ...source,
-        headlines: filteredHeadlines.map((headline) => ({
-          ...headline,
-          fullHeadline: highlightText(headline.fullHeadline, searchTerm),
-          summary: headline.summary
-            ? highlightText(headline.summary, searchTerm)
-            : "",
-        })),
-      };
-    })
-    .filter(Boolean);
+    headlines.forEach((headline) => {
+      const headlineText = headline.textContent.toLowerCase();
+      const searchLower = searchTerm.toLowerCase();
 
-  scrollContainer.innerHTML =
-    filteredSources.map((source) => generateSourceHTML(source)).join("") +
-    addSourceButton;
+      if (!searchTerm || headlineText.includes(searchLower)) {
+        headline.style.display = "block";
+        if (searchTerm) {
+          headline.innerHTML = highlightText(headline.textContent, searchTerm);
+        } else {
+          // Reset the headline text to original state
+          const originalText =
+            headline.getAttribute("data-original-text") || headline.textContent;
+          headline.innerHTML = originalText;
+        }
+        hasVisibleHeadlines = true;
+      } else {
+        headline.style.display = "none";
+      }
+    });
+
+    // Show/hide the "No headlines available" message
+    const noHeadlinesMsg = sourceElement.querySelector(
+      ".text-gray-500.text-sm.text-center"
+    );
+    if (noHeadlinesMsg) {
+      noHeadlinesMsg.style.display = hasVisibleHeadlines ? "none" : "block";
+    }
+  });
 }
 
 function markAsRead(headlineId) {
@@ -233,7 +241,7 @@ async function loadHeadlines(sourceIds) {
 
     const addSourceButton = state.currentUser
       ? `
-      <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="openCustomizeModal()">
+      <div class="border border-gray-200 rounded-lg h-[255px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="openCustomizeModal()">
         <button class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:bg-blue-700 transition-colors mb-4">
           <i class="ri-add-line"></i>
         </button>
@@ -296,6 +304,7 @@ export const headlineService = {
   showTooltip,
   hideTooltip,
   loadHeadlines,
+  clearSearch,
 };
 
 // Make functions available globally

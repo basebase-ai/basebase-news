@@ -2,6 +2,8 @@ import { User, IUser } from "../models/user.model";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import { Source } from "../models/source.model";
+import mongoose from "mongoose";
 
 export class UserService {
   private static instance: UserService;
@@ -38,7 +40,16 @@ export class UserService {
     // Find or create user
     let user = await User.findOne({ email });
     if (!user) {
-      user = await User.create({ email, first, last });
+      // Get default sources with top_news_us tag
+      const defaultSources = await Source.find({ tags: "top_news_us" });
+      const defaultSourceIds = defaultSources.map((source) => source._id);
+
+      user = await User.create({
+        email,
+        first,
+        last,
+        sourceIds: defaultSourceIds,
+      });
     }
 
     // Generate JWT

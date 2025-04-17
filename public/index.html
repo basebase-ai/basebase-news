@@ -457,6 +457,14 @@
                 class="w-64 px-4 py-1.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em]"
               />
               <button
+                id="searchClearButton"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"
+                onclick="headlineService.clearSearch()"
+              >
+                <i class="ri-close-line"></i>
+              </button>
+              <button
+                id="searchIcon"
                 class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <i class="ri-search-line"></i>
