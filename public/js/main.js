@@ -1,16 +1,20 @@
+import { authService } from "./auth.js";
+import { headlineService } from "./headlines.js";
+import { state } from "./state.js";
+
 document.addEventListener("DOMContentLoaded", async function () {
   const scrollContainer = document.querySelector(".grid");
   const searchInput = document.getElementById("searchInput");
 
-  await fetchCurrentUser();
+  await initialize();
 
   if (searchInput) {
     searchInput.addEventListener(
       "input",
-      debounce((e) => {
+      headlineService.debounce((e) => {
         const target = e.target;
         const value = target.value.trim();
-        filterHeadlines(value);
+        headlineService.filterHeadlines(value);
       }, 300)
     );
   }
@@ -18,38 +22,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   if (!scrollContainer) return;
 
   try {
-    // Get list of source IDs to fetch
-    const sourceIds = currentUser?.sourceIds || [];
-
-    // Fetch each source with its headlines
-    const sourcesWithHeadlines = await Promise.all(
-      sourceIds.map(async (sourceId) => {
-        const response = await fetch(`/api/sources/${sourceId}`);
-        const data = await response.json();
-        if (data.status === "ok") {
-          return data.source;
-        }
-        return null;
-      })
-    );
-
-    // Filter out any failed requests and sort by bias score
-    currentSources = sourcesWithHeadlines
-      .filter(Boolean)
-      .sort((a, b) => (a.biasScore ?? 0) - (b.biasScore ?? 0));
-
-    scrollContainer.innerHTML =
-      currentSources.map((source) => generateSourceHTML(source)).join("") +
-      (currentUser
-        ? `
-      <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="openCustomizeModal()">
-        <button class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:bg-blue-700 transition-colors mb-4">
-          <i class="ri-add-line"></i>
-        </button>
-        <p class="text-gray-600 font-poppins">Add News Source</p>
-      </div>
-      `
-        : "");
+    const sourceIds = state.currentUser?.sourceIds || [];
+    await headlineService.loadHeadlines(sourceIds);
   } catch (error) {
     console.error("Failed to fetch headlines:", error);
     scrollContainer.innerHTML = `
@@ -84,8 +58,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   window.addEventListener("resize", checkScroll);
 });
 
-let allSources = [];
-
 function openCustomizeModal() {
   document.getElementById("customizeModal").classList.remove("hidden");
   loadAllSources();
@@ -99,18 +71,18 @@ async function loadAllSources() {
   try {
     const response = await fetch("/api/sources");
     if (!response.ok) throw new Error("Failed to fetch sources");
-    allSources = await response.json();
-    renderSourcesGrid();
+    const sources = await response.json();
+    renderSourcesGrid(sources);
   } catch (error) {
     console.error("Error loading sources:", error);
     alert("Failed to load sources");
   }
 }
 
-function renderSourcesGrid(searchTerm = "") {
+function renderSourcesGrid(sources, searchTerm = "") {
   const grid = document.getElementById("sourcesGrid");
   const filteredSources = searchTerm
-    ? allSources.filter(
+    ? sources.filter(
         (source) =>
           source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (source.tags &&
@@ -118,12 +90,12 @@ function renderSourcesGrid(searchTerm = "") {
               tag.toLowerCase().includes(searchTerm.toLowerCase())
             ))
       )
-    : allSources;
+    : sources;
 
   grid.innerHTML = filteredSources
     .map((source) => {
       const sourceId = source._id.toString();
-      const isChecked = currentUser?.sourceIds?.includes(sourceId);
+      const isChecked = state.currentUser?.sourceIds?.includes(sourceId);
 
       return `
         <div class="border border-gray-200 rounded-lg p-4">
@@ -158,7 +130,7 @@ function renderSourcesGrid(searchTerm = "") {
               </div>
             </div>
             ${
-              isAdmin
+              state.isAdmin
                 ? `
               <div class="relative inline-block">
                 <button onclick="toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
@@ -189,7 +161,7 @@ function renderSourcesGrid(searchTerm = "") {
 }
 
 async function handleSourceToggle(sourceId) {
-  if (!currentUser) return;
+  if (!state.currentUser) return;
 
   const checkbox = document.getElementById(`source-${sourceId}`);
   const isChecked = checkbox.checked;
@@ -202,8 +174,8 @@ async function handleSourceToggle(sourceId) {
       },
       body: JSON.stringify({
         sourceIds: isChecked
-          ? [...(currentUser.sourceIds || []), sourceId]
-          : (currentUser.sourceIds || []).filter((id) => id !== sourceId),
+          ? [...(state.currentUser.sourceIds || []), sourceId]
+          : (state.currentUser.sourceIds || []).filter((id) => id !== sourceId),
       }),
     });
 
@@ -213,48 +185,60 @@ async function handleSourceToggle(sourceId) {
     }
 
     const updatedUser = await response.json();
-    currentUser = updatedUser.user;
+    state.currentUser = updatedUser.user;
 
     // Update the main content area without closing the modal
-    const scrollContainer = document.querySelector(".grid");
-    if (scrollContainer) {
-      const sourceIds = currentUser?.sourceIds || [];
-      const sourcesWithHeadlines = await Promise.all(
-        sourceIds.map(async (sourceId) => {
-          const response = await fetch(`/api/sources/${sourceId}`);
-          const data = await response.json();
-          if (data.status === "ok") {
-            return data.source;
-          }
-          return null;
-        })
-      );
-
-      currentSources = sourcesWithHeadlines
-        .filter(Boolean)
-        .sort((a, b) => (a.biasScore ?? 0) - (b.biasScore ?? 0));
-
-      scrollContainer.innerHTML =
-        currentSources.map((source) => generateSourceHTML(source)).join("") +
-        (currentUser
-          ? `
-        <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="openCustomizeModal()">
-          <button class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:bg-blue-700 transition-colors mb-4">
-            <i class="ri-add-line"></i>
-          </button>
-          <p class="text-gray-600 font-poppins">Add News Source</p>
-        </div>
-        `
-          : "");
-    }
+    await headlineService.loadHeadlines(state.currentUser?.sourceIds || []);
   } catch (error) {
-    console.error("Error updating sources:", error);
-    alert(error.message || "Failed to update sources");
-    checkbox.checked = !isChecked; // Revert the checkbox
+    console.error("Failed to update sources:", error);
+    alert("Failed to update sources. Please try again.");
   }
 }
 
 // Add event listener for search
 document.getElementById("sourceSearchInput").addEventListener("input", (e) => {
-  renderSourcesGrid(e.target.value);
+  loadAllSources().then((sources) =>
+    renderSourcesGrid(sources, e.target.value)
+  );
 });
+
+async function initialize() {
+  console.log("Initializing...");
+  try {
+    const user = await authService.getCurrentUser();
+    console.log("Current user:", user);
+    if (user) {
+      state.currentUser = user;
+      state.isAdmin = user.isAdmin;
+      document.getElementById("userSection")?.classList.remove("hidden");
+      document.getElementById("signInButton")?.classList.add("hidden");
+      document.getElementById("userAvatar").textContent = user.first[0];
+      if (user.isAdmin) {
+        document
+          .getElementById("adminControlsModal")
+          ?.classList.remove("hidden");
+      }
+      console.log("Loading headlines for user's sources:", user.sourceIds);
+      await headlineService.loadHeadlines(user.sourceIds);
+    } else {
+      console.log("No user found, fetching top_news_us sources");
+      // Fetch top_news_us sources for non-signed in users
+      const response = await fetch("/api/sources/tag/top_news_us");
+      const data = await response.json();
+      console.log("Top news sources response:", data);
+      if (data.status === "ok" && data.sourceIds.length > 0) {
+        console.log("Loading headlines for top news sources:", data.sourceIds);
+        await headlineService.loadHeadlines(data.sourceIds);
+      } else {
+        console.error("No top news sources found");
+      }
+    }
+  } catch (error) {
+    console.error("Failed to initialize:", error);
+  }
+}
+
+// Expose functions to window object for HTML onclick handlers
+window.openCustomizeModal = openCustomizeModal;
+window.closeCustomizeModal = closeCustomizeModal;
+window.handleSourceToggle = handleSourceToggle;

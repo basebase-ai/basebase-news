@@ -1,5 +1,4 @@
-let currentUser = null;
-let isAdmin = false;
+import { state } from "./state.js";
 
 function getInitials(first, last) {
   return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
@@ -85,37 +84,53 @@ async function handleSignInSubmit(event) {
   }
 }
 
-async function fetchCurrentUser() {
+async function getCurrentUser() {
   try {
     const response = await fetch("/api/auth/me");
     const data = await response.json();
 
     if (data.status === "ok" && data.user) {
-      currentUser = {
+      state.currentUser = {
         ...data.user,
         sourceIds: data.user.sourceIds || [],
       };
-      isAdmin = data.user.isAdmin;
-      updateUserAvatar(currentUser);
+      state.isAdmin = data.user.isAdmin;
+      updateUserAvatar(state.currentUser);
       document
         .getElementById("adminControls")
-        ?.classList.toggle("hidden", !isAdmin);
+        ?.classList.toggle("hidden", !state.isAdmin);
       document
         .getElementById("adminControlsModal")
-        ?.classList.toggle("hidden", !isAdmin);
+        ?.classList.toggle("hidden", !state.isAdmin);
+      return state.currentUser;
     } else {
-      currentUser = null;
-      isAdmin = false;
+      state.currentUser = null;
+      state.isAdmin = false;
       updateUserAvatar(null);
       document.getElementById("adminControls")?.classList.add("hidden");
       document.getElementById("adminControlsModal")?.classList.add("hidden");
+      return null;
     }
   } catch (error) {
     console.error("Error fetching current user:", error);
-    currentUser = null;
-    isAdmin = false;
+    state.currentUser = null;
+    state.isAdmin = false;
     updateUserAvatar(null);
     document.getElementById("adminControls")?.classList.add("hidden");
     document.getElementById("adminControlsModal")?.classList.add("hidden");
+    return null;
   }
 }
+
+export const authService = {
+  getCurrentUser,
+  openSignInModal,
+  closeSignInModal,
+  handleSignInSubmit,
+  updateUserAvatar,
+};
+
+// Expose auth functions to window object for HTML onclick handlers
+window.openSignInModal = openSignInModal;
+window.closeSignInModal = closeSignInModal;
+window.handleSignInSubmit = handleSignInSubmit;

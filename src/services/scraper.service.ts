@@ -250,6 +250,11 @@ ${htmlString}`;
       const parser = new Parser();
       const feed = await parser.parseURL(source.rssUrl);
 
+      // Check if feed has an image and update source if different
+      if (feed.image?.url && feed.image.url !== source.imageUrl) {
+        await Source.findByIdAndUpdate(sourceId, { imageUrl: feed.image.url });
+      }
+
       const headlines: IHeadline[] = feed.items.map((item, index) => ({
         fullHeadline: item.title || "",
         articleUrl: item.link || "",

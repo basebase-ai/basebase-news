@@ -14,10 +14,10 @@ function formatTimeAgo(date) {
 
 function generateSourceHTML(source, showSettings = false) {
   return `
-    <div class="border border-gray-200 rounded-lg h-[300px] flex flex-col">
+    <div class="border border-gray-200 rounded-lg h-[255px] flex flex-col">
       <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between px-4">
         <div class="flex-grow">
-          <h2 class="flex items-center gap-2">
+          <h2 class="flex items-baseline gap-2">
             ${
               source.imageUrl
                 ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-8 h-8 object-cover mr-2" />`
@@ -62,7 +62,7 @@ function generateSourceHTML(source, showSettings = false) {
             : ""
         }
       </div>
-      <div class="space-y-2 flex-1 overflow-y-auto custom-scrollbar px-4">
+      <div class="space-y-1 flex-1 overflow-y-auto custom-scrollbar px-4">
         ${
           source.headlines
             ? source.headlines
