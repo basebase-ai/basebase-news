@@ -3,4 +3,5 @@ export const state = {
   currentSources: [],
   isAdmin: false,
   denseMode: localStorage.getItem("denseMode") === "true",
+  darkMode: localStorage.getItem("darkMode") === "true",
 };

@@ -10,6 +10,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   const searchInput = document.getElementById("searchInput");
   const sourceSearchInput = document.getElementById("sourceSearchInput");
 
+  // Initialize dark mode
+  if (state.darkMode) {
+    document.documentElement.classList.add("dark");
+  }
+
   await initialize();
 
   if (searchInput) {

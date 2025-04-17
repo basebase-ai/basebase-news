@@ -29,13 +29,13 @@ function generateSourceHTML(source) {
       : "text-gray-600";
 
   return `
-    <div class="border border-gray-200 rounded-md ${
+    <div class="border border-gray-200 dark:border-gray-700 rounded-md ${
       state.denseMode ? "h-[230px]" : "h-[300px]"
     } flex flex-col" data-source-id="${sourceId}">
-      <div class="px-4 py-2 border-b border-gray-200">
+      <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 min-w-0">
-            <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6 shrink-0">
+            <div class="cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 flex items-center justify-center w-6 h-6 shrink-0">
               <i class="ri-drag-move-fill text-xl"></i>
             </div>
             ${
@@ -46,11 +46,11 @@ function generateSourceHTML(source) {
             <div class="flex items-baseline gap-2 min-w-0">
               <a href="${
                 source.homepageUrl
-              }" target="_blank" rel="noopener" class="column-header text-lg hover:text-blue-600 transition-colors truncate">${sourceName}</a>
+              }" target="_blank" rel="noopener" class="column-header text-lg hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate text-gray-900 dark:text-white">${sourceName}</a>
               ${
                 source.lastScrapedAt
                   ? `
-                <span class="text-[0.675rem] text-gray-500 font-poppins font-normal shrink-0">${formatTimeAgo(
+                <span class="text-[0.675rem] text-gray-500 dark:text-gray-400 font-poppins font-normal shrink-0">${formatTimeAgo(
                   new Date(source.lastScrapedAt)
                 )}</span>
               `
@@ -86,10 +86,12 @@ function generateSourceHTML(source) {
                     : "whitespace-normal line-clamp-2"
                 } ${
                       readIds.has(headline._id) ? "read" : ""
-                    }" data-original-text="${headline.fullHeadline}">
+                    } text-gray-900 dark:text-white" data-original-text="${
+                      headline.fullHeadline
+                    }">
                   <span class="font-bold">${headline.fullHeadline}</span>${
                       headline.summary
-                        ? ` <span class="font-normal">- ${headline.summary}</span>`
+                        ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${headline.summary}</span>`
                         : ""
                     }
                 </div>
@@ -97,7 +99,7 @@ function generateSourceHTML(source) {
                   <div class="font-semibold">${headline.fullHeadline}</div>
                   ${
                     headline.summary
-                      ? `<div class="mt-2 text-gray-600">${headline.summary}</div>`
+                      ? `<div class="mt-2 text-gray-600 dark:text-gray-400">${headline.summary}</div>`
                       : ""
                   }
                 </div>
@@ -107,7 +109,7 @@ function generateSourceHTML(source) {
                   )
                   .join("")
               : `
-            <div class="text-gray-500 text-sm text-center py-8 font-poppins">
+            <div class="text-gray-500 dark:text-gray-400 text-sm text-center py-8 font-poppins">
               No headlines available yet.
             </div>
           `

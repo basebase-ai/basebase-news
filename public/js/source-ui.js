@@ -104,7 +104,7 @@ export function renderCustomizeModalGrid(sources, searchTerm = "", state) {
       const isChecked = state.currentUser?.sourceIds?.includes(sourceId);
 
       return `
-        <div class="border border-gray-200 rounded-md p-4" data-source-id="${sourceId}">
+        <div class="border border-gray-200 dark:border-gray-700 rounded-md p-4" data-source-id="${sourceId}">
           <div class="flex items-start justify-between">
             <div class="flex items-start gap-3">
               <input
@@ -112,29 +112,29 @@ export function renderCustomizeModalGrid(sources, searchTerm = "", state) {
                 id="source-${source._id}"
                 ${isChecked ? "checked" : ""}
                 onchange="handleSourceToggle('${source._id}')"
-                class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:bg-gray-700"
               />
               <div>
                 <div class="flex items-start gap-2">
                   <label for="source-${
                     source._id
-                  }" class="font-medium cursor-pointer">
+                  }" class="font-medium cursor-pointer text-gray-900 dark:text-white">
                     ${
                       source.imageUrl
-                        ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover" />`
+                        ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover">`
                         : ""
                     }
                   </label>
                   <a href="${
                     source.homepageUrl
-                  }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors">${
+                  }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-gray-900 dark:text-white">${
         source.name
       }</a>
                 </div>
                 ${
                   source.tags?.length
                     ? `
-                  <div class="text-sm text-gray-500 mt-1">
+                  <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     ${source.tags.join(", ")}
                   </div>
                 `
@@ -146,15 +146,15 @@ export function renderCustomizeModalGrid(sources, searchTerm = "", state) {
               state.isAdmin
                 ? `
               <div class="relative inline-block">
-                <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
+                <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
                   <i class="ri-settings-4-line text-lg"></i>
                 </button>
-                <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700">
                   <div class="py-1">
-                    <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                    <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
                       <i class="ri-refresh-line mr-2"></i>Refresh
                     </button>
-                    <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                    <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
                       <i class="ri-edit-line mr-2"></i>Edit
                     </button>
                   </div>

@@ -40,6 +40,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
       tailwind.config = {
+        darkMode: "class",
         theme: {
           extend: {
             colors: { primary: "#1a56db", secondary: "#4f46e5" },
@@ -79,20 +80,23 @@
     />
     <link href="/css/styles.css" rel="stylesheet" />
   </head>
-  <body class="min-h-screen">
+  <body class="min-h-screen bg-white dark:bg-gray-900">
     <!-- Source Settings Modal -->
     <div
       id="sourceSettingsModal"
       class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center"
     >
-      <div class="bg-white rounded-lg p-6 w-full max-w-lg">
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg">
         <div class="flex justify-between items-center mb-4">
-          <h3 id="modalTitle" class="text-xl font-bold font-poppins">
+          <h3
+            id="modalTitle"
+            class="text-xl font-bold font-poppins text-gray-900 dark:text-white"
+          >
             Source Settings
           </h3>
           <button
             onclick="sourceService.closeSourceSettingsModal()"
-            class="text-gray-500 hover:text-gray-700"
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <i class="ri-close-line text-2xl"></i>
           </button>
@@ -104,20 +108,21 @@
         >
           <input type="hidden" id="sourceId" />
           <div id="objectIdField" class="hidden">
-            <label class="block text-sm font-medium text-gray-700 mb-1"
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Object ID</label
             >
             <input
               type="text"
               id="displayObjectId"
               readonly
-              class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-500 cursor-not-allowed"
+              class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-500 dark:text-gray-400 cursor-not-allowed"
             />
           </div>
           <div>
             <label
               for="name"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Name</label
             >
             <input
@@ -125,13 +130,13 @@
               id="name"
               name="name"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
           <div>
             <label
               for="homepageUrl"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Homepage URL</label
             >
             <input
@@ -139,52 +144,52 @@
               id="homepageUrl"
               name="homepageUrl"
               required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
           <div>
             <label
               for="rssUrl"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >RSS URL (optional)</label
             >
             <input
               type="url"
               id="rssUrl"
               name="rssUrl"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
           <div>
             <label
               for="includeSelector"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Include Selector (optional)</label
             >
             <input
               type="text"
               id="includeSelector"
               name="includeSelector"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
           <div>
             <label
               for="excludeSelector"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Exclude Selector (optional)</label
             >
             <input
               type="text"
               id="excludeSelector"
               name="excludeSelector"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
           <div>
             <label
               for="biasScore"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Bias Score (optional)</label
             >
             <input
@@ -192,13 +197,13 @@
               id="biasScore"
               name="biasScore"
               step="0.01"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
           <div>
             <label
               for="tags"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Tags (comma separated)</label
             >
             <input
@@ -206,13 +211,13 @@
               id="tags"
               name="tags"
               placeholder="politics, technology, local"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
           <div>
             <label
               for="imageUrl"
-              class="block text-sm font-medium text-gray-700 mb-1"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >Image URL (optional)</label
             >
             <input
@@ -220,14 +225,14 @@
               id="imageUrl"
               name="imageUrl"
               placeholder="https://example.com/icon.png"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
           <div class="flex justify-end space-x-3 pt-4">
             <button
               type="button"
               onclick="sourceService.closeSourceSettingsModal()"
-              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
@@ -344,7 +349,7 @@
     </div>
 
     <header
-      class="fixed top-0 left-0 right-0 bg-white z-10 border-b border-gray-200 shadow-sm"
+      class="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 z-10 border-b border-gray-200 dark:border-gray-700 shadow-sm"
     >
       <div class="container mx-auto px-8 py-4 max-w-none mx-4">
         <div class="flex items-center justify-between relative mb-2">
@@ -361,18 +366,18 @@
                 type="text"
                 id="searchInput"
                 placeholder="Search headlines..."
-                class="w-64 px-4 py-1.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em]"
+                class="w-64 px-4 py-1.5 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
               <button
                 id="searchClearButton"
-                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hidden"
                 onclick="headlineService.clearSearch()"
               >
                 <i class="ri-close-line"></i>
               </button>
               <button
                 id="searchIcon"
-                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >
                 <i class="ri-search-line"></i>
               </button>
@@ -380,7 +385,7 @@
             <div id="userSection" class="hidden ml-4 flex items-center">
               <button
                 onclick="openCustomizeModal()"
-                class="text-gray-600 hover:text-gray-800 font-poppins text-sm mr-4 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors"
+                class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm mr-4 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Customize
               </button>
@@ -393,7 +398,7 @@
             <button
               id="signInButton"
               onclick="openSignInModal()"
-              class="ml-4 text-gray-600 hover:text-gray-800 font-poppins text-sm border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors"
+              class="ml-4 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Customize
             </button>
@@ -415,15 +420,17 @@
       class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-8"
     >
       <div
-        class="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
+        class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         <div class="flex justify-between items-center mb-6">
-          <h3 class="text-xl font-bold font-poppins">
+          <h3
+            class="text-xl font-bold font-poppins text-gray-900 dark:text-white"
+          >
             Customize Your News Sources
           </h3>
           <button
             onclick="closeCustomizeModal()"
-            class="text-gray-500 hover:text-gray-700"
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <i class="ri-close-line text-2xl"></i>
           </button>
@@ -435,10 +442,10 @@
                 type="text"
                 id="sourceSearchInput"
                 placeholder="Search news sources..."
-                class="w-full px-4 py-1.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em]"
+                class="w-full px-4 py-1.5 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
               <button
-                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >
                 <i class="ri-search-line"></i>
               </button>
@@ -446,7 +453,7 @@
             <div id="addSourceButton" class="shrink-0">
               <button
                 onclick="sourceService.openSourceSettingsModal()"
-                class="text-gray-600 hover:text-gray-800 font-poppins text-sm border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors flex items-center"
+                class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center"
               >
                 New Source
               </button>
