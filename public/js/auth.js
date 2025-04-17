@@ -25,9 +25,8 @@ function updateUserAvatar(user) {
   }
 
   if (user) {
-    const initials = `${user.first[0]}${user.last[0]}`.toUpperCase();
-    const color = getRandomColor();
-    avatar.className = `${color} w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm font-poppins cursor-pointer relative`;
+    const initials = getInitials(user.first, user.last);
+    avatar.className = `bg-blue-600 w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm font-poppins cursor-pointer relative`;
 
     // Set avatar content
     avatar.innerHTML = initials;
@@ -205,6 +204,8 @@ export const authService = {
   updateUserAvatar,
   signOut,
 };
+
+export { getInitials };
 
 // Expose auth functions to window object for HTML onclick handlers
 window.openSignInModal = openSignInModal;

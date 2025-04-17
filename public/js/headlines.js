@@ -72,9 +72,11 @@ function generateSourceHTML(source) {
       </div>
       <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
         <div class="space-y-1.4">
-          ${headlines
-            .map(
-              (headline) => `
+          ${
+            headlines.length > 0
+              ? headlines
+                  .map(
+                    (headline) => `
             <div class="group relative">
               <a 
                 href="${headline.articleUrl}" 
@@ -103,8 +105,14 @@ function generateSourceHTML(source) {
               </a>
             </div>
           `
-            )
-            .join("")}
+                  )
+                  .join("")
+              : `
+            <div class="text-gray-500 text-sm text-center py-8 font-poppins">
+              No headlines available yet.
+            </div>
+          `
+          }
         </div>
       </div>
     </div>
@@ -213,9 +221,10 @@ async function loadHeadlines(sourceIds) {
     );
 
     // Filter out invalid sources and those without headlines, but preserve order
-    const validSources = sources
-      .filter(Boolean)
-      .filter((source) => source.headlines && source.headlines.length > 0);
+    const validSources = sources.filter(Boolean).map((source) => ({
+      ...source,
+      headlines: source.headlines || [],
+    }));
 
     state.currentSources = validSources;
 

@@ -2,6 +2,7 @@ import { authService } from "./auth.js";
 import { headlineService } from "./headlines.js";
 import { state } from "./state.js";
 import { sourceService } from "./sources.js";
+import { getInitials } from "./auth.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
   const scrollContainer = document.querySelector(".grid");
@@ -224,7 +225,10 @@ async function initialize() {
       state.isAdmin = user.isAdmin;
       document.getElementById("userSection")?.classList.remove("hidden");
       document.getElementById("signInButton")?.classList.add("hidden");
-      document.getElementById("userAvatar").textContent = user.first[0];
+      document.getElementById("userAvatar").textContent = getInitials(
+        user.first,
+        user.last
+      );
       if (user.isAdmin) {
         document
           .getElementById("adminControlsModal")
