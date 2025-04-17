@@ -46,6 +46,15 @@ function updateUserAvatar(user) {
         <div class="px-4 py-2 text-sm text-gray-500 ui-font font-normal">
           Signed in as ${user.first} ${user.last}
         </div>
+        <div class="px-4 py-2 flex items-center justify-between text-sm text-gray-700 hover:bg-gray-100">
+          <span class="ui-font font-normal">Dense Mode</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="denseModeToggle" class="sr-only peer" ${
+              state.denseMode ? "checked" : ""
+            }>
+            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
         <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
           <i class="ri-logout-box-line mr-2"></i>Sign out
         </button>
@@ -79,6 +88,15 @@ function updateUserAvatar(user) {
         console.log("Sign out button clicked");
         event.stopPropagation();
         signOut();
+      });
+    }
+
+    const denseModeToggle = dropdown.querySelector("#denseModeToggle");
+    if (denseModeToggle) {
+      denseModeToggle.addEventListener("change", (event) => {
+        state.denseMode = event.target.checked;
+        localStorage.setItem("denseMode", state.denseMode);
+        headlineService.loadHeadlines(state.currentUser?.sourceIds || []);
       });
     }
 

@@ -29,7 +29,9 @@ function generateSourceHTML(source) {
       : "text-gray-600";
 
   return `
-    <div class="border border-gray-200 rounded-md h-[230px] flex flex-col" data-source-id="${sourceId}">
+    <div class="border border-gray-200 rounded-md ${
+      state.denseMode ? "h-[230px]" : "h-[300px]"
+    } flex flex-col" data-source-id="${sourceId}">
       <div class="px-4 py-2 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 min-w-0">
@@ -59,7 +61,7 @@ function generateSourceHTML(source) {
         </div>
       </div>
       <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4">
-        <div class="space-y-1.4">
+        <div class="${state.denseMode ? "space-y-1.4" : "space-y-2.5"}">
           <div class="h-2"></div>
           ${
             headlines.length > 0
@@ -78,11 +80,17 @@ function generateSourceHTML(source) {
                 onclick="headlineService.markAsRead('${headline._id}')"
                 oncontextmenu="headlineService.markAsRead('${headline._id}')"
               >
-                <div class="news-headline truncate ${
-                  readIds.has(headline._id) ? "read" : ""
-                }" data-original-text="${headline.fullHeadline}">
-                  ${headline.fullHeadline}${
-                      headline.summary ? ` - ${headline.summary}` : ""
+                <div class="news-headline ${
+                  state.denseMode
+                    ? "truncate"
+                    : "whitespace-normal line-clamp-2"
+                } ${
+                      readIds.has(headline._id) ? "read" : ""
+                    }" data-original-text="${headline.fullHeadline}">
+                  <span class="font-bold">${headline.fullHeadline}</span>${
+                      headline.summary
+                        ? ` <span class="font-normal">- ${headline.summary}</span>`
+                        : ""
                     }
                 </div>
                 <div class="tooltip">
