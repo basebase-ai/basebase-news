@@ -77,99 +77,7 @@
       href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css"
       rel="stylesheet"
     />
-    <style>
-      :where([class^="ri-"])::before {
-        content: "\f3c2";
-      }
-      body {
-        font-family: "Source Serif Pro", serif;
-        background-color: #f9f9f9;
-      }
-      .ui-font {
-        font-family: "Poppins", sans-serif;
-      }
-      .font-poppins {
-        font-family: "Poppins", sans-serif !important;
-      }
-      .masthead {
-        font-family: "Playfair Display", serif;
-        font-weight: 900;
-        letter-spacing: -0.03em;
-      }
-      .motto {
-        font-family: "Playfair Display", serif;
-        font-style: italic;
-        font-weight: 400;
-      }
-      .column-header {
-        font-family: "Playfair Display", serif;
-        font-weight: 700;
-      }
-      .news-headline {
-        transition: all 0.2s ease;
-        position: relative;
-        font-weight: bold;
-        color: #111827;
-        font-size: 0.9em;
-      }
-      .news-headline.read {
-        color: #9ca3af;
-        font-weight: normal;
-      }
-      .group:hover .news-headline:not(.read) {
-        color: #1a56db;
-      }
-      .news-headline:after {
-        content: "";
-        position: absolute;
-        width: 100%;
-        height: 1px;
-        bottom: -2px;
-        left: 0;
-        background-color: #1a56db;
-        transform: scaleX(0);
-        transform-origin: bottom left;
-        transition: transform 0.3s ease;
-      }
-      .group:hover .news-headline:not(.read):after {
-        transform: scaleX(1);
-      }
-      .tooltip {
-        display: none;
-        position: fixed;
-        transform: translate(-50%, 0);
-        background: white;
-        padding: 8px;
-        border: 1px solid #e5e7eb;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        width: max-content;
-        max-width: 300px;
-        z-index: 1000;
-        font-size: 0.875rem;
-        line-height: 1.25rem;
-        margin-top: 4px;
-      }
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #a1a1a1;
-      }
-      .highlight {
-        background-color: #fef08a;
-        padding: 0 2px;
-        border-radius: 2px;
-      }
-    </style>
+    <link href="/css/styles.css" rel="stylesheet" />
   </head>
   <body class="min-h-screen">
     <!-- Source Settings Modal -->
@@ -472,7 +380,7 @@
             <div id="userSection" class="hidden ml-4 flex items-center">
               <button
                 onclick="openCustomizeModal()"
-                class="text-gray-600 hover:text-gray-800 font-poppins text-sm mr-4"
+                class="text-gray-600 hover:text-gray-800 font-poppins text-sm mr-4 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors"
               >
                 Customize
               </button>
@@ -485,7 +393,7 @@
             <button
               id="signInButton"
               onclick="openSignInModal()"
-              class="ml-4 text-gray-600 hover:text-gray-800 font-poppins text-sm"
+              class="ml-4 text-gray-600 hover:text-gray-800 font-poppins text-sm border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors"
             >
               Customize
             </button>
@@ -551,12 +459,21 @@
         >
           <!-- Sources will be dynamically populated here -->
         </div>
+        <div class="flex justify-end mt-6 pt-4 border-t border-gray-200">
+          <button
+            onclick="closeCustomizeModal()"
+            class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors font-poppins text-sm"
+          >
+            Done
+          </button>
+        </div>
       </div>
     </div>
 
     <script src="/js/auth.js" type="module"></script>
     <script src="/js/sources.js" type="module"></script>
     <script src="/js/headlines.js" type="module"></script>
+    <script src="/js/source-ui.js" type="module"></script>
     <script src="/js/main.js" type="module"></script>
     <script>
       // Wait for modules to load
@@ -567,107 +484,6 @@
           console.log("sourceService loaded successfully");
         }
       });
-    </script>
-    <script>
-      function createSourceCard(source) {
-        const card = document.createElement("div");
-        card.className =
-          "bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-
-        const sourceName = document.createElement("div");
-        sourceName.className = "flex items-center gap-2 mb-2";
-
-        if (source.imageUrl) {
-          const img = document.createElement("img");
-          img.src = source.imageUrl;
-          img.alt = source.name;
-          img.className = "w-8 h-8 rounded-full object-cover";
-          sourceName.appendChild(img);
-        }
-
-        const name = document.createElement("h3");
-        name.className = "font-medium text-gray-900";
-        name.textContent = source.name;
-        sourceName.appendChild(name);
-
-        card.appendChild(sourceName);
-        // ... rest of the card creation code ...
-      }
-
-      function renderSourcesGrid(sources, searchTerm = "") {
-        const grid = document.getElementById("sourcesGrid");
-        const filteredSources = searchTerm
-          ? sources.filter(
-              (source) =>
-                source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (source.tags &&
-                  source.tags.some((tag) =>
-                    tag.toLowerCase().includes(searchTerm.toLowerCase())
-                  ))
-            )
-          : sources;
-
-        grid.innerHTML = filteredSources
-          .map((source) => {
-            const sourceId = source._id.toString();
-            const isChecked = state.currentUser?.sourceIds?.includes(sourceId);
-
-            return `
-              <div class="border border-gray-200 rounded-lg h-[230px] flex flex-col" data-source-id="${sourceId}">
-                <div class="flex items-start justify-between">
-                  <div class="flex items-start gap-3">
-                    <div class="cursor-move text-gray-400 hover:text-gray-600">
-                      <i class="ri-drag-move-line"></i>
-                    </div>
-                    <input
-                      type="checkbox"
-                      id="source-${source._id}"
-                      ${isChecked ? "checked" : ""}
-                      onchange="handleSourceToggle('${source._id}')"
-                      class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    />
-                    <!-- Rest of the source card HTML -->
-                  </div>
-                </div>
-              </div>
-            `;
-          })
-          .join("");
-
-        // Initialize Sortable
-        if (state.currentUser) {
-          new Sortable(grid, {
-            animation: 150,
-            handle: ".cursor-move",
-            onEnd: async function (evt) {
-              const newOrder = Array.from(grid.children).map(
-                (el) => el.dataset.sourceId
-              );
-              try {
-                const response = await fetch("/api/users/me/sources", {
-                  method: "PUT",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    sourceIds: newOrder,
-                  }),
-                });
-
-                if (!response.ok) {
-                  throw new Error("Failed to update source order");
-                }
-
-                const updatedUser = await response.json();
-                state.currentUser = updatedUser.user;
-              } catch (error) {
-                console.error("Failed to update source order:", error);
-                alert("Failed to update source order. Please try again.");
-              }
-            },
-          });
-        }
-      }
     </script>
   </body>
 </html>
