@@ -153,6 +153,10 @@ ${htmlString}`;
     );
   }
 
+  private sanitizeXml(xml: string): string {
+    return xml.replace(/&(?!(?:amp|lt|gt|quot|apos);)/g, "&amp;");
+  }
+
   public async collectAll(): Promise<void> {
     try {
       // Get all sources
@@ -248,7 +252,10 @@ ${htmlString}`;
 
     try {
       const parser = new Parser();
-      const feed = await parser.parseURL(source.rssUrl);
+      const response = await fetch(source.rssUrl);
+      const xmlText = await response.text();
+      const sanitizedXml = this.sanitizeXml(xmlText);
+      const feed = await parser.parseString(sanitizedXml);
 
       // Check if feed has an image and update source if different
       if (feed.image?.url && feed.image.url !== source.imageUrl) {

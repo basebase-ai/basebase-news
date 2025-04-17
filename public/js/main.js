@@ -81,7 +81,7 @@ function closeCustomizeModal() {
   document.getElementById("customizeModal").classList.add("hidden");
 }
 
-async function loadAllSources() {
+export async function loadAllSources() {
   try {
     const response = await fetch("/api/sources");
     if (!response.ok) throw new Error("Failed to fetch sources");
@@ -99,7 +99,7 @@ async function loadAllSources() {
   }
 }
 
-function renderSourcesGrid(sources, searchTerm = "") {
+export function renderSourcesGrid(sources, searchTerm = "") {
   const grid = document.getElementById("sourcesGrid");
   const filteredSources = searchTerm
     ? sources.filter(

@@ -1,6 +1,8 @@
-import { headlineService } from "./headlines.js";
+import { state } from "./state.js";
+import { loadAllSources, renderSourcesGrid } from "./main.js";
 
 let currentSources = [];
+let readIds = new Set(JSON.parse(localStorage.getItem("readIds") || "[]"));
 
 function formatTimeAgo(date) {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -168,7 +170,7 @@ function generateSourceHTML(source, options = {}) {
                 oncontextmenu="headlineService.markAsRead('${headline._id}')"
               >
                 <div class="news-headline truncate ${
-                  headlineService.readIds.has(headline._id) ? "read" : ""
+                  readIds.has(headline._id) ? "read" : ""
                 }" data-original-text="${headline.fullHeadline}">
                   ${headline.fullHeadline}
                 </div>
@@ -286,7 +288,52 @@ async function handleSourceSubmit(event) {
         isEdit ? "Failed to update source" : "Failed to add source"
       );
 
-    window.location.reload();
+    const result = await response.json();
+
+    // Close only the source settings modal
+    closeSourceSettingsModal();
+
+    // If this is a new source and the user is logged in, add it to their sourceIds
+    if (!isEdit && state.currentUser && result.source && result.source._id) {
+      try {
+        const userResponse = await fetch("/api/users/me/sources", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sourceIds: [
+              ...(state.currentUser.sourceIds || []),
+              result.source._id,
+            ],
+          }),
+        });
+
+        if (!userResponse.ok) {
+          throw new Error("Failed to update user sources");
+        }
+
+        const updatedUser = await userResponse.json();
+        state.currentUser = updatedUser.user;
+      } catch (error) {
+        console.error("Failed to update user sources:", error);
+        alert(
+          "Source created but failed to add it to your list. Please try again."
+        );
+      }
+    }
+
+    // Refresh the sources list in the customize modal
+    const sources = await loadAllSources();
+    renderSourcesGrid(sources);
+
+    // Check the checkbox for the new source after grid is rendered
+    if (!isEdit && result.source && result.source._id) {
+      const checkbox = document.getElementById(`source-${result.source._id}`);
+      if (checkbox) {
+        checkbox.checked = true;
+      }
+    }
   } catch (error) {
     console.error("Error:", error);
     alert(error.message);
@@ -345,6 +392,7 @@ export const sourceService = {
   setCurrentSources(sources) {
     currentSources = sources;
   },
+  readIds,
 };
 
 // Make service available globally

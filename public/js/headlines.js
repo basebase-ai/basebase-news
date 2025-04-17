@@ -1,8 +1,6 @@
 import { state } from "./state.js";
+import { sourceService } from "./sources.js";
 
-export let readIds = new Set(
-  JSON.parse(localStorage.getItem("readIds") || "[]")
-);
 let searchTimeout = null;
 
 function debounce(func, wait) {
@@ -92,12 +90,12 @@ function filterHeadlines(searchTerm) {
 }
 
 function markAsRead(headlineId) {
-  readIds.add(headlineId);
-  if (readIds.size > 100) {
-    const idsArray = Array.from(readIds);
-    readIds = new Set(idsArray.slice(-100));
+  sourceService.readIds.add(headlineId);
+  if (sourceService.readIds.size > 100) {
+    const idsArray = Array.from(sourceService.readIds);
+    sourceService.readIds = new Set(idsArray.slice(-100));
   }
-  localStorage.setItem("readIds", JSON.stringify([...readIds]));
+  localStorage.setItem("readIds", JSON.stringify([...sourceService.readIds]));
 
   // Update all matching headlines immediately
   const headlines = document.querySelectorAll(
@@ -218,7 +216,6 @@ export const headlineService = {
   hideTooltip,
   loadHeadlines,
   clearSearch,
-  readIds,
 };
 
 // Make functions available globally
