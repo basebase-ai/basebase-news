@@ -70,8 +70,9 @@ function generateSourceHTML(source) {
           </div>
         </div>
       </div>
-      <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4">
         <div class="space-y-1.4">
+          <div class="h-2"></div>
           ${
             headlines.length > 0
               ? headlines
@@ -201,6 +202,9 @@ function markAsRead(headlineId) {
 function showTooltip(element) {
   const tooltip = element.querySelector(".tooltip");
   if (tooltip) {
+    const rect = element.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.top = `${rect.bottom + 4}px`;
     tooltip.style.display = "block";
   }
 }
