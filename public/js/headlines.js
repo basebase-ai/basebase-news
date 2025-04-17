@@ -1,6 +1,8 @@
 import { state } from "./state.js";
 
-let readIds = new Set(JSON.parse(localStorage.getItem("readIds") || "[]"));
+export let readIds = new Set(
+  JSON.parse(localStorage.getItem("readIds") || "[]")
+);
 let searchTimeout = null;
 
 function debounce(func, wait) {
@@ -22,102 +24,9 @@ function highlightText(text, searchTerm) {
 
 function generateSourceHTML(source) {
   if (!source) return "";
-
-  const sourceName = source.name || "Unknown Source";
-  const sourceId = source._id;
-  const headlines = source.headlines || [];
-  const biasScore = source.biasScore ?? 0;
-  const biasClass =
-    biasScore < -0.3
-      ? "text-red-600"
-      : biasScore > 0.3
-      ? "text-blue-600"
-      : "text-gray-600";
-
-  return `
-    <div class="border border-gray-200 rounded-lg h-[255px] flex flex-col" data-source-id="${sourceId}">
-      <div class="px-4 py-2 border-b border-gray-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2 min-w-0">
-            ${
-              state.currentUser
-                ? `
-              <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6 shrink-0">
-                <i class="ri-drag-move-fill text-xl"></i>
-              </div>
-            `
-                : ""
-            }
-            ${
-              source.imageUrl
-                ? `<img src="${source.imageUrl}" alt="${sourceName}" class="w-6 h-6 rounded-sm object-cover shrink-0" />`
-                : ""
-            }
-            <div class="flex items-baseline gap-2 min-w-0">
-              <a href="${
-                source.homepageUrl
-              }" target="_blank" rel="noopener" class="column-header text-lg hover:text-blue-600 transition-colors truncate">${sourceName}</a>
-              ${
-                source.lastScrapedAt
-                  ? `
-                <span class="text-[0.675rem] text-gray-500 font-poppins font-normal shrink-0">${sourceService.formatTimeAgo(
-                  new Date(source.lastScrapedAt)
-                )}</span>
-              `
-                  : ""
-              }
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4">
-        <div class="space-y-1.4">
-          <div class="h-2"></div>
-          ${
-            headlines.length > 0
-              ? headlines
-                  .map(
-                    (headline) => `
-            <div class="group relative">
-              <a 
-                href="${headline.articleUrl}" 
-                target="_blank" 
-                rel="noopener"
-                class="block relative"
-                data-headline-id="${headline._id}"
-                onmouseover="headlineService.showTooltip(this)"
-                onmouseout="headlineService.hideTooltip(this)"
-                onclick="headlineService.markAsRead('${headline._id}')"
-                oncontextmenu="headlineService.markAsRead('${headline._id}')"
-              >
-                <div class="news-headline truncate ${
-                  readIds.has(headline._id) ? "read" : ""
-                }" data-original-text="${headline.fullHeadline}">
-                  ${headline.fullHeadline}
-                </div>
-                <div class="tooltip">
-                  <div class="font-semibold">${headline.fullHeadline}</div>
-                  ${
-                    headline.summary
-                      ? `<div class="mt-2 text-gray-600">${headline.summary}</div>`
-                      : ""
-                  }
-                </div>
-              </a>
-            </div>
-          `
-                  )
-                  .join("")
-              : `
-            <div class="text-gray-500 text-sm text-center py-8 font-poppins">
-              No headlines available yet.
-            </div>
-          `
-          }
-        </div>
-      </div>
-    </div>
-  `;
+  return sourceService.generateSourceHTML(source, {
+    showDragHandle: !!state.currentUser,
+  });
 }
 
 function clearSearch() {
@@ -245,7 +154,7 @@ async function loadHeadlines(sourceIds) {
 
     const addSourceButton = state.currentUser
       ? `
-      <div class="border border-gray-200 rounded-lg h-[255px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="openCustomizeModal()">
+      <div class="border border-gray-200 rounded-md h-[230px] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors" onclick="openCustomizeModal()">
         <button class="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:bg-blue-700 transition-colors mb-4">
           <i class="ri-add-line"></i>
         </button>
@@ -309,6 +218,7 @@ export const headlineService = {
   hideTooltip,
   loadHeadlines,
   clearSearch,
+  readIds,
 };
 
 // Make functions available globally

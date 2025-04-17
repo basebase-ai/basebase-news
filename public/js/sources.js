@@ -1,3 +1,5 @@
+import { headlineService } from "./headlines.js";
+
 let currentSources = [];
 
 function formatTimeAgo(date) {
@@ -12,85 +14,184 @@ function formatTimeAgo(date) {
   return "now";
 }
 
-function generateSourceHTML(source, showSettings = false) {
-  return `
-    <div class="border border-gray-200 rounded-lg h-[255px] flex flex-col">
-      <div class="column-header text-lg mb-3 pb-2 border-b border-gray-300 pt-2 flex items-center justify-between px-4">
-        <div class="flex-grow">
-          <a href="${
-            source.homepageUrl
-          }" target="_blank" rel="noopener" class="flex items-center gap-2 hover:text-blue-600 transition-colors">
+function generateSourceHTML(source, options = {}) {
+  const {
+    showSettings = false,
+    isCustomizeView = false,
+    isChecked = false,
+    showDragHandle = false,
+  } = options;
+
+  const sourceId = source._id.toString();
+  const sourceName = source.name || "Unknown Source";
+  const headlines = source.headlines || [];
+  const biasScore = source.biasScore ?? 0;
+  const biasClass =
+    biasScore < -0.3
+      ? "text-red-600"
+      : biasScore > 0.3
+      ? "text-blue-600"
+      : "text-gray-600";
+
+  if (isCustomizeView) {
+    return `
+      <div class="border border-gray-200 rounded-md p-4" data-source-id="${sourceId}">
+        <div class="flex items-start justify-between">
+          <div class="flex items-start gap-3">
             ${
-              source.imageUrl
-                ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover" />`
-                : ""
-            }
-            <span class="text-lg font-bold">${source.name}</span>
-            ${
-              source.lastScrapedAt
-                ? `<span class="text-[0.675rem] text-gray-500 font-poppins font-normal">${formatTimeAgo(
-                    new Date(source.lastScrapedAt)
-                  )}</span>`
-                : ""
-            }
-          </a>
-        </div>
-        ${
-          showSettings && isAdmin
-            ? `
-          <div class="relative inline-block">
-            <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
-              <i class="ri-settings-4-line text-lg"></i>
-            </button>
-            <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
-              <div class="py-1">
-                <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                  <i class="ri-refresh-line mr-2"></i>Refresh
-                </button>
-                <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                  <i class="ri-edit-line mr-2"></i>Edit
-                </button>
-                <button onclick="sourceService.deleteSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
-                  <i class="ri-delete-bin-line mr-2"></i>Delete
-                </button>
+              showDragHandle
+                ? `
+              <div class="cursor-move text-gray-400 hover:text-gray-600">
+                <i class="ri-drag-move-line"></i>
               </div>
+            `
+                : ""
+            }
+            <input
+              type="checkbox"
+              id="source-${source._id}"
+              ${isChecked ? "checked" : ""}
+              onchange="handleSourceToggle('${source._id}')"
+              class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            />
+            <div>
+              <div class="flex items-start gap-2">
+                <label for="source-${
+                  source._id
+                }" class="font-medium cursor-pointer">
+                  ${
+                    source.imageUrl
+                      ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover" />`
+                      : ""
+                  }
+                </label>
+                <a href="${
+                  source.homepageUrl
+                }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors">${
+      source.name
+    }</a>
+              </div>
+              ${
+                source.tags?.length
+                  ? `
+                <div class="text-sm text-gray-500 mt-1">
+                  ${source.tags.join(", ")}
+                </div>
+              `
+                  : ""
+              }
             </div>
           </div>
-        `
-            : ""
-        }
-      </div>
-      <div class="space-y-1 flex-1 overflow-y-auto custom-scrollbar px-4">
-        ${
-          source.headlines
-            ? source.headlines
-                .sort((a, b) => (a.inPageRank ?? 0) - (b.inPageRank ?? 0))
-                .map(
-                  (headline) => `
-            <div class="truncate relative">
-              <a href="${headline.articleUrl}"
-                 onmousedown="markAsRead('${headline._id}')"
-                 data-headline-id="${headline._id}"
-                 title="${headline.fullHeadline}"
-                 onmouseenter="showTooltip(this)"
-                 onmouseleave="hideTooltip(this)"
-                 class="news-headline block font-semibold text-base leading-tight truncate ${
-                   readIds.has(headline._id) ? "read" : ""
-                 }"
-                 target="_blank"
-                 rel="noopener">
-                ${headline.fullHeadline}
-              </a>
-              <div class="tooltip">
-                ${headline.fullHeadline}
-                ${headline.summary ? "<br><br>" + headline.summary : ""}
+          ${
+            showSettings && state.isAdmin
+              ? `
+            <div class="relative inline-block">
+              <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
+                <i class="ri-settings-4-line text-lg"></i>
+              </button>
+              <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                <div class="py-1">
+                  <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                    <i class="ri-refresh-line mr-2"></i>Refresh
+                  </button>
+                  <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                    <i class="ri-edit-line mr-2"></i>Edit
+                  </button>
+                  <button onclick="sourceService.deleteSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
+                    <i class="ri-delete-bin-line mr-2"></i>Delete
+                  </button>
+                </div>
               </div>
             </div>
           `
-                )
-                .join("")
-            : `<div class="text-gray-500 text-sm">No headlines available</div>`
-        }
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="border border-gray-200 rounded-md h-[230px] flex flex-col" data-source-id="${sourceId}">
+      <div class="px-4 py-2 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 min-w-0">
+            ${
+              showDragHandle
+                ? `
+              <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6 shrink-0">
+                <i class="ri-drag-move-fill text-xl"></i>
+              </div>
+            `
+                : ""
+            }
+            ${
+              source.imageUrl
+                ? `<img src="${source.imageUrl}" alt="${sourceName}" class="w-6 h-6 rounded-sm object-cover shrink-0" />`
+                : ""
+            }
+            <div class="flex items-baseline gap-2 min-w-0">
+              <a href="${
+                source.homepageUrl
+              }" target="_blank" rel="noopener" class="column-header text-lg hover:text-blue-600 transition-colors truncate">${sourceName}</a>
+              ${
+                source.lastScrapedAt
+                  ? `
+                <span class="text-[0.675rem] text-gray-500 font-poppins font-normal shrink-0">${formatTimeAgo(
+                  new Date(source.lastScrapedAt)
+                )}</span>
+              `
+                  : ""
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4">
+        <div class="space-y-1.4">
+          <div class="h-2"></div>
+          ${
+            headlines.length > 0
+              ? headlines
+                  .map(
+                    (headline) => `
+            <div class="group relative">
+              <a 
+                href="${headline.articleUrl}" 
+                target="_blank" 
+                rel="noopener"
+                class="block relative"
+                data-headline-id="${headline._id}"
+                onmouseover="headlineService.showTooltip(this)"
+                onmouseout="headlineService.hideTooltip(this)"
+                onclick="headlineService.markAsRead('${headline._id}')"
+                oncontextmenu="headlineService.markAsRead('${headline._id}')"
+              >
+                <div class="news-headline truncate ${
+                  headlineService.readIds.has(headline._id) ? "read" : ""
+                }" data-original-text="${headline.fullHeadline}">
+                  ${headline.fullHeadline}
+                </div>
+                <div class="tooltip">
+                  <div class="font-semibold">${headline.fullHeadline}</div>
+                  ${
+                    headline.summary
+                      ? `<div class="mt-2 text-gray-600">${headline.summary}</div>`
+                      : ""
+                  }
+                </div>
+              </a>
+            </div>
+          `
+                  )
+                  .join("")
+              : `
+            <div class="text-gray-500 text-sm text-center py-8 font-poppins">
+              No headlines available yet.
+            </div>
+          `
+          }
+        </div>
       </div>
     </div>
   `;

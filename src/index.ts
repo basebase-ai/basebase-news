@@ -126,10 +126,14 @@ app.post(
         .json({ status: "ok", message: "Source added successfully" });
 
       console.log(`Scraping new source: ${newSource.name}`);
-      const headlines = await scraperService.collectOne(newSource.id);
-      console.log(
-        `Scraped ${headlines.length} headlines for ${newSource.name}`
-      );
+      try {
+        const headlines = await scraperService.collectOne(newSource);
+        console.log(
+          `Scraped ${headlines.length} headlines for ${newSource.name}`
+        );
+      } catch (error) {
+        console.error(`Error scraping new source ${newSource.name}:`, error);
+      }
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : "Failed to add source";
