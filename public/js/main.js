@@ -3,6 +3,7 @@ import { headlineService } from "./headlines.js";
 import { state } from "./state.js";
 import { sourceService } from "./sources.js";
 import { getInitials } from "./auth.js";
+import { renderCustomizeModalGrid } from "./source-ui.js";
 
 document.addEventListener("DOMContentLoaded", async function () {
   const scrollContainer = document.querySelector(".grid");
@@ -116,53 +117,57 @@ export function renderSourcesGrid(sources, searchTerm = "") {
   const urlParams = new URLSearchParams(window.location.search);
   const newSourceId = urlParams.get("newSource");
 
-  grid.innerHTML = filteredSources
-    .map((source) => {
-      const sourceId = source._id.toString();
-      const isChecked =
-        state.currentUser?.sourceIds?.includes(sourceId) ||
-        sourceId === newSourceId;
-      return sourceService.generateSourceHTML(source, {
-        isCustomizeView: true,
-        showSettings: true,
-        isChecked,
-        showDragHandle: true,
-      });
-    })
-    .join("");
+  // Check if we're in the customize modal
+  const isCustomizeModal =
+    document.getElementById("customizeModal")?.classList.contains("hidden") ===
+    false;
 
-  // Initialize Sortable
-  if (state.currentUser) {
-    new Sortable(grid, {
-      animation: 150,
-      handle: ".cursor-move",
-      onEnd: async function (evt) {
-        const newOrder = Array.from(grid.children).map(
-          (el) => el.dataset.sourceId
-        );
-        try {
-          const response = await fetch("/api/users/me/sources", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sourceIds: newOrder,
-            }),
-          });
+  if (isCustomizeModal) {
+    renderCustomizeModalGrid(sources, searchTerm, state);
+  } else {
+    grid.innerHTML = filteredSources
+      .map((source) => {
+        const sourceId = source._id.toString();
+        const isChecked =
+          state.currentUser?.sourceIds?.includes(sourceId) ||
+          sourceId === newSourceId;
+        return sourceService.generateSourceHTML(source);
+      })
+      .join("");
 
-          if (!response.ok) {
-            throw new Error("Failed to update source order");
+    // Initialize Sortable
+    if (state.currentUser) {
+      new Sortable(grid, {
+        animation: 150,
+        handle: ".cursor-move",
+        onEnd: async function (evt) {
+          const newOrder = Array.from(grid.children).map(
+            (el) => el.dataset.sourceId
+          );
+          try {
+            const response = await fetch("/api/users/me/sources", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                sourceIds: newOrder,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to update source order");
+            }
+
+            const updatedUser = await response.json();
+            state.currentUser = updatedUser.user;
+          } catch (error) {
+            console.error("Failed to update source order:", error);
+            alert("Failed to update source order. Please try again.");
           }
-
-          const updatedUser = await response.json();
-          state.currentUser = updatedUser.user;
-        } catch (error) {
-          console.error("Failed to update source order:", error);
-          alert("Failed to update source order. Please try again.");
-        }
-      },
-    });
+        },
+      });
+    }
   }
 }
 

@@ -42,12 +42,9 @@ export function renderSourcesGrid(sources, searchTerm = "", state) {
       const isChecked = state.currentUser?.sourceIds?.includes(sourceId);
 
       return `
-        <div class="border border-gray-200 rounded-lg h-[230px] flex flex-col" data-source-id="${sourceId}">
+        <div class="border border-gray-200 rounded-md p-4" data-source-id="${sourceId}">
           <div class="flex items-start justify-between">
             <div class="flex items-start gap-3">
-              <div class="cursor-move text-gray-400 hover:text-gray-600">
-                <i class="ri-drag-move-line"></i>
-              </div>
               <input
                 type="checkbox"
                 id="source-${source._id}"
@@ -55,43 +52,120 @@ export function renderSourcesGrid(sources, searchTerm = "", state) {
                 onchange="handleSourceToggle('${source._id}')"
                 class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
               />
+              <div>
+                <div class="flex items-start gap-2">
+                  <label for="source-${
+                    source._id
+                  }" class="font-medium cursor-pointer">
+                    ${
+                      source.imageUrl
+                        ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover">`
+                        : ""
+                    }
+                  </label>
+                  <a href="${
+                    source.homepageUrl
+                  }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors">${
+        source.name
+      }</a>
+                </div>
+                ${
+                  source.tags
+                    ? `<div class="text-sm text-gray-500 mt-1">${source.tags.join(
+                        ", "
+                      )}</div>`
+                    : ""
+                }
+              </div>
             </div>
           </div>
         </div>
       `;
     })
     .join("");
+}
 
-  if (state.currentUser) {
-    new Sortable(grid, {
-      animation: 150,
-      handle: ".cursor-move",
-      onEnd: async function (evt) {
-        const newOrder = Array.from(grid.children).map(
-          (el) => el.dataset.sourceId
-        );
-        try {
-          const response = await fetch("/api/users/me/sources", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sourceIds: newOrder,
-            }),
-          });
+export function renderCustomizeModalGrid(sources, searchTerm = "", state) {
+  const grid = document.getElementById("sourcesGrid");
+  const filteredSources = searchTerm
+    ? sources.filter(
+        (source) =>
+          source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (source.tags &&
+            source.tags.some((tag) =>
+              tag.toLowerCase().includes(searchTerm.toLowerCase())
+            ))
+      )
+    : sources;
 
-          if (!response.ok) {
-            throw new Error("Failed to update source order");
-          }
+  grid.innerHTML = filteredSources
+    .map((source) => {
+      const sourceId = source._id.toString();
+      const isChecked = state.currentUser?.sourceIds?.includes(sourceId);
 
-          const updatedUser = await response.json();
-          state.currentUser = updatedUser.user;
-        } catch (error) {
-          console.error("Failed to update source order:", error);
-          alert("Failed to update source order. Please try again.");
-        }
-      },
-    });
-  }
+      return `
+        <div class="border border-gray-200 rounded-md p-4" data-source-id="${sourceId}">
+          <div class="flex items-start justify-between">
+            <div class="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="source-${source._id}"
+                ${isChecked ? "checked" : ""}
+                onchange="handleSourceToggle('${source._id}')"
+                class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              />
+              <div>
+                <div class="flex items-start gap-2">
+                  <label for="source-${
+                    source._id
+                  }" class="font-medium cursor-pointer">
+                    ${
+                      source.imageUrl
+                        ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover" />`
+                        : ""
+                    }
+                  </label>
+                  <a href="${
+                    source.homepageUrl
+                  }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors">${
+        source.name
+      }</a>
+                </div>
+                ${
+                  source.tags?.length
+                    ? `
+                  <div class="text-sm text-gray-500 mt-1">
+                    ${source.tags.join(", ")}
+                  </div>
+                `
+                    : ""
+                }
+              </div>
+            </div>
+            ${
+              state.isAdmin
+                ? `
+              <div class="relative inline-block">
+                <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
+                  <i class="ri-settings-4-line text-lg"></i>
+                </button>
+                <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                  <div class="py-1">
+                    <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                      <i class="ri-refresh-line mr-2"></i>Refresh
+                    </button>
+                    <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+                      <i class="ri-edit-line mr-2"></i>Edit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 }

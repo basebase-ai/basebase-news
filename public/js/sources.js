@@ -16,14 +16,7 @@ function formatTimeAgo(date) {
   return "now";
 }
 
-function generateSourceHTML(source, options = {}) {
-  const {
-    showSettings = false,
-    isCustomizeView = false,
-    isChecked = false,
-    showDragHandle = false,
-  } = options;
-
+function generateSourceHTML(source) {
   const sourceId = source._id.toString();
   const sourceName = source.name || "Unknown Source";
   const headlines = source.headlines || [];
@@ -35,98 +28,14 @@ function generateSourceHTML(source, options = {}) {
       ? "text-blue-600"
       : "text-gray-600";
 
-  if (isCustomizeView) {
-    return `
-      <div class="border border-gray-200 rounded-md p-4" data-source-id="${sourceId}">
-        <div class="flex items-start justify-between">
-          <div class="flex items-start gap-3">
-            ${
-              showDragHandle
-                ? `
-              <div class="cursor-move text-gray-400 hover:text-gray-600">
-                <i class="ri-drag-move-line"></i>
-              </div>
-            `
-                : ""
-            }
-            <input
-              type="checkbox"
-              id="source-${source._id}"
-              ${isChecked ? "checked" : ""}
-              onchange="handleSourceToggle('${source._id}')"
-              class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-            />
-            <div>
-              <div class="flex items-start gap-2">
-                <label for="source-${
-                  source._id
-                }" class="font-medium cursor-pointer">
-                  ${
-                    source.imageUrl
-                      ? `<img src="${source.imageUrl}" alt="${source.name}" class="w-6 h-6 rounded-sm object-cover" />`
-                      : ""
-                  }
-                </label>
-                <a href="${
-                  source.homepageUrl
-                }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors">${
-      source.name
-    }</a>
-              </div>
-              ${
-                source.tags?.length
-                  ? `
-                <div class="text-sm text-gray-500 mt-1">
-                  ${source.tags.join(", ")}
-                </div>
-              `
-                  : ""
-              }
-            </div>
-          </div>
-          ${
-            showSettings && state.isAdmin
-              ? `
-            <div class="relative inline-block">
-              <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 transition-colors">
-                <i class="ri-settings-4-line text-lg"></i>
-              </button>
-              <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-50 border border-gray-200">
-                <div class="py-1">
-                  <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                    <i class="ri-refresh-line mr-2"></i>Refresh
-                  </button>
-                  <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
-                    <i class="ri-edit-line mr-2"></i>Edit
-                  </button>
-                  <button onclick="sourceService.deleteSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 ui-font font-normal">
-                    <i class="ri-delete-bin-line mr-2"></i>Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          `
-              : ""
-          }
-        </div>
-      </div>
-    `;
-  }
-
   return `
     <div class="border border-gray-200 rounded-md h-[230px] flex flex-col" data-source-id="${sourceId}">
       <div class="px-4 py-2 border-b border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 min-w-0">
-            ${
-              showDragHandle
-                ? `
-              <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6 shrink-0">
-                <i class="ri-drag-move-fill text-xl"></i>
-              </div>
-            `
-                : ""
-            }
+            <div class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center w-6 h-6 shrink-0">
+              <i class="ri-drag-move-fill text-xl"></i>
+            </div>
             ${
               source.imageUrl
                 ? `<img src="${source.imageUrl}" alt="${sourceName}" class="w-6 h-6 rounded-sm object-cover shrink-0" />`
