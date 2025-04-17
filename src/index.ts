@@ -363,6 +363,16 @@ app.put(
   }
 );
 
+// Sign out endpoint
+app.post("/api/auth/signout", (req: Request, res: Response): void => {
+  res.clearCookie("auth", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+  res.json({ status: "ok", message: "Signed out successfully" });
+});
+
 // Start the server and agenda service
 async function startServer(): Promise<void> {
   try {

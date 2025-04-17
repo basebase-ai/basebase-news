@@ -18,33 +18,108 @@ function getRandomColor() {
 }
 
 function updateUserAvatar(user) {
-  console.log("updateUserAvatar called with user:", user);
-  const userSection = document.getElementById("userSection");
-  const userAvatar = document.getElementById("userAvatar");
-  const signInButton = document.getElementById("signInButton");
-  console.log("signInButton element:", signInButton);
+  const avatar = document.getElementById("userAvatar");
+  if (!avatar) {
+    console.log("Avatar element not found");
+    return;
+  }
 
   if (user) {
-    userSection?.classList.remove("hidden");
-    if (signInButton) {
-      signInButton.style.display = "none";
+    const initials = `${user.first[0]}${user.last[0]}`.toUpperCase();
+    const color = getRandomColor();
+    avatar.className = `${color} w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm font-poppins cursor-pointer relative`;
+
+    // Set avatar content
+    avatar.innerHTML = initials;
+
+    // Create dropdown element
+    let dropdown = document.getElementById("userDropdown");
+    if (!dropdown) {
+      dropdown = document.createElement("div");
+      dropdown.id = "userDropdown";
+      document.body.appendChild(dropdown);
     }
 
-    if (user.imageUrl) {
-      userAvatar.innerHTML = `<img src="${user.imageUrl}" alt="${user.first} ${user.last}" class="w-full h-full object-cover rounded-full">`;
-    } else {
-      const color = getRandomColor();
-      userAvatar.className = `w-8 h-8 rounded-full overflow-hidden flex items-center justify-center ${color} text-white font-medium text-sm font-poppins`;
-      userAvatar.textContent = getInitials(user.first, user.last);
+    dropdown.className =
+      "hidden fixed w-48 bg-white rounded-md shadow-lg z-[100] border border-gray-200";
+    dropdown.innerHTML = `
+      <div class="py-1">
+        <div class="px-4 py-2 text-sm text-gray-500 ui-font font-normal">
+          Signed in as ${user.first} ${user.last}
+        </div>
+        <button class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ui-font font-normal">
+          <i class="ri-logout-box-line mr-2"></i>Sign out
+        </button>
+      </div>
+    `;
+
+    // Add click handlers
+    avatar.addEventListener("click", (event) => {
+      console.log("Avatar clicked");
+      event.stopPropagation();
+      const isHidden = dropdown.classList.contains("hidden");
+      console.log("Dropdown hidden:", isHidden);
+
+      if (isHidden) {
+        const avatarRect = avatar.getBoundingClientRect();
+        dropdown.style.top = `${avatarRect.bottom + 8}px`;
+        dropdown.style.right = `${window.innerWidth - avatarRect.right}px`;
+      }
+
+      dropdown.classList.toggle("hidden");
+      console.log(
+        "Dropdown hidden after toggle:",
+        dropdown.classList.contains("hidden")
+      );
+      console.log("Dropdown position:", dropdown.getBoundingClientRect());
+    });
+
+    const signOutButton = dropdown.querySelector("button");
+    if (signOutButton) {
+      signOutButton.addEventListener("click", (event) => {
+        console.log("Sign out button clicked");
+        event.stopPropagation();
+        signOut();
+      });
     }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (event) => {
+      if (!avatar.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.classList.add("hidden");
+      }
+    });
   } else {
-    userSection?.classList.add("hidden");
-    if (signInButton) {
-      signInButton.style.display = "block";
-      console.log("Showing sign in button");
-    }
+    avatar.className = "hidden";
+    avatar.innerHTML = "";
   }
 }
+
+async function signOut() {
+  console.log("Signing out...");
+  try {
+    const response = await fetch("/api/auth/signout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (response.ok) {
+      window.location.reload();
+    } else {
+      console.error("Failed to sign out");
+    }
+  } catch (error) {
+    console.error("Error signing out:", error);
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (event) => {
+  const dropdown = document.getElementById("userDropdown");
+  if (dropdown && !dropdown.classList.contains("hidden")) {
+    dropdown.classList.add("hidden");
+  }
+});
 
 function openSignInModal() {
   document.getElementById("signInModal")?.classList.remove("hidden");
@@ -128,9 +203,11 @@ export const authService = {
   closeSignInModal,
   handleSignInSubmit,
   updateUserAvatar,
+  signOut,
 };
 
 // Expose auth functions to window object for HTML onclick handlers
 window.openSignInModal = openSignInModal;
 window.closeSignInModal = closeSignInModal;
 window.handleSignInSubmit = handleSignInSubmit;
+window.signOut = signOut;
