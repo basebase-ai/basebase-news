@@ -61,7 +61,7 @@ function generateSourceHTML(source) {
         </div>
       </div>
       <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4">
-        <div class="${state.denseMode ? "space-y-1.4" : "space-y-2.5"}">
+        <div class="${state.denseMode ? "space-y-2.5" : "space-y-2.5"}">
           <div class="h-2"></div>
           ${
             headlines.length > 0
@@ -75,8 +75,6 @@ function generateSourceHTML(source) {
                 rel="noopener"
                 class="block relative"
                 data-headline-id="${headline._id}"
-                onmouseover="headlineService.showTooltip(this)"
-                onmouseout="headlineService.hideTooltip(this)"
                 onclick="headlineService.markAsRead('${headline._id}')"
                 oncontextmenu="headlineService.markAsRead('${headline._id}')"
               >
@@ -94,14 +92,6 @@ function generateSourceHTML(source) {
                         ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${headline.summary}</span>`
                         : ""
                     }
-                </div>
-                <div class="tooltip">
-                  <div class="font-semibold">${headline.fullHeadline}</div>
-                  ${
-                    headline.summary
-                      ? `<div class="mt-2 text-gray-600 dark:text-gray-400">${headline.summary}</div>`
-                      : ""
-                  }
                 </div>
               </a>
             </div>
