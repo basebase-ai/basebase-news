@@ -10,6 +10,7 @@ export interface ISource extends Document {
   lastScrapedAt?: Date;
   tags?: string[];
   imageUrl?: string;
+  hasPaywall: boolean;
 }
 
 export const Source = mongoose.model<ISource>(
@@ -24,5 +25,6 @@ export const Source = mongoose.model<ISource>(
     lastScrapedAt: Date,
     tags: { type: [String], default: [] },
     imageUrl: String,
+    hasPaywall: { type: Boolean, default: false },
   })
 );

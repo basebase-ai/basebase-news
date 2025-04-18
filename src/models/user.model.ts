@@ -6,6 +6,7 @@ export interface IUser extends Document {
   last: string;
   imageUrl?: string;
   sourceIds: Types.ObjectId[];
+  sourceSubscriptionIds: Types.ObjectId[];
   isAdmin: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -19,6 +20,10 @@ export const User = mongoose.model<IUser>(
     last: { type: String, required: true },
     imageUrl: String,
     sourceIds: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Source" }],
+      default: [],
+    },
+    sourceSubscriptionIds: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Source" }],
       default: [],
     },

@@ -16,6 +16,8 @@ function formatTimeAgo(date) {
   return "now";
 }
 
+export { formatTimeAgo };
+
 function generateSourceHTML(source) {
   const sourceId = source._id.toString();
   const sourceName = source.name || "Unknown Source";
@@ -50,10 +52,15 @@ function generateSourceHTML(source) {
               ${
                 source.lastScrapedAt
                   ? `
-                <span class="text-[0.675rem] text-gray-500 dark:text-gray-400 font-poppins font-normal shrink-0">${formatTimeAgo(
+                <span class="text-[0.81rem] text-gray-500 dark:text-gray-400 font-poppins font-normal shrink-0">${formatTimeAgo(
                   new Date(source.lastScrapedAt)
                 )}</span>
               `
+                  : ""
+              }
+              ${
+                source.hasPaywall
+                  ? `<span class="ml-2 text-gray-500 dark:text-gray-400" title="This news source has a paywall"><i class="ri-lock-line text-base"></i></span>`
                   : ""
               }
             </div>
@@ -140,6 +147,7 @@ function openSourceSettingsModal(sourceId) {
       ? source.tags.join(", ")
       : "";
     document.getElementById("imageUrl").value = source.imageUrl || "";
+    document.getElementById("hasPaywall").checked = source.hasPaywall || false;
   } else {
     modalTitle.textContent = "Add New Source";
     submitButton.textContent = "Add";
@@ -178,6 +186,7 @@ async function handleSourceSubmit(event) {
       : undefined,
     tags: tags.length > 0 ? tags : undefined,
     imageUrl: document.getElementById("imageUrl").value || undefined,
+    hasPaywall: document.getElementById("hasPaywall").checked,
   };
 
   try {

@@ -1,3 +1,5 @@
+import { formatTimeAgo } from "./sources.js";
+
 export function createSourceCard(source) {
   const card = document.createElement("div");
   card.className =
@@ -65,9 +67,16 @@ export function renderSourcesGrid(sources, searchTerm = "", state) {
                   </label>
                   <a href="${
                     source.homepageUrl
-                  }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors">${
+                  }" target="_blank" rel="noopener" class="font-medium hover:text-blue-600 transition-colors text-gray-900 dark:text-white">${
         source.name
       }</a>
+                  <div class="flex items-center gap-2">
+                    ${
+                      source.hasPaywall
+                        ? `<span class="text-gray-500 dark:text-gray-400" title="This news source has a paywall"><i class="ri-lock-line text-base"></i></span>`
+                        : ""
+                    }
+                  </div>
                 </div>
                 ${
                   source.tags
@@ -142,27 +151,34 @@ export function renderCustomizeModalGrid(sources, searchTerm = "", state) {
                 }
               </div>
             </div>
-            ${
-              state.isAdmin
-                ? `
-              <div class="relative inline-block">
-                <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
-                  <i class="ri-settings-4-line text-lg"></i>
-                </button>
-                <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700">
-                  <div class="py-1">
-                    <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
-                      <i class="ri-refresh-line mr-2"></i>Refresh
-                    </button>
-                    <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
-                      <i class="ri-edit-line mr-2"></i>Edit
-                    </button>
+            <div class="flex items-center gap-2">
+              ${
+                source.hasPaywall
+                  ? `<span class="text-gray-500 dark:text-gray-400" title="This news source has a paywall"><i class="ri-lock-line text-base"></i></span>`
+                  : ""
+              }
+              ${
+                state.isAdmin
+                  ? `
+                <div class="relative inline-block">
+                  <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
+                    <i class="ri-settings-4-line text-lg"></i>
+                  </button>
+                  <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700">
+                    <div class="py-1">
+                      <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
+                        <i class="ri-refresh-line mr-2"></i>Refresh
+                      </button>
+                      <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
+                        <i class="ri-edit-line mr-2"></i>Edit
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            `
-                : ""
-            }
+              `
+                  : ""
+              }
+            </div>
           </div>
         </div>
       `;
