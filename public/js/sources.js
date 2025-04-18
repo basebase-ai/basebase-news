@@ -84,10 +84,10 @@ function generateSourceHTML(source) {
                     : "whitespace-normal line-clamp-2"
                 } ${
                       readIds.has(headline._id) ? "read" : ""
-                    } text-gray-900 dark:text-white" data-original-text="${
+                    } text-gray-900 dark:text-white font-poppins" data-original-text="${
                       headline.fullHeadline
                     }">
-                  <span class="font-bold">${headline.fullHeadline}</span>${
+                  <span class="font-semibold">${headline.fullHeadline}</span>${
                       headline.summary
                         ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${headline.summary}</span>`
                         : ""
