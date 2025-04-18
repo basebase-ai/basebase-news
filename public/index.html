@@ -351,63 +351,57 @@
     <header
       class="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 z-10 border-b border-gray-200 dark:border-gray-700 shadow-sm"
     >
-      <div class="container mx-auto px-8 py-4 max-w-none mx-4">
-        <div class="flex items-center justify-between relative mb-2">
-          <div class="flex items-center gap-1 min-w-[200px]">
-            <img
-              src="/assets/images/logotype_541x110.png"
-              alt="StoryList"
-              class="w-[180px]"
-            />
-          </div>
-          <div class="flex-1"></div>
-          <div class="flex items-center gap-1">
-            <div class="relative">
-              <input
-                type="text"
-                id="searchInput"
-                placeholder="Search"
-                class="w-32 md:w-48 lg:w-64 min-w-24 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-              />
-              <button
-                id="searchClearButton"
-                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hidden"
-                onclick="headlineService.clearSearch()"
-              >
-                <i class="ri-close-line"></i>
-              </button>
-              <button
-                id="searchIcon"
-                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-              >
-                <i class="ri-search-line"></i>
-              </button>
-            </div>
-            <div id="userSection" class="hidden ml-4 flex items-center">
-              <button
-                onclick="openCustomizeModal()"
-                class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm mr-4 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Customize
-              </button>
-              <div
-                id="userAvatar"
-                class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white font-medium text-sm font-poppins cursor-pointer"
-                onclick="console.log('Avatar clicked from HTML');"
-              ></div>
-            </div>
-            <button
-              id="signInButton"
-              onclick="openSignInModal()"
-              class="ml-4 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Customize
-            </button>
-          </div>
+      <div class="flex items-center px-4 py-3">
+        <img
+          src="/assets/images/logotype_541x110.png"
+          alt="StoryList"
+          class="w-[132px] mr-2"
+        />
+        <div class="flex-1"></div>
+        <div class="relative mr-2">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search"
+            class="w-32 md:w-48 lg:w-64 min-w-24 pl-3 pr-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-poppins text-[0.9em] bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+          />
+          <button
+            id="searchClearButton"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hidden"
+            onclick="headlineService.clearSearch()"
+          >
+            <i class="ri-close-line"></i>
+          </button>
+          <button
+            id="searchIcon"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+          >
+            <i class="ri-search-line"></i>
+          </button>
         </div>
+        <div id="userSection" class="hidden flex items-center">
+          <button
+            onclick="openCustomizeModal()"
+            class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm mr-2 border border-gray-300 dark:border-gray-600 rounded-md h-8 w-8 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <i class="ri-settings-3-line text-lg"></i>
+          </button>
+          <div
+            id="userAvatar"
+            class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white font-medium text-sm font-poppins cursor-pointer"
+            onclick="console.log('Avatar clicked from HTML');"
+          ></div>
+        </div>
+        <button
+          id="signInButton"
+          onclick="openSignInModal()"
+          class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm border border-gray-300 dark:border-gray-600 rounded-md h-8 w-8 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          <i class="ri-settings-3-line text-lg"></i>
+        </button>
       </div>
     </header>
-    <main class="pt-28">
+    <main class="pt-20">
       <div
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 max-w-7xl mx-auto grid"
       >
