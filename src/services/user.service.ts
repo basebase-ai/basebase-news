@@ -54,7 +54,7 @@ export class UserService {
 
     // Generate JWT
     const token = jwt.sign({ userId: user._id }, this.JWT_SECRET, {
-      expiresIn: "7d",
+      expiresIn: "365d",
     });
 
     // Create sign-in link
@@ -75,7 +75,7 @@ export class UserService {
         from: "noreply@joinable.us",
         to: email,
         subject: "Sign in to StoryList",
-        html: `Click <a href="${signInLink}">here</a> to sign in to StoryList. This link will expire in 7 days.`,
+        html: `Click <a href="${signInLink}">here</a> to sign in to StoryList.`,
       });
       console.log("Email sent successfully!");
     } catch (error) {
