@@ -196,7 +196,9 @@ async function handleSignInSubmit(event) {
 
 async function getCurrentUser() {
   try {
-    const response = await fetch("/api/auth/me");
+    const response = await fetch("/api/auth/me", {
+      credentials: "include",
+    });
     const data = await response.json();
 
     if (data.status === "ok" && data.user) {

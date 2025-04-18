@@ -299,28 +299,43 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { userId } = userService.verifyToken(token);
-    const user = await User.findById(userId);
+    try {
+      const { userId } = userService.verifyToken(token);
+      const user = await User.findById(userId);
 
-    if (!user) {
-      res.status(404).json({ status: "error", message: "User not found" });
-      return;
+      if (!user) {
+        res.clearCookie("auth", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+        });
+        res.status(404).json({ status: "error", message: "User not found" });
+        return;
+      }
+
+      res.json({
+        status: "ok",
+        user: {
+          id: user._id,
+          email: user.email,
+          first: user.first,
+          last: user.last,
+          isAdmin: user.isAdmin,
+          sourceIds: user.sourceIds || [],
+        },
+      });
+    } catch (error) {
+      // Clear invalid token
+      res.clearCookie("auth", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+      res.status(401).json({ status: "error", message: "Invalid token" });
     }
-
-    res.json({
-      status: "ok",
-      user: {
-        id: user._id,
-        email: user.email,
-        first: user.first,
-        last: user.last,
-        isAdmin: user.isAdmin,
-        sourceIds: user.sourceIds || [],
-      },
-    });
   } catch (error) {
     console.error("Get user error:", error);
-    res.status(401).json({ status: "error", message: "Invalid token" });
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 });
 
