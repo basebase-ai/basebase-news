@@ -61,7 +61,7 @@ function generateSourceHTML(source) {
         </div>
       </div>
       <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4">
-        <div class="${state.denseMode ? "space-y-2.5" : "space-y-2.5"}">
+        <div class="${state.denseMode ? "space-y-1" : "space-y-2"}">
           <div class="h-2"></div>
           ${
             headlines.length > 0
