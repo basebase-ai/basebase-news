@@ -208,6 +208,18 @@ app.delete(
     try {
       const { sourceId } = req.params;
       await Source.findByIdAndDelete(sourceId);
+
+      // Remove sourceId from all users' sourceIds and sourceSubscriptionIds arrays
+      await User.updateMany(
+        { $or: [{ sourceIds: sourceId }, { sourceSubscriptionIds: sourceId }] },
+        {
+          $pull: {
+            sourceIds: sourceId,
+            sourceSubscriptionIds: sourceId,
+          },
+        }
+      );
+
       res.json({ status: "ok", message: "Source deleted successfully" });
     } catch (error) {
       const message: string =

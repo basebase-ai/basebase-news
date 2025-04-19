@@ -132,10 +132,20 @@ async function loadHeadlines(sourceIds) {
   try {
     const sources = await Promise.all(
       sourceIds.map(async (sourceId) => {
-        const response = await fetch(`/api/sources/${sourceId}`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        return data.source;
+        try {
+          const response = await fetch(`/api/sources/${sourceId}`);
+          if (!response.ok) {
+            console.warn(
+              `Source ${sourceId} not found, will be removed from user's sources`
+            );
+            return null;
+          }
+          const data = await response.json();
+          return data.source;
+        } catch (error) {
+          console.warn(`Error fetching source ${sourceId}:`, error);
+          return null;
+        }
       })
     );
 
@@ -144,6 +154,31 @@ async function loadHeadlines(sourceIds) {
       ...source,
       headlines: source.headlines || [],
     }));
+
+    // If we have a current user and some sources were invalid, update their sourceIds
+    if (state.currentUser && validSources.length !== sourceIds.length) {
+      const validSourceIds = validSources.map((source) =>
+        source._id.toString()
+      );
+      try {
+        const response = await fetch("/api/users/me/sources", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sourceIds: validSourceIds,
+          }),
+        });
+
+        if (response.ok) {
+          const updatedUser = await response.json();
+          state.currentUser = updatedUser.user;
+        }
+      } catch (error) {
+        console.error("Failed to update user's source IDs:", error);
+      }
+    }
 
     state.currentSources = validSources;
 

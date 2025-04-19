@@ -240,16 +240,16 @@ async function initialize() {
       console.log("Loading headlines for user's sources:", user.sourceIds);
       await headlineService.loadHeadlines(user.sourceIds);
     } else {
-      console.log("No user found, fetching top_news_us sources");
-      // Fetch top_news_us sources for non-signed in users
-      const response = await fetch("/api/sources/tag/top_news_us");
+      console.log("No user found, fetching popular sources");
+      // Fetch popular sources for non-signed in users
+      const response = await fetch("/api/sources/tag/popular");
       const data = await response.json();
-      console.log("Top news sources response:", data);
+      console.log("Popular sources response:", data);
       if (data.status === "ok" && data.sourceIds.length > 0) {
-        console.log("Loading headlines for top news sources:", data.sourceIds);
+        console.log("Loading headlines for popular sources:", data.sourceIds);
         await headlineService.loadHeadlines(data.sourceIds);
       } else {
-        console.error("No top news sources found");
+        console.error("No popular sources found");
       }
     }
   } catch (error) {
