@@ -230,6 +230,8 @@ async function handleNewSourceSubmit(event) {
   const formData = {
     name: document.getElementById("newSourceName").value,
     homepageUrl,
+    rssUrl:
+      document.getElementById("newSourceRssUrl")?.value?.trim() || undefined,
     // Use default values for required fields
     includeSelector: "main", // Default selector that works for many sites
   };
