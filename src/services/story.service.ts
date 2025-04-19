@@ -90,7 +90,6 @@ export class StoryService {
   }
 
   public async getStories(sourceId: string): Promise<IStory[]> {
-    console.log(`Getting stories for source ${sourceId}`);
     const objectId = new mongoose.Types.ObjectId(sourceId);
 
     const stories = await Story.find({
@@ -100,10 +99,6 @@ export class StoryService {
       .sort({ inPageRank: 1 })
       .limit(20);
 
-    console.log(
-      `Found ${stories.length} stories for source ${sourceId}:`,
-      stories
-    );
     return stories;
   }
 }
