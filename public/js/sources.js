@@ -220,14 +220,28 @@ function closeDeleteSourceModal() {
 async function handleNewSourceSubmit(event) {
   event.preventDefault();
 
+  const tagsInput = document.getElementById("newSourceTags").value;
+  const tags = tagsInput
+    ? tagsInput
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag)
+    : [];
+
   const formData = {
     name: document.getElementById("newSourceName").value,
     homepageUrl: document.getElementById("newSourceHomepageUrl").value,
-    includeSelector: "",
-    imageUrl: new URL(
-      "/favicon.ico",
-      document.getElementById("newSourceHomepageUrl").value
-    ).toString(),
+    rssUrl: document.getElementById("newSourceRssUrl").value || undefined,
+    includeSelector:
+      document.getElementById("newSourceIncludeSelector").value || "",
+    excludeSelector:
+      document.getElementById("newSourceExcludeSelector").value || undefined,
+    biasScore: document.getElementById("newSourceBiasScore").value
+      ? parseFloat(document.getElementById("newSourceBiasScore").value)
+      : undefined,
+    tags: tags.length > 0 ? tags : undefined,
+    imageUrl: document.getElementById("newSourceImageUrl").value || undefined,
+    hasPaywall: document.getElementById("newSourceHasPaywall").checked,
   };
 
   try {
@@ -239,7 +253,69 @@ async function handleNewSourceSubmit(event) {
       body: JSON.stringify(formData),
     });
 
-    if (!response.ok) throw new Error("Failed to add source");
+    if (!response.ok) {
+      const errorData = await response.json();
+
+      // If it's a duplicate source (409 Conflict)
+      if (response.status === 409 && errorData.source) {
+        closeNewSourceModal();
+        alert("This source already exists in the system.");
+
+        // If the user is logged in, we can add the existing source to their list
+        if (state.currentUser && errorData.source._id) {
+          // Check if user already has this source
+          const alreadyHasSource = state.currentUser.sourceIds?.includes(
+            errorData.source._id
+          );
+
+          if (!alreadyHasSource) {
+            try {
+              const userResponse = await fetch("/api/users/me/sources", {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  sourceIds: [
+                    ...(state.currentUser.sourceIds || []),
+                    errorData.source._id,
+                  ],
+                }),
+              });
+
+              if (userResponse.ok) {
+                const updatedUser = await userResponse.json();
+                state.currentUser = updatedUser.user;
+
+                // Update URL to highlight the existing source
+                const url = new URL(window.location.href);
+                url.searchParams.set("newSource", errorData.source._id);
+                window.history.replaceState({}, "", url);
+
+                // Refresh the sources grid
+                const sources = await loadAllSources();
+                renderSourcesGrid(sources);
+
+                // Check the checkbox for the existing source
+                setTimeout(() => {
+                  const checkbox = document.getElementById(
+                    `source-${errorData.source._id}`
+                  );
+                  if (checkbox) {
+                    checkbox.checked = true;
+                  }
+                }, 100);
+              }
+            } catch (error) {
+              console.error("Failed to update user sources:", error);
+            }
+          }
+        }
+        return;
+      }
+
+      throw new Error(errorData.message || "Failed to add source");
+    }
 
     const result = await response.json();
 

@@ -119,19 +119,63 @@ app.post(
   isAdmin,
   async (req: Request, res: Response): Promise<void> => {
     try {
+      // Validate required fields
+      const { name, homepageUrl, includeSelector } = req.body;
+      if (!name || !homepageUrl) {
+        res.status(400).json({
+          error: "Bad request",
+          message: "Name and homepageUrl are required fields",
+        });
+        return;
+      }
+
+      // Check if source with this URL already exists
+      const existingSource = await Source.findOne({ homepageUrl });
+      if (existingSource) {
+        res.status(409).json({
+          error: "Conflict",
+          message: "A source with this URL already exists",
+          source: existingSource,
+        });
+        return;
+      }
+
+      // Create and save the new source
       const newSource = new Source(req.body);
       await newSource.save();
-      console.log(`Scraping new source: ${newSource.name}`);
+
+      // Send successful response immediately
+      res.json({ source: newSource });
+
+      // Then attempt to scrape asynchronously (after response is sent)
       try {
+        console.log(`Scraping new source: ${newSource.name}`);
         const stories = await scraperService.crawlOne(newSource);
         console.log(`Scraped ${stories.length} stories for ${newSource.name}`);
-      } catch (error) {
-        console.error(`Error scraping source ${newSource.name}:`, error);
+      } catch (scrapeError) {
+        console.error(`Error scraping source ${newSource.name}:`, scrapeError);
+        // Scraping errors are logged but don't affect the source creation
       }
-      res.json(newSource);
     } catch (error) {
       console.error("Error creating source:", error);
-      res.status(500).json({ error: "Internal server error" });
+      // Handle MongoDB duplicate key errors specifically
+      if (
+        error instanceof Error &&
+        error.name === "MongoServerError" &&
+        (error as any).code === 11000
+      ) {
+        res.status(409).json({
+          error: "Conflict",
+          message: "A source with this URL already exists",
+        });
+        return;
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({
+        error: "Internal server error",
+        message: errorMessage,
+      });
     }
   }
 );
