@@ -220,28 +220,18 @@ function closeDeleteSourceModal() {
 async function handleNewSourceSubmit(event) {
   event.preventDefault();
 
-  const tagsInput = document.getElementById("newSourceTags").value;
-  const tags = tagsInput
-    ? tagsInput
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag)
-    : [];
+  // Get and normalize the homepage URL (remove trailing slashes)
+  const homepageUrl = document
+    .getElementById("newSourceHomepageUrl")
+    .value.trim()
+    .replace(/\/+$/, "");
 
+  // Simple formData with just the fields available in the form
   const formData = {
     name: document.getElementById("newSourceName").value,
-    homepageUrl: document.getElementById("newSourceHomepageUrl").value,
-    rssUrl: document.getElementById("newSourceRssUrl").value || undefined,
-    includeSelector:
-      document.getElementById("newSourceIncludeSelector").value || "",
-    excludeSelector:
-      document.getElementById("newSourceExcludeSelector").value || undefined,
-    biasScore: document.getElementById("newSourceBiasScore").value
-      ? parseFloat(document.getElementById("newSourceBiasScore").value)
-      : undefined,
-    tags: tags.length > 0 ? tags : undefined,
-    imageUrl: document.getElementById("newSourceImageUrl").value || undefined,
-    hasPaywall: document.getElementById("newSourceHasPaywall").checked,
+    homepageUrl,
+    // Use default values for required fields
+    includeSelector: "main", // Default selector that works for many sites
   };
 
   try {
@@ -383,9 +373,15 @@ async function handleSourceSubmit(event) {
         .filter((tag) => tag)
     : [];
 
+  // Get and normalize the homepage URL (remove trailing slashes)
+  const homepageUrl = document
+    .getElementById("homepageUrl")
+    .value.trim()
+    .replace(/\/+$/, "");
+
   const formData = {
     name: document.getElementById("name").value,
-    homepageUrl: document.getElementById("homepageUrl").value,
+    homepageUrl,
     rssUrl: document.getElementById("rssUrl").value,
     includeSelector: document.getElementById("includeSelector").value || "",
     excludeSelector:

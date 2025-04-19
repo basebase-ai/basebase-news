@@ -3,14 +3,19 @@ import mongoose from "mongoose";
 
 export class SourceService {
   private trimSourceFields(source: ISource): Partial<ISource> {
+    // Remove trailing slashes from URLs
+    const homepageUrl = source.homepageUrl?.trim().replace(/\/+$/, "");
+    const rssUrl = source.rssUrl?.trim().replace(/\/+$/, "");
+    const imageUrl = source.imageUrl?.trim();
+
     return {
       name: source.name?.trim(),
-      homepageUrl: source.homepageUrl?.trim(),
-      rssUrl: source.rssUrl?.trim(),
+      homepageUrl,
+      rssUrl,
       includeSelector: source.includeSelector?.trim(),
       excludeSelector: source.excludeSelector?.trim(),
       tags: source.tags?.map((tag) => tag.trim()),
-      imageUrl: source.imageUrl?.trim(),
+      imageUrl,
       biasScore: source.biasScore,
       hasPaywall: source.hasPaywall,
     };

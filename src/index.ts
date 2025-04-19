@@ -129,8 +129,14 @@ app.post(
         return;
       }
 
+      // Normalize URL by removing trailing slashes
+      const normalizedUrl = homepageUrl.trim().replace(/\/+$/, "");
+      req.body.homepageUrl = normalizedUrl;
+
       // Check if source with this URL already exists
-      const existingSource = await Source.findOne({ homepageUrl });
+      const existingSource = await Source.findOne({
+        homepageUrl: normalizedUrl,
+      });
       if (existingSource) {
         res.status(409).json({
           error: "Conflict",
@@ -215,6 +221,12 @@ app.put(
     try {
       const sourceId = req.params.id;
       const source = req.body;
+
+      // Normalize URL by removing trailing slashes if present
+      if (source.homepageUrl) {
+        source.homepageUrl = source.homepageUrl.trim().replace(/\/+$/, "");
+      }
+
       await sourceService.updateSource(sourceId, source);
       res.json({ status: "ok", message: "Source updated successfully" });
     } catch (error) {

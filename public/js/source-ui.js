@@ -211,15 +211,6 @@ function generateSourceTile(source, state, tagSection = "") {
     source.name
   }</a>
             </div>
-            ${
-              source.tags?.length
-                ? `
-              <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                ${source.tags.join(", ")}
-              </div>
-            `
-                : ""
-            }
           </div>
         </div>
         <div class="flex items-center gap-2">
