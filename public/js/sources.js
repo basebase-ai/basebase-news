@@ -33,7 +33,7 @@ function generateSourceHTML(source) {
   return `
     <div class="border border-gray-200 dark:border-gray-700 rounded-md ${
       state.denseMode ? "h-[230px]" : "h-[300px]"
-    } flex flex-col" data-source-id="${sourceId}">
+    } flex flex-col bg-white dark:bg-black" data-source-id="${sourceId}">
       <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 min-w-0">
