@@ -10,6 +10,7 @@ import { ScraperService } from "./services/scraper.service";
 import { agendaService } from "./services/agenda.service";
 import { User } from "./models/user.model";
 import { userService } from "./services/user.service";
+import { sourceService } from "./services/source.service";
 import nodemailer from "nodemailer";
 import mongoose from "mongoose";
 
@@ -65,7 +66,7 @@ app.get("/hello", (req: Request, res: Response): void => {
 // returns all of the possible sources
 app.get("/api/sources", async (_req: Request, res: Response): Promise<void> => {
   try {
-    const sources = await storyService.getSources();
+    const sources = await sourceService.getSources();
     res.json(sources);
   } catch (error) {
     console.error("Error getting sources:", error);
@@ -169,7 +170,7 @@ app.put(
     try {
       const sourceId = req.params.id;
       const source = req.body;
-      await storyService.updateSource(sourceId, source);
+      await sourceService.updateSource(sourceId, source);
       res.json({ status: "ok", message: "Source updated successfully" });
     } catch (error) {
       console.error("Error updating source:", error);

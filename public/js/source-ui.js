@@ -232,18 +232,18 @@ function generateSourceTile(source, state, tagSection = "") {
             state.isAdmin
               ? `
             <div class="relative">
-              <button onclick="sourceService.toggleDropdown('${uniqueId}')" class="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center">
+              <button class="source-settings-btn text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center" data-source-id="${uniqueId}">
                 <i class="ri-settings-4-line text-2xl"></i>
               </button>
               <div id="dropdown-${uniqueId}" class="hidden absolute right-0 top-full mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg z-[100] border border-gray-200 dark:border-gray-700">
                 <div class="py-1">
-                  <button onclick="sourceService.scrapeSource('${source._id}'); sourceService.toggleDropdown('${uniqueId}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
+                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal" data-action="scrape" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
                     <i class="ri-refresh-line mr-2"></i>Refresh
                   </button>
-                  <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${uniqueId}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
+                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal" data-action="edit" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
                     <i class="ri-edit-line mr-2"></i>Edit
                   </button>
-                  <button onclick="sourceService.confirmDeleteSource('${source._id}'); sourceService.toggleDropdown('${uniqueId}')" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
+                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal" data-action="delete" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
                     <i class="ri-delete-bin-line mr-2"></i>Delete
                   </button>
                 </div>
@@ -273,20 +273,45 @@ document.addEventListener(
   true
 );
 
-// Add click handler for settings buttons
+// Handle source settings and actions with event delegation
 document.addEventListener(
   "click",
   (event) => {
-    const settingsButton = event.target.closest(
-      'button[onclick*="toggleDropdown"]'
-    );
+    // Handle settings button clicks
+    const settingsButton = event.target.closest(".source-settings-btn");
     if (settingsButton) {
       event.preventDefault();
       event.stopPropagation();
-      const sourceId = settingsButton
-        .getAttribute("onclick")
-        .match(/'([^']+)'/)[1];
+      const sourceId = settingsButton.getAttribute("data-source-id");
       sourceService.toggleDropdown(sourceId);
+      return;
+    }
+
+    // Handle dropdown menu item clicks
+    const actionButton = event.target.closest(".source-action-btn");
+    if (actionButton) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const action = actionButton.getAttribute("data-action");
+      const sourceId = actionButton.getAttribute("data-source-id");
+      const dropdownId = actionButton.getAttribute("data-dropdown-id");
+
+      // Close the dropdown
+      sourceService.toggleDropdown(dropdownId);
+
+      // Perform the action
+      switch (action) {
+        case "scrape":
+          sourceService.scrapeSource(sourceId);
+          break;
+        case "edit":
+          sourceService.openSourceSettingsModal(sourceId);
+          break;
+        case "delete":
+          sourceService.confirmDeleteSource(sourceId);
+          break;
+      }
     }
   },
   true
