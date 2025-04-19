@@ -279,7 +279,7 @@ async function handleSourceSubmit(event) {
   const formData = {
     name: document.getElementById("name").value,
     homepageUrl: document.getElementById("homepageUrl").value,
-    rssUrl: document.getElementById("rssUrl").value || undefined,
+    rssUrl: document.getElementById("rssUrl").value,
     includeSelector: document.getElementById("includeSelector").value || "",
     excludeSelector:
       document.getElementById("excludeSelector").value || undefined,
