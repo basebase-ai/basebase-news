@@ -251,5 +251,7 @@ export const headlineService = {
   clearSearch,
 };
 
-// Make functions available globally
-window.headlineService = headlineService;
+// Make service available globally
+if (typeof window !== "undefined") {
+  window.headlineService = headlineService;
+}

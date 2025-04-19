@@ -232,18 +232,18 @@ function generateSourceTile(source, state, tagSection = "") {
             state.isAdmin
               ? `
             <div class="relative">
-              <button class="source-settings-btn text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center" data-source-id="${uniqueId}">
+              <button class="source-settings-btn text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center font-poppins" data-source-id="${uniqueId}">
                 <i class="ri-settings-4-line text-2xl"></i>
               </button>
               <div id="dropdown-${uniqueId}" class="hidden absolute right-0 top-full mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg z-[100] border border-gray-200 dark:border-gray-700">
                 <div class="py-1">
-                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal" data-action="scrape" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
+                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal font-poppins" data-action="scrape" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
                     <i class="ri-refresh-line mr-2"></i>Refresh
                   </button>
-                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal" data-action="edit" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
+                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal font-poppins" data-action="edit" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
                     <i class="ri-edit-line mr-2"></i>Edit
                   </button>
-                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal" data-action="delete" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
+                  <button class="source-action-btn w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal font-poppins" data-action="delete" data-source-id="${source._id}" data-dropdown-id="${uniqueId}">
                     <i class="ri-delete-bin-line mr-2"></i>Delete
                   </button>
                 </div>

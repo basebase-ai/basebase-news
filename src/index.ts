@@ -11,6 +11,7 @@ import { agendaService } from "./services/agenda.service";
 import { User } from "./models/user.model";
 import { userService } from "./services/user.service";
 import { sourceService } from "./services/source.service";
+import { previewService } from "./services/preview.service";
 import nodemailer from "nodemailer";
 import mongoose from "mongoose";
 
@@ -429,6 +430,26 @@ app.post(
     }
   }
 );
+
+// URL preview endpoint
+app.post("/api/preview", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { url } = req.body;
+
+    if (!url || typeof url !== "string") {
+      res.status(400).json({ status: "error", message: "URL is required" });
+      return;
+    }
+
+    const preview = await previewService.getPageMetadata(url);
+    res.json({ status: "ok", preview });
+  } catch (error) {
+    console.error("Error fetching preview:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    res.status(500).json({ status: "error", message: errorMessage });
+  }
+});
 
 // Start the server and agenda service
 async function startServer(): Promise<void> {

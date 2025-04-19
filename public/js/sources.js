@@ -3,6 +3,7 @@ import { loadAllSources, renderSourcesGrid } from "./main.js";
 
 let currentSources = [];
 let readIds = new Set(JSON.parse(localStorage.getItem("readIds") || "[]"));
+let currentPreviewStory = null;
 
 function formatTimeAgo(date) {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -67,7 +68,7 @@ function generateSourceHTML(source) {
           </div>
           <button 
             onclick="sourceService.refreshSource('${sourceId}')" 
-            class="text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 w-8 h-8 flex items-center justify-center"
+            class="text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 w-8 h-8 flex items-center justify-center font-poppins"
             title="Refresh headlines"
           >
             <i class="ri-refresh-line text-2xl"></i>
@@ -84,13 +85,25 @@ function generateSourceHTML(source) {
                     (story) => `
             <div class="group relative">
               <a 
-                href="${story.articleUrl}" 
-                target="_blank" 
-                rel="noopener"
-                class="block relative"
+                href="javascript:void(0);" 
+                class="block relative cursor-pointer"
                 data-story-id="${story._id}"
-                onclick="headlineService.markAsRead('${story._id}')"
-                oncontextmenu="headlineService.markAsRead('${story._id}')"
+                data-story-url="${story.articleUrl}"
+                data-story-headline="${story.fullHeadline.replace(
+                  /"/g,
+                  "&quot;"
+                )}"
+                data-story-summary="${(story.summary || "").replace(
+                  /"/g,
+                  "&quot;"
+                )}"
+                data-story-description="${(story.description || "").replace(
+                  /"/g,
+                  "&quot;"
+                )}"
+                data-story-image="${story.imageUrl || ""}"
+                data-has-paywall="${source.hasPaywall ? "true" : "false"}"
+                onclick="sourceService.handleStoryClick(this)"
               >
                 <div class="news-headline ${
                   state.denseMode
@@ -102,11 +115,24 @@ function generateSourceHTML(source) {
                       story.fullHeadline
                     }">
                   <span class="font-semibold">${story.fullHeadline}</span>${
-                      story.summary
-                        ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
+                      story.description || story.summary
+                        ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${
+                            story.description || story.summary
+                          }</span>`
                         : ""
                     }
                 </div>
+                ${
+                  false && story.imageUrl
+                    ? `<div class="mt-2 rounded-md overflow-hidden ${
+                        state.denseMode ? "h-16" : "h-24"
+                      }">
+                      <img src="${
+                        story.imageUrl
+                      }" alt="Preview" class="w-full h-full object-cover" />
+                    </div>`
+                    : ""
+                }
               </a>
             </div>
           `
@@ -452,13 +478,25 @@ async function refreshSource(sourceId) {
               (story) => `
           <div class="group relative">
             <a 
-              href="${story.articleUrl}" 
-              target="_blank" 
-              rel="noopener"
-              class="block relative"
+              href="javascript:void(0);" 
+              class="block relative cursor-pointer"
               data-story-id="${story._id}"
-              onclick="headlineService.markAsRead('${story._id}')"
-              oncontextmenu="headlineService.markAsRead('${story._id}')"
+              data-story-url="${story.articleUrl}"
+              data-story-headline="${story.fullHeadline.replace(
+                /"/g,
+                "&quot;"
+              )}"
+              data-story-summary="${(story.summary || "").replace(
+                /"/g,
+                "&quot;"
+              )}"
+              data-story-description="${(story.description || "").replace(
+                /"/g,
+                "&quot;"
+              )}"
+              data-story-image="${story.imageUrl || ""}"
+              data-has-paywall="${source.hasPaywall ? "true" : "false"}"
+              onclick="sourceService.handleStoryClick(this)"
             >
               <div class="news-headline ${
                 state.denseMode ? "truncate" : "whitespace-normal line-clamp-2"
@@ -468,11 +506,24 @@ async function refreshSource(sourceId) {
                 story.fullHeadline
               }">
                 <span class="font-semibold">${story.fullHeadline}</span>${
-                story.summary
-                  ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
+                story.description || story.summary
+                  ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${
+                      story.description || story.summary
+                    }</span>`
                   : ""
               }
               </div>
+              ${
+                story.imageUrl
+                  ? `<div class="mt-2 rounded-md overflow-hidden ${
+                      state.denseMode ? "h-16" : "h-24"
+                    }">
+                    <img src="${
+                      story.imageUrl
+                    }" alt="Preview" class="w-full h-full object-cover" />
+                  </div>`
+                  : ""
+              }
             </a>
           </div>
         `
@@ -500,6 +551,124 @@ async function refreshSource(sourceId) {
   }
 }
 
+function handleStoryClick(element) {
+  const storyId = element.getAttribute("data-story-id");
+  const articleUrl = element.getAttribute("data-story-url");
+  const hasPaywall = element.getAttribute("data-has-paywall") === "true";
+
+  // Mark as read regardless of the action
+  headlineService.markAsRead(storyId);
+
+  if (hasPaywall) {
+    // Show the preview modal for paywalled content
+    showPreviewModal(element);
+  } else {
+    // Go directly to the article for non-paywalled content
+    window.open(articleUrl, "_blank", "noopener");
+  }
+}
+
+function showPreviewModal(element) {
+  // Extract story data from data attributes
+  const storyId = element.getAttribute("data-story-id");
+  const articleUrl = element.getAttribute("data-story-url");
+  const headline = element.getAttribute("data-story-headline");
+  const summary = element.getAttribute("data-story-summary");
+  const description = element.getAttribute("data-story-description");
+  const imageUrl = element.getAttribute("data-story-image");
+  const hasPaywall = element.getAttribute("data-has-paywall") === "true";
+
+  // Already marked as read in handleStoryClick
+  // headlineService.markAsRead(storyId);
+
+  // Get or create the preview modal
+  let previewModal = document.getElementById("storyPreviewModal");
+  if (!previewModal) {
+    previewModal = document.createElement("div");
+    previewModal.id = "storyPreviewModal";
+    previewModal.className =
+      "fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center px-4";
+    document.body.appendChild(previewModal);
+  }
+
+  // Use description if available, otherwise fall back to summary
+  const contentText = description || summary || "";
+
+  previewModal.innerHTML = `
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col mx-auto font-poppins">
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white truncate">Story Preview</h2>
+        <button onclick="sourceService.closePreviewModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-poppins">
+          <i class="ri-close-line text-2xl"></i>
+        </button>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto">
+        ${
+          imageUrl
+            ? `<div class="w-full h-64 bg-gray-100 dark:bg-gray-800">
+                <img src="${imageUrl}" alt="${headline}" class="w-full h-full object-cover">
+              </div>`
+            : ""
+        }
+        
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 font-poppins">${headline}</h3>
+          ${
+            contentText
+              ? `<p class="text-gray-700 dark:text-gray-300 mb-6 font-poppins">${contentText}</p>`
+              : ""
+          }
+        </div>
+      </div>
+      
+      <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        ${
+          hasPaywall
+            ? `<span class="text-gray-500 dark:text-gray-400 text-sm font-poppins flex items-center">
+          <i class="ri-lock-line mr-1 text-base"></i>You may encounter a paywall.
+        </span>`
+            : `<span></span>`
+        }
+        <a 
+          href="${articleUrl}" 
+          target="_blank" 
+          rel="noopener" 
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors font-poppins"
+        >
+          Go to Story
+        </a>
+      </div>
+    </div>
+  `;
+
+  previewModal.classList.remove("hidden");
+
+  // Close on background click
+  previewModal.addEventListener("click", (e) => {
+    if (e.target === previewModal) {
+      closePreviewModal();
+    }
+  });
+
+  // Close on escape key
+  document.addEventListener("keydown", handleEscapeKey);
+}
+
+function closePreviewModal() {
+  const previewModal = document.getElementById("storyPreviewModal");
+  if (previewModal) {
+    previewModal.classList.add("hidden");
+    document.removeEventListener("keydown", handleEscapeKey);
+  }
+}
+
+function handleEscapeKey(e) {
+  if (e.key === "Escape") {
+    closePreviewModal();
+  }
+}
+
 export const sourceService = {
   formatTimeAgo,
   generateSourceHTML,
@@ -515,6 +684,9 @@ export const sourceService = {
   deleteSource,
   scrapeSource,
   refreshSource,
+  showPreviewModal,
+  closePreviewModal,
+  handleStoryClick,
   setCurrentSources(sources) {
     currentSources = sources;
   },

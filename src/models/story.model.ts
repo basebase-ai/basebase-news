@@ -22,10 +22,12 @@ export interface IStory {
   sourceId: mongoose.Types.ObjectId;
   fullHeadline: string;
   summary: string;
+  description?: string | null;
   articleUrl: string;
   section: Section;
   type: NewsTopic;
   inPageRank: number;
+  imageUrl?: string | null;
   archived?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -41,10 +43,12 @@ export const Story = mongoose.model<IStory>(
     },
     fullHeadline: String,
     summary: String,
+    description: String,
     articleUrl: { type: String, unique: true },
     section: String,
     type: String,
     inPageRank: Number,
+    imageUrl: String,
     archived: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

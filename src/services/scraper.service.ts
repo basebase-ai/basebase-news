@@ -4,6 +4,7 @@ import { ISource, Source } from "../models/source.model";
 import { IStory, NewsTopic, Section } from "../models/story.model";
 import { langChainService } from "./langchain.service";
 import { storyService } from "./story.service";
+import { previewService } from "./preview.service";
 import Parser from "rss-parser";
 import mongoose from "mongoose";
 
@@ -182,6 +183,41 @@ ${html}`;
     }
   }
 
+  private async fetchMetadataForStory(story: IStory): Promise<IStory> {
+    try {
+      // Only fetch metadata if the URL is valid
+      if (story.articleUrl) {
+        const metadata = await previewService.getPageMetadata(story.articleUrl);
+
+        const updatedStory = { ...story };
+
+        // Add image URL if found
+        if (metadata.imageUrl) {
+          updatedStory.imageUrl = metadata.imageUrl;
+        }
+
+        // Use description from article page if it's longer than the existing summary
+        if (metadata.description) {
+          // First capture existing summary length
+          const summaryLength = story.summary ? story.summary.length : 0;
+          const metadataDescriptionLength = metadata.description.length;
+
+          // If metadata description is longer or summary doesn't exist, use the metadata description
+          if (metadataDescriptionLength > summaryLength) {
+            updatedStory.description = metadata.description;
+          }
+        }
+
+        return updatedStory;
+      }
+    } catch (error) {
+      console.error(`Error fetching metadata for ${story.articleUrl}:`, error);
+    }
+
+    // Always return the original story if no update was made or if there was an error
+    return story;
+  }
+
   public async collectAll(): Promise<void> {
     try {
       // Get all sources
@@ -259,11 +295,18 @@ ${html}`;
       const cleanedHtml: string = this.cleanHtml(html, source);
       const stories = await this.parseStories(cleanedHtml, source.homepageUrl);
 
-      // Save stories to database
-      await storyService.addStories(sourceId, stories);
-      console.log(`Saved ${stories.length} stories for ${source.name}`);
+      // Fetch metadata for each story
+      const enhancedStories: IStory[] = [];
+      for (const story of stories) {
+        const enhancedStory = await this.fetchMetadataForStory(story);
+        enhancedStories.push(enhancedStory);
+      }
 
-      return stories;
+      // Save stories to database
+      await storyService.addStories(sourceId, enhancedStories);
+      console.log(`Saved ${enhancedStories.length} stories for ${source.name}`);
+
+      return enhancedStories;
     } catch (error) {
       console.error("Error scraping page:", error);
       throw error;
@@ -280,7 +323,13 @@ ${html}`;
     }
 
     try {
-      const parser = new Parser();
+      // Configure the parser to capture media:content tags
+      const parser = new Parser({
+        customFields: {
+          item: [["media:content", "mediaContent", { keepArray: true }]],
+        },
+      });
+
       const response = await fetch(source.rssUrl);
       const xmlText = await response.text();
       const sanitizedXml = this.sanitizeXml(xmlText);
@@ -291,7 +340,7 @@ ${html}`;
         await Source.findByIdAndUpdate(sourceId, { imageUrl: feed.image.url });
       }
 
-      const stories: IStory[] = feed.items.map((item, index) => {
+      const stories: IStory[] = feed.items.map((item: any, index: number) => {
         const hasAudioEnclosure: boolean =
           (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
         const hasVideoEnclosure: boolean =
@@ -299,9 +348,50 @@ ${html}`;
         const summary: string =
           item.contentSnippet ||
           item.content ||
-          item.description ||
+          (typeof item.description === "string" ? item.description : "") ||
           (hasAudioEnclosure ? "Audio recording" : "") ||
           (hasVideoEnclosure ? "Video recording" : "");
+
+        // Extract image URL from media:content if available
+        let imageUrl: string | null = null;
+
+        // Try to find an image from mediaContent
+        if (item.mediaContent && Array.isArray(item.mediaContent)) {
+          // Look for media with an image type or medium
+          for (const media of item.mediaContent) {
+            if (
+              media &&
+              media.$ &&
+              (media.$.medium === "image" ||
+                (media.$.type && media.$.type.startsWith("image/"))) &&
+              media.$.url
+            ) {
+              imageUrl = media.$.url;
+              break;
+            }
+          }
+
+          // If no image type found but we have media with urls, use the first one
+          if (
+            !imageUrl &&
+            item.mediaContent.length > 0 &&
+            item.mediaContent[0].$ &&
+            item.mediaContent[0].$.url
+          ) {
+            imageUrl = item.mediaContent[0].$.url;
+          }
+        }
+
+        // Fall back to enclosure if it's an image
+        if (
+          !imageUrl &&
+          item.enclosure &&
+          item.enclosure.type &&
+          item.enclosure.type.startsWith("image/") &&
+          item.enclosure.url
+        ) {
+          imageUrl = item.enclosure.url;
+        }
 
         return {
           fullHeadline: item.title || "",
@@ -311,19 +401,27 @@ ${html}`;
           type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
           inPageRank: index + 1,
           sourceId: new mongoose.Types.ObjectId(sourceId),
+          imageUrl,
           archived: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
       });
 
+      // Fetch metadata for each story
+      const enhancedStories: IStory[] = [];
+      for (const story of stories) {
+        const enhancedStory = await this.fetchMetadataForStory(story);
+        enhancedStories.push(enhancedStory);
+      }
+
       // Save stories to database
-      await storyService.addStories(sourceId, stories);
+      await storyService.addStories(sourceId, enhancedStories);
       console.log(
-        `Saved ${stories.length} stories from RSS for ${source.name}`
+        `Saved ${enhancedStories.length} stories from RSS for ${source.name}`
       );
 
-      return stories;
+      return enhancedStories;
     } catch (error) {
       console.error("Error reading RSS feed:", error);
       throw error;
