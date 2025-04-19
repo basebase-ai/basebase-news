@@ -7,8 +7,16 @@
     <script
       defer
       data-domain="storylist.org"
-      src="https://plausible.io/js/script.js"
+      src="https://plausible.io/js/script.outbound-links.tagged-events.js"
     ></script>
+    <script>
+      window.plausible =
+        window.plausible ||
+        function () {
+          (window.plausible.q = window.plausible.q || []).push(arguments);
+        };
+    </script>
+
     <meta
       name="description"
       content="Stay informed with StoryList - Your personalized news dashboard that brings the world's headlines to you at a glance."
