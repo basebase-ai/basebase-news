@@ -84,9 +84,11 @@
     <!-- Source Settings Modal -->
     <div
       id="sourceSettingsModal"
-      class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg">
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+      >
         <div class="flex justify-between items-center mb-4">
           <h3
             id="modalTitle"
@@ -96,7 +98,7 @@
           </h3>
           <button
             onclick="sourceService.closeSourceSettingsModal()"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 w-8 h-8 flex items-center justify-center"
           >
             <i class="ri-close-line text-2xl"></i>
           </button>
@@ -104,7 +106,7 @@
         <form
           id="sourceSettingsForm"
           onsubmit="sourceService.handleSourceSubmit(event)"
-          class="space-y-4 font-poppins"
+          class="space-y-4 font-poppins overflow-y-auto flex-1 custom-scrollbar pr-2"
         >
           <input type="hidden" id="sourceId" />
           <div id="objectIdField" class="hidden">
@@ -493,24 +495,24 @@
           />
           <button
             id="searchClearButton"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hidden"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 hidden w-8 h-8 flex items-center justify-center"
             onclick="headlineService.clearSearch()"
           >
-            <i class="ri-close-line"></i>
+            <i class="ri-close-line text-2xl"></i>
           </button>
           <button
             id="searchIcon"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 w-8 h-8 flex items-center justify-center"
           >
-            <i class="ri-search-line"></i>
+            <i class="ri-search-line text-2xl"></i>
           </button>
         </div>
         <div id="userSection" class="hidden flex items-center">
           <button
             onclick="openCustomizeModal()"
-            class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm mr-2 border border-gray-300 dark:border-gray-600 rounded-md h-8 w-8 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm mr-2 border border-gray-300 dark:border-gray-600 rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            <i class="ri-settings-3-line text-lg"></i>
+            <i class="ri-settings-3-line text-2xl"></i>
           </button>
           <div
             id="userAvatar"
@@ -521,9 +523,9 @@
         <button
           id="signInButton"
           onclick="openSignInModal()"
-          class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm border border-gray-300 dark:border-gray-600 rounded-md h-8 w-8 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          class="text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-poppins text-sm border border-gray-300 dark:border-gray-600 rounded-md w-8 h-8 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
-          <i class="ri-settings-3-line text-lg"></i>
+          <i class="ri-settings-3-line text-2xl"></i>
         </button>
       </div>
     </header>

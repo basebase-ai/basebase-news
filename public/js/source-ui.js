@@ -237,8 +237,8 @@ function generateSourceTile(source, state) {
             state.isAdmin
               ? `
             <div class="relative inline-block">
-              <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors">
-                <i class="ri-settings-4-line text-lg"></i>
+              <button onclick="sourceService.toggleDropdown('${source._id}')" class="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center">
+                <i class="ri-settings-4-line text-2xl"></i>
               </button>
               <div id="dropdown-${source._id}" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700">
                 <div class="py-1">

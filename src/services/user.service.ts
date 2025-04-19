@@ -1,9 +1,11 @@
 import "dotenv/config";
-import { User } from "../models/user.model";
+import { User, IUser } from "../models/user.model";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { Source } from "../models/source.model";
+import { Response } from "express";
+import { Types } from "mongoose";
 
 export class UserService {
   private static instance: UserService;
@@ -11,8 +13,10 @@ export class UserService {
   private readonly transporter: nodemailer.Transporter;
 
   private constructor() {
-    this.JWT_SECRET =
-      process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable is required");
+    }
+    this.JWT_SECRET = process.env.JWT_SECRET;
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587"),
@@ -53,9 +57,7 @@ export class UserService {
     }
 
     // Generate JWT
-    const token = jwt.sign({ userId: user._id }, this.JWT_SECRET, {
-      expiresIn: "365d",
-    });
+    const token = this.generateToken((user._id as Types.ObjectId).toString());
 
     // Create sign-in link
     const signInLink = host.includes("localhost")
@@ -84,8 +86,31 @@ export class UserService {
     }
   }
 
+  public generateToken(userId: string): string {
+    return jwt.sign({ userId }, this.JWT_SECRET, {
+      expiresIn: "365d",
+    });
+  }
+
   public verifyToken(token: string): { userId: string } {
     return jwt.verify(token, this.JWT_SECRET) as { userId: string };
+  }
+
+  public setAuthCookie(res: Response, token: string): void {
+    res.cookie("auth", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+    });
+  }
+
+  public clearAuthCookie(res: Response): void {
+    res.clearCookie("auth", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
   }
 }
 

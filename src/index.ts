@@ -10,16 +10,12 @@ import { scraperService } from "./services/scraper.service";
 import { agendaService } from "./services/agenda.service";
 import { User } from "./models/user.model";
 import { userService } from "./services/user.service";
-import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import crypto from "crypto";
 import mongoose from "mongoose";
 
 const app: express.Application = express();
 const port: number = parseInt(process.env.PORT || "3000", 10);
 const headlineService: HeadlineService = new HeadlineService();
-const JWT_SECRET: string =
-  process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -287,13 +283,8 @@ app.get("/auth/verify", async (req: Request, res: Response): Promise<void> => {
       throw new Error("User not found");
     }
 
-    // Set JWT cookie
-    res.cookie("auth", token, {
-      httpOnly: true,
-      secure: req.protocol === "https",
-      sameSite: "lax",
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
-    });
+    // Set JWT cookie using UserService
+    userService.setAuthCookie(res, token);
 
     res.redirect("/");
   } catch (error) {
@@ -316,11 +307,7 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
       const user = await User.findById(userId);
 
       if (!user) {
-        res.clearCookie("auth", {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-        });
+        userService.clearAuthCookie(res);
         res.status(404).json({ status: "error", message: "User not found" });
         return;
       }
@@ -338,12 +325,8 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
         },
       });
     } catch (error) {
-      // Clear invalid token
-      res.clearCookie("auth", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-      });
+      // Clear invalid token using UserService
+      userService.clearAuthCookie(res);
       res.status(401).json({ status: "error", message: "Invalid token" });
     }
   } catch (error) {
@@ -446,11 +429,7 @@ app.put(
 
 // Sign out endpoint
 app.post("/api/auth/signout", (req: Request, res: Response): void => {
-  res.clearCookie("auth", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-  });
+  userService.clearAuthCookie(res);
   res.json({ status: "ok", message: "Signed out successfully" });
 });
 
