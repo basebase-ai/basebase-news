@@ -218,7 +218,7 @@ ${html}`;
     return story;
   }
 
-  public async collectAll(): Promise<void> {
+  public async crawlAll(): Promise<void> {
     try {
       // Get all sources
       const sources = await Source.find();
@@ -226,7 +226,7 @@ ${html}`;
 
       // Scrape each source one at a time
       for (const source of sources) {
-        await this.collectOne(source);
+        await this.crawlOne(source);
       }
       console.log("Completed collecting from all sources");
     } catch (error) {
@@ -240,7 +240,7 @@ ${html}`;
     }
   }
 
-  public async collectOne(source: ISource): Promise<IStory[]> {
+  public async crawlOne(source: ISource): Promise<IStory[]> {
     try {
       console.log(
         `Starting collection for source: ${source.name} (${source.homepageUrl})`

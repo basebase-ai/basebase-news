@@ -16,12 +16,14 @@ export class StoryService {
 
     const objectId = new mongoose.Types.ObjectId(sourceId);
 
-    // Archive existing stories for this source
-    const archivedCount = await Story.updateMany(
-      { sourceId: objectId, archived: false },
-      { archived: true }
+    // Set inPageRank to null for existing stories for this source
+    const updatedCount = await Story.updateMany(
+      { sourceId: objectId, inPageRank: { $ne: null } },
+      { inPageRank: null }
     );
-    console.log(`Archived ${archivedCount.modifiedCount} existing stories`);
+    console.log(
+      `Updated inPageRank to null for ${updatedCount.modifiedCount} existing stories`
+    );
 
     for (const [index, story] of stories.entries()) {
       const existingStory = await Story.findOne({
@@ -53,16 +55,33 @@ export class StoryService {
   }
 
   public async getStories(sourceId: string): Promise<IStory[]> {
+    const MAX_STORIES = 25;
     const objectId = new mongoose.Types.ObjectId(sourceId);
 
-    const stories = await Story.find({
+    // Get ranked stories first
+    const rankedStories = await Story.find({
       sourceId: objectId,
       archived: false,
-    })
-      .sort({ inPageRank: 1 })
-      .limit(20);
+      inPageRank: { $ne: null },
+    }).sort({ inPageRank: 1 });
 
-    return stories;
+    // Calculate how many unranked stories we can add
+    const remainingSpots = MAX_STORIES - rankedStories.length;
+
+    // If we have spots remaining, get unranked stories sorted by date
+    let unrankedStories: StoryDocument[] = [];
+    if (remainingSpots > 0) {
+      unrankedStories = await Story.find({
+        sourceId: objectId,
+        archived: false,
+        inPageRank: null,
+      })
+        .sort({ updatedAt: -1 })
+        .limit(remainingSpots);
+    }
+
+    // Combine both sets of stories
+    return [...rankedStories, ...unrankedStories];
   }
 }
 

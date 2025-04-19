@@ -96,7 +96,7 @@ app.post(
       // Process scraping asynchronously
       console.log(`Scraping source: ${source.name}`);
       try {
-        const stories = await scraperService.collectOne(source);
+        const stories = await scraperService.crawlOne(source);
         console.log(`Scraped ${stories.length} stories for ${source.name}`);
       } catch (error) {
         console.error(`Error scraping source ${source.name}:`, error);
@@ -123,7 +123,7 @@ app.post(
       await newSource.save();
       console.log(`Scraping new source: ${newSource.name}`);
       try {
-        const stories = await scraperService.collectOne(newSource);
+        const stories = await scraperService.crawlOne(newSource);
         console.log(`Scraped ${stories.length} stories for ${newSource.name}`);
       } catch (error) {
         console.error(`Error scraping source ${newSource.name}:`, error);
@@ -422,7 +422,7 @@ app.post(
   isAdmin,
   async (_req: Request, res: Response): Promise<void> => {
     try {
-      await scraperService.collectAll();
+      await scraperService.crawlAll();
       res.json({ status: "ok", message: "Complete rescrape initiated" });
     } catch (error) {
       console.error("Error in complete rescrape:", error);

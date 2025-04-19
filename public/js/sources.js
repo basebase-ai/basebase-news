@@ -111,7 +111,7 @@ function generateSourceHTML(source) {
                     : "whitespace-normal line-clamp-2"
                 } ${
                       readIds.has(story._id) ? "read" : ""
-                    } text-gray-900 dark:text-white font-poppins" data-original-text="${
+                    } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
                       story.fullHeadline
                     }">
                   <span class="font-semibold">${story.fullHeadline}</span>${
@@ -121,6 +121,11 @@ function generateSourceHTML(source) {
                           }</span>`
                         : ""
                     }
+                  <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-10 mr-1 mt-0.5 shadow-sm">
+                    ${formatTimeAgo(
+                      new Date(story.updatedAt || story.createdAt)
+                    )}
+                  </span>
                 </div>
                 ${
                   false && story.imageUrl
@@ -502,7 +507,7 @@ async function refreshSource(sourceId) {
                 state.denseMode ? "truncate" : "whitespace-normal line-clamp-2"
               } ${
                 readIds.has(story._id) ? "read" : ""
-              } text-gray-900 dark:text-white font-poppins" data-original-text="${
+              } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
                 story.fullHeadline
               }">
                 <span class="font-semibold">${story.fullHeadline}</span>${
@@ -512,6 +517,9 @@ async function refreshSource(sourceId) {
                     }</span>`
                   : ""
               }
+                <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-10 mr-1 mt-0.5 shadow-sm">
+                  ${formatTimeAgo(new Date(story.updatedAt || story.createdAt))}
+                </span>
               </div>
               ${
                 story.imageUrl
@@ -578,8 +586,22 @@ function showPreviewModal(element) {
   const imageUrl = element.getAttribute("data-story-image");
   const hasPaywall = element.getAttribute("data-has-paywall") === "true";
 
-  // Already marked as read in handleStoryClick
-  // headlineService.markAsRead(storyId);
+  // Find the full story object to get the timestamp
+  const storyElement = element.closest("[data-story-id]");
+  const parentSource = storyElement?.closest("[data-source-id]");
+  const sourceId = parentSource?.getAttribute("data-source-id");
+
+  // Find the actual story object from currentSources to get the timestamp
+  let timestamp = new Date();
+  if (sourceId) {
+    const source = currentSources.find((s) => s._id === sourceId);
+    if (source) {
+      const story = source.stories?.find((s) => s._id === storyId);
+      if (story) {
+        timestamp = new Date(story.updatedAt || story.createdAt);
+      }
+    }
+  }
 
   // Get or create the preview modal
   let previewModal = document.getElementById("storyPreviewModal");
@@ -614,6 +636,17 @@ function showPreviewModal(element) {
         
         <div class="p-6">
           <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 font-poppins">${headline}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 font-poppins">
+            ${timestamp.toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              timeZoneName: "short",
+            })}
+          </p>
           ${
             contentText
               ? `<p class="text-gray-700 dark:text-gray-300 mb-6 font-poppins">${contentText}</p>`
