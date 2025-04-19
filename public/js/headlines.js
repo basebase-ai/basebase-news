@@ -205,6 +205,8 @@ async function loadHeadlines(sourceIds) {
       new Sortable(scrollContainer, {
         animation: 150,
         handle: ".cursor-move",
+        delay: 200,
+        delayOnTouchOnly: true,
         onEnd: async function (evt) {
           const newOrder = Array.from(scrollContainer.children)
             .filter((el) => el.dataset.sourceId) // Filter out the "Add Source" button
