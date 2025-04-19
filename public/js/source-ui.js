@@ -172,6 +172,9 @@ export function renderCustomizeModalGrid(sources, searchTerm = "", state) {
                       <button onclick="sourceService.openSourceSettingsModal('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
                         <i class="ri-edit-line mr-2"></i>Edit
                       </button>
+                      <button onclick="sourceService.confirmDeleteSource('${source._id}'); sourceService.toggleDropdown('${source._id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 ui-font font-normal">
+                        <i class="ri-delete-bin-line mr-2"></i>Delete
+                      </button>
                     </div>
                   </div>
                 </div>

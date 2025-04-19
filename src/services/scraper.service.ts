@@ -26,7 +26,17 @@ export class ScraperService {
   private cleanHtml(html: string, source: ISource): string {
     console.log("Length before:", html.length);
     const $ = cheerio.load(html);
-    const mainContent = $(source.includeSelector);
+    let mainContent = $(source.includeSelector);
+
+    // If includeSelector not found, try fallbacks
+    if (mainContent.length === 0) {
+      console.log("includeSelector not found, trying fallbacks");
+      mainContent = $("main");
+      if (mainContent.length === 0) {
+        console.log("main tag not found, using body");
+        mainContent = $("body");
+      }
+    }
 
     // Remove excluded elements if excludeSelector is defined
     if (source.excludeSelector) {
@@ -160,6 +170,21 @@ ${htmlString}`;
     return xml.replace(/&(?!(?:amp|lt|gt|quot|apos);)/g, "&amp;");
   }
 
+  private async rssExists(url: string): Promise<boolean> {
+    try {
+      const response = await this.client.get({
+        url,
+        params: {
+          render_js: false,
+          premium_proxy: true,
+        },
+      });
+      return response.data.toString("utf-8").includes("RSS");
+    } catch (error) {
+      return false;
+    }
+  }
+
   public async collectAll(): Promise<void> {
     try {
       // Get all sources
@@ -193,16 +218,23 @@ ${htmlString}`;
       let headlines: IHeadline[];
       if (source.rssUrl) {
         console.log(`Using RSS feed for ${source.name}`);
-        headlines = await this.readRss(source.id);
-      } else {
+        return await this.readRss(source.id);
+      } else if (source.includeSelector) {
         console.log(`Scraping webpage for ${source.name}`);
-        headlines = await this.scrapeHomepage(source.id);
+        return await this.scrapeHomepage(source.id);
       }
 
-      console.log(
-        `Successfully collected ${headlines.length} headlines from ${source.name}`
-      );
-      return headlines;
+      // next see if there is an RSS feed at the default location: /feed
+      const rssUrl = source.homepageUrl + "/feed";
+      if (await this.rssExists(rssUrl)) {
+        console.log(`Found RSS feed at ${rssUrl}`);
+        // save the RSS URL to the source
+        await Source.findByIdAndUpdate(source.id, { rssUrl });
+        return await this.readRss(source.id);
+      }
+
+      // if no RSS feed is found, scrape the homepage
+      return await this.scrapeHomepage(source.id);
     } catch (error) {
       console.error(`Error collecting from source ${source.name}:`, error);
       if (error instanceof Error) {

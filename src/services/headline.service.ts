@@ -11,16 +11,32 @@ interface SourceWithHeadlines extends ISource {
 }
 
 export class HeadlineService {
+  private trimSourceFields(source: ISource): Partial<ISource> {
+    return {
+      name: source.name?.trim(),
+      homepageUrl: source.homepageUrl?.trim(),
+      rssUrl: source.rssUrl?.trim(),
+      includeSelector: source.includeSelector?.trim(),
+      excludeSelector: source.excludeSelector?.trim(),
+      tags: source.tags?.map((tag) => tag.trim()),
+      imageUrl: source.imageUrl?.trim(),
+      biasScore: source.biasScore,
+      hasPaywall: source.hasPaywall,
+    };
+  }
+
   public async addSource(source: ISource): Promise<void> {
-    const exists = await Source.exists({ name: source.name });
+    const trimmedSource = this.trimSourceFields(source);
+    const exists = await Source.exists({ name: trimmedSource.name });
     if (exists) {
-      throw new Error(`Source ${source.name} already exists`);
+      throw new Error(`Source ${trimmedSource.name} already exists`);
     }
-    await Source.create(source);
+    await Source.create(trimmedSource);
   }
 
   public async updateSource(sourceId: string, source: ISource): Promise<void> {
-    const updated = await Source.findByIdAndUpdate(sourceId, source, {
+    const trimmedSource = this.trimSourceFields(source);
+    const updated = await Source.findByIdAndUpdate(sourceId, trimmedSource, {
       new: true,
     });
     if (!updated) {

@@ -125,41 +125,136 @@ function openSourceSettingsModal(sourceId) {
 
   form.reset();
 
-  if (sourceId) {
-    const source = currentSources.find((s) => s._id === sourceId);
-    if (!source) return;
+  const source = currentSources.find((s) => s._id === sourceId);
+  if (!source) return;
 
-    modalTitle.textContent = "Edit Source";
-    submitButton.textContent = "Update";
+  modalTitle.textContent = "Edit Source";
+  submitButton.textContent = "Update";
 
-    document.getElementById("sourceId").value = source._id;
-    document.getElementById("displayObjectId").value = source._id;
-    objectIdField.classList.remove("hidden");
+  document.getElementById("sourceId").value = source._id;
+  document.getElementById("displayObjectId").value = source._id;
+  objectIdField.classList.remove("hidden");
 
-    document.getElementById("name").value = source.name;
-    document.getElementById("homepageUrl").value = source.homepageUrl;
-    document.getElementById("rssUrl").value = source.rssUrl || "";
-    document.getElementById("includeSelector").value = source.includeSelector;
-    document.getElementById("excludeSelector").value =
-      source.excludeSelector || "";
-    document.getElementById("biasScore").value = source.biasScore || 0;
-    document.getElementById("tags").value = source.tags
-      ? source.tags.join(", ")
-      : "";
-    document.getElementById("imageUrl").value = source.imageUrl || "";
-    document.getElementById("hasPaywall").checked = source.hasPaywall || false;
-  } else {
-    modalTitle.textContent = "Add New Source";
-    submitButton.textContent = "Add";
-    document.getElementById("sourceId").value = "";
-    objectIdField.classList.add("hidden");
-  }
+  document.getElementById("name").value = source.name;
+  document.getElementById("homepageUrl").value = source.homepageUrl;
+  document.getElementById("rssUrl").value = source.rssUrl || "";
+  document.getElementById("includeSelector").value = source.includeSelector;
+  document.getElementById("excludeSelector").value =
+    source.excludeSelector || "";
+  document.getElementById("biasScore").value = source.biasScore || 0;
+  document.getElementById("tags").value = source.tags
+    ? source.tags.join(", ")
+    : "";
+  document.getElementById("imageUrl").value = source.imageUrl || "";
+  document.getElementById("hasPaywall").checked = source.hasPaywall || false;
 
   document.getElementById("sourceSettingsModal").classList.remove("hidden");
 }
 
+function openNewSourceModal() {
+  const form = document.getElementById("newSourceForm");
+  form.reset();
+  document.getElementById("newSourceModal").classList.remove("hidden");
+}
+
 function closeSourceSettingsModal() {
   document.getElementById("sourceSettingsModal").classList.add("hidden");
+}
+
+function closeNewSourceModal() {
+  document.getElementById("newSourceModal").classList.add("hidden");
+}
+
+let sourceToDelete = null;
+
+function confirmDeleteSource(sourceId) {
+  sourceToDelete = sourceId;
+  document.getElementById("deleteSourceModal").classList.remove("hidden");
+  document.getElementById("confirmDeleteButton").onclick = () =>
+    deleteSource(sourceId);
+}
+
+function closeDeleteSourceModal() {
+  document.getElementById("deleteSourceModal").classList.add("hidden");
+  sourceToDelete = null;
+}
+
+async function handleNewSourceSubmit(event) {
+  event.preventDefault();
+
+  const formData = {
+    name: document.getElementById("newSourceName").value,
+    homepageUrl: document.getElementById("newSourceHomepageUrl").value,
+    includeSelector: "",
+    imageUrl: new URL(
+      "/favicon.ico",
+      document.getElementById("newSourceHomepageUrl").value
+    ).toString(),
+  };
+
+  try {
+    const response = await fetch("/api/sources", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) throw new Error("Failed to add source");
+
+    const result = await response.json();
+
+    closeNewSourceModal();
+
+    if (state.currentUser && result.source && result.source._id) {
+      try {
+        const userResponse = await fetch("/api/users/me/sources", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sourceIds: [
+              ...(state.currentUser.sourceIds || []),
+              result.source._id,
+            ],
+          }),
+        });
+
+        if (!userResponse.ok) {
+          throw new Error("Failed to update user sources");
+        }
+
+        const updatedUser = await userResponse.json();
+        state.currentUser = updatedUser.user;
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("newSource", result.source._id);
+        window.history.replaceState({}, "", url);
+      } catch (error) {
+        console.error("Failed to update user sources:", error);
+        alert(
+          "Source created but failed to add it to your list. Please try again."
+        );
+      }
+    }
+
+    const sources = await loadAllSources();
+    renderSourcesGrid(sources);
+
+    if (result.source && result.source._id) {
+      setTimeout(() => {
+        const checkbox = document.getElementById(`source-${result.source._id}`);
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      }, 100);
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    alert(error.message);
+  }
 }
 
 async function handleSourceSubmit(event) {
@@ -274,8 +369,6 @@ function toggleDropdown(sourceId) {
 }
 
 async function deleteSource(sourceId) {
-  if (!confirm("Are you sure you want to delete this source?")) return;
-
   try {
     const response = await fetch(`/api/sources/${sourceId}`, {
       method: "DELETE",
@@ -283,7 +376,9 @@ async function deleteSource(sourceId) {
 
     if (!response.ok) throw new Error("Failed to delete source");
 
-    window.location.reload();
+    closeDeleteSourceModal();
+    const sources = await loadAllSources();
+    renderSourcesGrid(sources);
   } catch (error) {
     console.error("Error:", error);
     alert(error.message);
@@ -311,8 +406,13 @@ export const sourceService = {
   generateSourceHTML,
   openSourceSettingsModal,
   closeSourceSettingsModal,
+  openNewSourceModal,
+  closeNewSourceModal,
+  handleNewSourceSubmit,
   handleSourceSubmit,
   toggleDropdown,
+  confirmDeleteSource,
+  closeDeleteSourceModal,
   deleteSource,
   scrapeSource,
   setCurrentSources(sources) {
