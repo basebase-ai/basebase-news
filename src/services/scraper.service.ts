@@ -248,26 +248,43 @@ ${html}`;
       // do this first to avoid race condition
       await Source.findByIdAndUpdate(source.id, { lastScrapedAt: new Date() });
 
-      let stories: IStory[];
+      let stories: IStory[] = [];
       if (source.rssUrl) {
         console.log(`Using RSS feed for ${source.name}`);
-        return await this.readRss(source.id);
+        stories = await this.readRss(source.id);
       } else if (source.includeSelector) {
         console.log(`Scraping webpage for ${source.name}`);
-        return await this.scrapeHomepage(source.id);
+        stories = await this.scrapeHomepage(source.id);
+      } else {
+        // next see if there is an RSS feed at the default location: /feed
+        const rssUrl = source.homepageUrl + "/feed";
+        if (await this.rssExists(rssUrl)) {
+          console.log(`Found RSS feed at ${rssUrl}`);
+          // save the RSS URL to the source
+          await Source.findByIdAndUpdate(source.id, { rssUrl });
+          stories = await this.readRss(source.id);
+        } else {
+          // if no RSS feed is found, scrape the homepage
+          stories = await this.scrapeHomepage(source.id);
+        }
       }
 
-      // next see if there is an RSS feed at the default location: /feed
-      const rssUrl = source.homepageUrl + "/feed";
-      if (await this.rssExists(rssUrl)) {
-        console.log(`Found RSS feed at ${rssUrl}`);
-        // save the RSS URL to the source
-        await Source.findByIdAndUpdate(source.id, { rssUrl });
-        return await this.readRss(source.id);
+      // Fetch metadata for stories that need it
+      const enhancedStories: IStory[] = [];
+      for (const story of stories) {
+        if (!story.imageUrl || !story.summary) {
+          const enhancedStory = await this.fetchMetadataForStory(story);
+          enhancedStories.push(enhancedStory);
+        } else {
+          enhancedStories.push(story);
+        }
       }
 
-      // if no RSS feed is found, scrape the homepage
-      return await this.scrapeHomepage(source.id);
+      // Save stories to database
+      await storyService.addStories(source.id, enhancedStories);
+      console.log(`Saved ${enhancedStories.length} stories for ${source.name}`);
+
+      return enhancedStories;
     } catch (error) {
       console.error(`Error collecting from source ${source.name}:`, error);
       if (error instanceof Error) {
@@ -295,18 +312,7 @@ ${html}`;
       const cleanedHtml: string = this.cleanHtml(html, source);
       const stories = await this.parseStories(cleanedHtml, source.homepageUrl);
 
-      // Fetch metadata for each story
-      const enhancedStories: IStory[] = [];
-      for (const story of stories) {
-        const enhancedStory = await this.fetchMetadataForStory(story);
-        enhancedStories.push(enhancedStory);
-      }
-
-      // Save stories to database
-      await storyService.addStories(sourceId, enhancedStories);
-      console.log(`Saved ${enhancedStories.length} stories for ${source.name}`);
-
-      return enhancedStories;
+      return stories;
     } catch (error) {
       console.error("Error scraping page:", error);
       throw error;
@@ -393,6 +399,13 @@ ${html}`;
           imageUrl = item.enclosure.url;
         }
 
+        // Get publish date from RSS feed if available
+        const publishDate: Date = item.pubDate
+          ? new Date(item.pubDate)
+          : new Date();
+        const isValidDate: boolean = !isNaN(publishDate.getTime());
+        const createdAt: Date = isValidDate ? publishDate : new Date();
+
         return {
           fullHeadline: item.title || "",
           articleUrl: item.link || "",
@@ -403,25 +416,12 @@ ${html}`;
           sourceId: new mongoose.Types.ObjectId(sourceId),
           imageUrl,
           archived: false,
-          createdAt: new Date(),
+          createdAt,
           updatedAt: new Date(),
         };
       });
 
-      // Fetch metadata for each story
-      const enhancedStories: IStory[] = [];
-      for (const story of stories) {
-        const enhancedStory = await this.fetchMetadataForStory(story);
-        enhancedStories.push(enhancedStory);
-      }
-
-      // Save stories to database
-      await storyService.addStories(sourceId, enhancedStories);
-      console.log(
-        `Saved ${enhancedStories.length} stories from RSS for ${source.name}`
-      );
-
-      return enhancedStories;
+      return stories;
     } catch (error) {
       console.error("Error reading RSS feed:", error);
       throw error;
