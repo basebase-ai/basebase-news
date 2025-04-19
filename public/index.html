@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StoryList - Your news dashboard</title>
+    <script
+      defer
+      data-domain="storylist.org"
+      src="https://plausible.io/js/script.js"
+    ></script>
     <meta
       name="description"
       content="Stay informed with StoryList - Your personalized news dashboard that brings the world's headlines to you at a glance."
@@ -609,9 +614,7 @@
       // Wait for modules to load
       window.addEventListener("load", () => {
         if (!window.sourceService) {
-          console.error("sourceService not loaded");
-        } else {
-          console.log("sourceService loaded successfully");
+          // sourceService not loaded
         }
       });
     </script>

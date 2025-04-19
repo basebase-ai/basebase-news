@@ -18,7 +18,7 @@ export enum NewsTopic {
   HEALTH = "health",
 }
 
-export interface IHeadline {
+export interface IStory {
   sourceId: mongoose.Types.ObjectId;
   fullHeadline: string;
   summary: string;
@@ -31,8 +31,8 @@ export interface IHeadline {
   updatedAt?: Date;
 }
 
-export const Headline = mongoose.model<IHeadline>(
-  "Headline",
+export const Story = mongoose.model<IStory>(
+  "Story",
   new mongoose.Schema({
     sourceId: {
       type: mongoose.Schema.Types.ObjectId,

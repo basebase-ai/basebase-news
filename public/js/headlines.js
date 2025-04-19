@@ -56,53 +56,53 @@ function filterHeadlines(searchTerm) {
   const sourceElements = scrollContainer.querySelectorAll("[data-source-id]");
 
   sourceElements.forEach((sourceElement) => {
-    const headlines = sourceElement.querySelectorAll(".news-headline");
-    let hasVisibleHeadlines = false;
+    const stories = sourceElement.querySelectorAll(".news-headline");
+    let hasVisibleStories = false;
 
-    headlines.forEach((headline) => {
-      const headlineText = headline.textContent.toLowerCase();
+    stories.forEach((story) => {
+      const storyText = story.textContent.toLowerCase();
       const searchLower = searchTerm.toLowerCase();
 
-      if (!searchTerm || headlineText.includes(searchLower)) {
-        headline.style.display = "block";
+      if (!searchTerm || storyText.includes(searchLower)) {
+        story.style.display = "block";
         if (searchTerm) {
-          headline.innerHTML = highlightText(headline.textContent, searchTerm);
+          story.innerHTML = highlightText(story.textContent, searchTerm);
         } else {
-          // Reset the headline text to original state
+          // Reset the story text to original state
           const originalText =
-            headline.getAttribute("data-original-text") || headline.textContent;
-          headline.innerHTML = originalText;
+            story.getAttribute("data-original-text") || story.textContent;
+          story.innerHTML = originalText;
         }
-        hasVisibleHeadlines = true;
+        hasVisibleStories = true;
       } else {
-        headline.style.display = "none";
+        story.style.display = "none";
       }
     });
 
-    // Show/hide the "No headlines available" message
-    const noHeadlinesMsg = sourceElement.querySelector(
+    // Show/hide the "No stories available" message
+    const noStoriesMsg = sourceElement.querySelector(
       ".text-gray-500.text-sm.text-center"
     );
-    if (noHeadlinesMsg) {
-      noHeadlinesMsg.style.display = hasVisibleHeadlines ? "none" : "block";
+    if (noStoriesMsg) {
+      noStoriesMsg.style.display = hasVisibleStories ? "none" : "block";
     }
   });
 }
 
-function markAsRead(headlineId) {
-  sourceService.readIds.add(headlineId);
+function markAsRead(storyId) {
+  sourceService.readIds.add(storyId);
   if (sourceService.readIds.size > 100) {
     const idsArray = Array.from(sourceService.readIds);
     sourceService.readIds = new Set(idsArray.slice(-100));
   }
   localStorage.setItem("readIds", JSON.stringify([...sourceService.readIds]));
 
-  // Update all matching headlines immediately
-  const headlines = document.querySelectorAll(
-    `[data-headline-id="${headlineId}"] .news-headline`
+  // Update all matching stories immediately
+  const stories = document.querySelectorAll(
+    `[data-story-id="${storyId}"] .news-headline`
   );
-  headlines.forEach((headline) => {
-    headline.classList.add("read");
+  stories.forEach((story) => {
+    story.classList.add("read");
   });
 }
 
@@ -135,24 +135,20 @@ async function loadHeadlines(sourceIds) {
         try {
           const response = await fetch(`/api/sources/${sourceId}`);
           if (!response.ok) {
-            console.warn(
-              `Source ${sourceId} not found, will be removed from user's sources`
-            );
             return null;
           }
           const data = await response.json();
           return data.source;
         } catch (error) {
-          console.warn(`Error fetching source ${sourceId}:`, error);
           return null;
         }
       })
     );
 
-    // Filter out invalid sources and those without headlines, but preserve order
+    // Filter out invalid sources and those without stories, but preserve order
     const validSources = sources.filter(Boolean).map((source) => ({
       ...source,
-      headlines: source.headlines || [],
+      stories: source.stories || [],
     }));
 
     // If we have a current user and some sources were invalid, update their sourceIds
@@ -176,7 +172,7 @@ async function loadHeadlines(sourceIds) {
           state.currentUser = updatedUser.user;
         }
       } catch (error) {
-        console.error("Failed to update user's source IDs:", error);
+        // Failed to update user's source IDs
       }
     }
 

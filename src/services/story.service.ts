@@ -1,16 +1,16 @@
-import { Source, ISource } from "../models/source.model";
-import { Headline, IHeadline } from "../models/headline.model";
+import { Story, IStory } from "../models/story.model";
+import mongoose from "mongoose";
+import { ISource, Source } from "../models/source.model";
 import { scraperService } from "./scraper.service";
 import { connectDB } from "./mongo.service";
-import mongoose from "mongoose";
 
-interface HeadlineDocument extends IHeadline, mongoose.Document {}
+interface StoryDocument extends IStory, mongoose.Document {}
 
-interface SourceWithHeadlines extends ISource {
-  headlines: IHeadline[];
+interface SourceWithStories extends ISource {
+  stories: IStory[];
 }
 
-export class HeadlineService {
+export class StoryService {
   private trimSourceFields(source: ISource): Partial<ISource> {
     return {
       name: source.name?.trim(),
@@ -48,40 +48,37 @@ export class HeadlineService {
     return Source.find();
   }
 
-  public async addHeadlines(
-    sourceId: string,
-    headlines: IHeadline[]
-  ): Promise<boolean> {
+  public async addStories(sourceId: string, stories: IStory[]): Promise<void> {
+    console.log(`Processing ${stories.length} stories for source ${sourceId}`);
+
     const objectId = new mongoose.Types.ObjectId(sourceId);
-    console.log(
-      `Processing ${headlines.length} headlines for source ${sourceId}`
-    );
 
-    // Archive existing headlines for this source
-    const archivedCount = await Headline.updateMany(
-      { sourceId: objectId, archived: { $ne: true } },
-      { $set: { archived: true } }
+    // Archive existing stories for this source
+    const archivedCount = await Story.updateMany(
+      { sourceId: objectId, archived: false },
+      { archived: true }
     );
-    console.log(`Archived ${archivedCount.modifiedCount} existing headlines`);
+    console.log(`Archived ${archivedCount.modifiedCount} existing stories`);
 
-    for (const [index, headline] of headlines.entries()) {
-      const existingHeadline = await Headline.findOne({
-        articleUrl: headline.articleUrl,
+    for (const [index, story] of stories.entries()) {
+      const existingStory = await Story.findOne({
+        articleUrl: story.articleUrl,
+        sourceId: objectId,
       });
 
-      if (existingHeadline) {
-        console.log(`Updating existing headline: ${headline.articleUrl}`);
-        await Headline.findByIdAndUpdate(existingHeadline._id, {
-          ...headline,
+      if (existingStory) {
+        console.log(`Updating existing story: ${story.articleUrl}`);
+        await Story.findByIdAndUpdate(existingStory._id, {
+          ...story,
           sourceId: objectId,
           inPageRank: index + 1,
           archived: false,
           updatedAt: new Date(),
         });
       } else {
-        console.log(`Creating new headline: ${headline.articleUrl}`);
-        await Headline.create({
-          ...headline,
+        console.log(`Creating new story: ${story.articleUrl}`);
+        await Story.create({
+          ...story,
           sourceId: objectId,
           inPageRank: index + 1,
           archived: false,
@@ -90,22 +87,25 @@ export class HeadlineService {
         });
       }
     }
-
-    return true;
   }
 
-  public async getHeadlines(sourceId: string): Promise<IHeadline[]> {
+  public async getStories(sourceId: string): Promise<IStory[]> {
+    console.log(`Getting stories for source ${sourceId}`);
     const objectId = new mongoose.Types.ObjectId(sourceId);
 
-    const headlines = await Headline.find({
+    const stories = await Story.find({
       sourceId: objectId,
-      archived: { $ne: true },
+      archived: false,
     })
       .sort({ inPageRank: 1 })
       .limit(20);
 
-    return headlines;
+    console.log(
+      `Found ${stories.length} stories for source ${sourceId}:`,
+      stories
+    );
+    return stories;
   }
 }
 
-export const headlineService = new HeadlineService();
+export const storyService = new StoryService();

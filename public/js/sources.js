@@ -21,7 +21,7 @@ export { formatTimeAgo };
 function generateSourceHTML(source) {
   const sourceId = source._id.toString();
   const sourceName = source.name || "Unknown Source";
-  const headlines = source.headlines || [];
+  const stories = source.stories || [];
   const biasScore = source.biasScore ?? 0;
   const biasClass =
     biasScore < -0.3
@@ -74,36 +74,36 @@ function generateSourceHTML(source) {
           </button>
         </div>
       </div>
-      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4" id="headlines-${sourceId}">
+      <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4" id="stories-${sourceId}">
         <div class="${state.denseMode ? "space-y-1" : "space-y-2"}">
           <div class="h-2"></div>
           ${
-            headlines.length > 0
-              ? headlines
+            stories.length > 0
+              ? stories
                   .map(
-                    (headline) => `
+                    (story) => `
             <div class="group relative">
               <a 
-                href="${headline.articleUrl}" 
+                href="${story.articleUrl}" 
                 target="_blank" 
                 rel="noopener"
                 class="block relative"
-                data-headline-id="${headline._id}"
-                onclick="headlineService.markAsRead('${headline._id}')"
-                oncontextmenu="headlineService.markAsRead('${headline._id}')"
+                data-story-id="${story._id}"
+                onclick="headlineService.markAsRead('${story._id}')"
+                oncontextmenu="headlineService.markAsRead('${story._id}')"
               >
                 <div class="news-headline ${
                   state.denseMode
                     ? "truncate"
                     : "whitespace-normal line-clamp-2"
                 } ${
-                      readIds.has(headline._id) ? "read" : ""
+                      readIds.has(story._id) ? "read" : ""
                     } text-gray-900 dark:text-white font-poppins" data-original-text="${
-                      headline.fullHeadline
+                      story.fullHeadline
                     }">
-                  <span class="font-semibold">${headline.fullHeadline}</span>${
-                      headline.summary
-                        ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${headline.summary}</span>`
+                  <span class="font-semibold">${story.fullHeadline}</span>${
+                      story.summary
+                        ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
                         : ""
                     }
                 </div>
@@ -114,7 +114,7 @@ function generateSourceHTML(source) {
                   .join("")
               : `
             <div class="text-gray-500 dark:text-gray-400 text-sm text-center py-8 font-poppins">
-              No headlines available yet.
+              No stories available yet.
             </div>
           `
           }
@@ -409,11 +409,13 @@ async function scrapeSource(sourceId) {
 }
 
 async function refreshSource(sourceId) {
-  const headlinesContainer = document.getElementById(`headlines-${sourceId}`);
-  if (!headlinesContainer) return;
+  const storiesContainer = document.getElementById(`stories-${sourceId}`);
+  if (!storiesContainer) {
+    return;
+  }
 
   // Show loading animation
-  headlinesContainer.innerHTML = `
+  storiesContainer.innerHTML = `
     <div class="flex items-center justify-center h-full">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
@@ -433,41 +435,41 @@ async function refreshSource(sourceId) {
     // Wait a bit for the scrape to complete
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Fetch updated headlines
+    // Fetch updated stories
     const sourceResponse = await fetch(`/api/sources/${sourceId}`);
     if (!sourceResponse.ok) {
-      throw new Error("Failed to fetch updated headlines");
+      throw new Error("Failed to fetch updated stories");
     }
 
     const data = await sourceResponse.json();
     const source = data.source;
 
-    // Update the headlines container with new content
-    const headlinesHTML =
-      source.headlines?.length > 0
-        ? source.headlines
+    // Update the stories container with new content
+    const storiesHTML =
+      source.stories?.length > 0
+        ? source.stories
             .map(
-              (headline) => `
+              (story) => `
           <div class="group relative">
             <a 
-              href="${headline.articleUrl}" 
+              href="${story.articleUrl}" 
               target="_blank" 
               rel="noopener"
               class="block relative"
-              data-headline-id="${headline._id}"
-              onclick="headlineService.markAsRead('${headline._id}')"
-              oncontextmenu="headlineService.markAsRead('${headline._id}')"
+              data-story-id="${story._id}"
+              onclick="headlineService.markAsRead('${story._id}')"
+              oncontextmenu="headlineService.markAsRead('${story._id}')"
             >
               <div class="news-headline ${
                 state.denseMode ? "truncate" : "whitespace-normal line-clamp-2"
               } ${
-                readIds.has(headline._id) ? "read" : ""
+                readIds.has(story._id) ? "read" : ""
               } text-gray-900 dark:text-white font-poppins" data-original-text="${
-                headline.fullHeadline
+                story.fullHeadline
               }">
-                <span class="font-semibold">${headline.fullHeadline}</span>${
-                headline.summary
-                  ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${headline.summary}</span>`
+                <span class="font-semibold">${story.fullHeadline}</span>${
+                story.summary
+                  ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
                   : ""
               }
               </div>
@@ -478,21 +480,21 @@ async function refreshSource(sourceId) {
             .join("")
         : `
         <div class="text-gray-500 dark:text-gray-400 text-sm text-center py-8 font-poppins">
-          No headlines available yet.
+          No stories available yet.
         </div>
       `;
 
-    headlinesContainer.innerHTML = `
+    storiesContainer.innerHTML = `
       <div class="${state.denseMode ? "space-y-1" : "space-y-2"}">
         <div class="h-2"></div>
-        ${headlinesHTML}
+        ${storiesHTML}
       </div>
     `;
   } catch (error) {
     console.error("Error refreshing source:", error);
-    headlinesContainer.innerHTML = `
+    storiesContainer.innerHTML = `
       <div class="text-red-500 dark:text-red-400 text-sm text-center py-8 font-poppins">
-        Failed to refresh headlines. Please try again.
+        Failed to refresh stories. Please try again.
       </div>
     `;
   }
@@ -522,5 +524,4 @@ export const sourceService = {
 // Make service available globally
 if (typeof window !== "undefined") {
   window.sourceService = sourceService;
-  console.log("sourceService initialized:", window.sourceService);
 }

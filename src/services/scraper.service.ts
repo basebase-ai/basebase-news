@@ -1,9 +1,9 @@
 import { ScrapingBeeClient } from "scrapingbee";
 import * as cheerio from "cheerio";
 import { ISource, Source } from "../models/source.model";
-import { IHeadline, NewsTopic, Section } from "../models/headline.model";
+import { IStory, NewsTopic, Section } from "../models/story.model";
 import { langChainService } from "./langchain.service";
-import { headlineService } from "./headline.service";
+import { storyService } from "./story.service";
 import Parser from "rss-parser";
 import mongoose from "mongoose";
 
@@ -78,10 +78,7 @@ export class ScraperService {
     }
   }
 
-  private async parseHeadlines(
-    htmlString: string,
-    baseUrl: string
-  ): Promise<IHeadline[]> {
+  private async parseStories(html: string, baseUrl: string): Promise<IStory[]> {
     const prompt: string = `Extract headlines from this HTML, which has been extracted from the front page of a news site. For each headline, provide:
 1. The full headline text, e.g., "Biden's State of the Union Address: A Look at the President's Speech" (required)
 2. The URL link to the full article (required)
@@ -104,7 +101,7 @@ IMPORTANT:
 - Ensure all JSON is properly escaped and formatted
 
 HTML content:
-${htmlString}`;
+${html}`;
 
     let response: string = "";
     try {
@@ -115,14 +112,14 @@ ${htmlString}`;
       console.log("Cleaned response:", cleanedResponse);
 
       try {
-        const headlines: IHeadline[] = JSON.parse(cleanedResponse);
+        const stories: IStory[] = JSON.parse(cleanedResponse);
         console.log(
-          `Got ${headlines.length} headlines: `,
-          headlines.map((h) => h.fullHeadline).join("\n")
+          `Got ${stories.length} stories: `,
+          stories.map((h) => h.fullHeadline).join("\n")
         );
-        return headlines.map((headline) => ({
-          ...headline,
-          articleUrl: this.makeUrlAbsolute(headline.articleUrl, baseUrl),
+        return stories.map((story) => ({
+          ...story,
+          articleUrl: this.makeUrlAbsolute(story.articleUrl, baseUrl),
         }));
       } catch (parseError: unknown) {
         console.error("JSON Parse Error:", parseError);
@@ -131,10 +128,10 @@ ${htmlString}`;
           parseError instanceof Error
             ? parseError.message
             : "Unknown parse error";
-        throw new Error(`Failed to parse headlines JSON: ${errorMessage}`);
+        throw new Error(`Failed to parse stories JSON: ${errorMessage}`);
       }
     } catch (error) {
-      console.error("Error parsing headlines:", error);
+      console.error("Error parsing stories:", error);
       console.error("Raw response:", response);
       throw error;
     }
@@ -207,7 +204,7 @@ ${htmlString}`;
     }
   }
 
-  public async collectOne(source: ISource): Promise<IHeadline[]> {
+  public async collectOne(source: ISource): Promise<IStory[]> {
     try {
       console.log(
         `Starting collection for source: ${source.name} (${source.homepageUrl})`
@@ -215,7 +212,7 @@ ${htmlString}`;
       // do this first to avoid race condition
       await Source.findByIdAndUpdate(source.id, { lastScrapedAt: new Date() });
 
-      let headlines: IHeadline[];
+      let stories: IStory[];
       if (source.rssUrl) {
         console.log(`Using RSS feed for ${source.name}`);
         return await this.readRss(source.id);
@@ -247,7 +244,7 @@ ${htmlString}`;
     }
   }
 
-  public async scrapeHomepage(sourceId: string): Promise<IHeadline[]> {
+  public async scrapeHomepage(sourceId: string): Promise<IStory[]> {
     const source = await Source.findById(sourceId);
     if (!source) {
       throw new Error(`Unknown source: ${sourceId}`);
@@ -260,23 +257,20 @@ ${htmlString}`;
 
       const html: string = response.data.toString("utf-8");
       const cleanedHtml: string = this.cleanHtml(html, source);
-      const headlines = await this.parseHeadlines(
-        cleanedHtml,
-        source.homepageUrl
-      );
+      const stories = await this.parseStories(cleanedHtml, source.homepageUrl);
 
-      // Save headlines to database
-      await headlineService.addHeadlines(sourceId, headlines);
-      console.log(`Saved ${headlines.length} headlines for ${source.name}`);
+      // Save stories to database
+      await storyService.addStories(sourceId, stories);
+      console.log(`Saved ${stories.length} stories for ${source.name}`);
 
-      return headlines;
+      return stories;
     } catch (error) {
       console.error("Error scraping page:", error);
       throw error;
     }
   }
 
-  public async readRss(sourceId: string): Promise<IHeadline[]> {
+  public async readRss(sourceId: string): Promise<IStory[]> {
     const source = await Source.findById(sourceId);
     if (!source) {
       throw new Error(`Unknown source: ${sourceId}`);
@@ -297,7 +291,7 @@ ${htmlString}`;
         await Source.findByIdAndUpdate(sourceId, { imageUrl: feed.image.url });
       }
 
-      const headlines: IHeadline[] = feed.items.map((item, index) => {
+      const stories: IStory[] = feed.items.map((item, index) => {
         const hasAudioEnclosure: boolean =
           (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
         const hasVideoEnclosure: boolean =
@@ -323,13 +317,13 @@ ${htmlString}`;
         };
       });
 
-      // Save headlines to database
-      await headlineService.addHeadlines(sourceId, headlines);
+      // Save stories to database
+      await storyService.addStories(sourceId, stories);
       console.log(
-        `Saved ${headlines.length} headlines from RSS for ${source.name}`
+        `Saved ${stories.length} stories from RSS for ${source.name}`
       );
 
-      return headlines;
+      return stories;
     } catch (error) {
       console.error("Error reading RSS feed:", error);
       throw error;

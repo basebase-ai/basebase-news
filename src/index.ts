@@ -2,11 +2,11 @@ import "dotenv/config";
 import express, { Request, Response } from "express";
 import path from "path";
 import cookieParser from "cookie-parser";
-import { HeadlineService } from "./services/headline.service";
+import { StoryService } from "./services/story.service";
 import { connectDB } from "./services/mongo.service";
 import { Source } from "./models/source.model";
-import { IHeadline } from "./models/headline.model";
-import { scraperService } from "./services/scraper.service";
+import { IStory } from "./models/story.model";
+import { ScraperService } from "./services/scraper.service";
 import { agendaService } from "./services/agenda.service";
 import { User } from "./models/user.model";
 import { userService } from "./services/user.service";
@@ -15,7 +15,8 @@ import mongoose from "mongoose";
 
 const app: express.Application = express();
 const port: number = parseInt(process.env.PORT || "3000", 10);
-const headlineService: HeadlineService = new HeadlineService();
+const storyService: StoryService = new StoryService();
+const scraperService: ScraperService = new ScraperService();
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -64,10 +65,11 @@ app.get("/hello", (req: Request, res: Response): void => {
 // returns all of the possible sources
 app.get("/api/sources", async (_req: Request, res: Response): Promise<void> => {
   try {
-    const sources = await headlineService.getSources();
+    const sources = await storyService.getSources();
     res.json(sources);
   } catch (error) {
-    res.status(500).json({ status: "error", message: "Failed to get sources" });
+    console.error("Error getting sources:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -92,8 +94,8 @@ app.post(
       // Process scraping asynchronously
       console.log(`Scraping source: ${source.name}`);
       try {
-        const headlines = await scraperService.collectOne(source);
-        console.log(`Scraped ${headlines.length} headlines for ${source.name}`);
+        const stories = await scraperService.collectOne(source);
+        console.log(`Scraped ${stories.length} stories for ${source.name}`);
       } catch (error) {
         console.error(`Error scraping source ${source.name}:`, error);
         if (error instanceof Error) {
@@ -115,84 +117,63 @@ app.post(
   isAdmin,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const source = req.body;
-      const newSource = await Source.create(source);
-      res
-        .status(201)
-        .json({ status: "ok", message: "Source added successfully" });
-
+      const newSource = new Source(req.body);
+      await newSource.save();
       console.log(`Scraping new source: ${newSource.name}`);
       try {
-        const headlines = await scraperService.collectOne(newSource);
-        console.log(
-          `Scraped ${headlines.length} headlines for ${newSource.name}`
-        );
+        const stories = await scraperService.collectOne(newSource);
+        console.log(`Scraped ${stories.length} stories for ${newSource.name}`);
       } catch (error) {
-        console.error(`Error scraping new source ${newSource.name}:`, error);
+        console.error(`Error scraping source ${newSource.name}:`, error);
       }
+      res.json(newSource);
     } catch (error) {
-      const message: string =
-        error instanceof Error ? error.message : "Failed to add source";
-      res.status(400).json({ status: "error", message });
+      console.error("Error creating source:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 );
 
-// get a source by id with most recent headlines
+// get a source by id with most recent stories
 app.get(
-  "/api/sources/:sourceId",
+  "/api/sources/:id",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { sourceId } = req.params;
+      const sourceId = req.params.id;
       const source = await Source.findById(sourceId);
       if (!source) {
-        res.status(404).json({ status: "error", message: "Source not found" });
+        res.status(404).json({ error: "Source not found" });
         return;
       }
-      const headlines = await headlineService.getHeadlines(sourceId);
+
+      const stories = await storyService.getStories(sourceId);
+      const sourceWithStories = {
+        ...source.toObject(),
+        stories,
+      };
+
       res.json({
-        status: "ok",
-        source: {
-          ...source.toObject(),
-          headlines,
-        },
+        source: sourceWithStories,
       });
     } catch (error) {
       console.error("Error getting source:", error);
-      res
-        .status(500)
-        .json({ status: "error", message: "Failed to get source" });
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 );
 
 // update a source (admin only)
 app.put(
-  "/api/sources/:sourceId",
+  "/api/sources/:id",
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { sourceId } = req.params;
+      const sourceId = req.params.id;
       const source = req.body;
-      const token = req.cookies?.auth;
-
-      if (!token) {
-        res.status(401).json({ status: "error", message: "Not authenticated" });
-        return;
-      }
-
-      const { userId } = userService.verifyToken(token);
-      const user = await User.findById(userId);
-      if (!user || !user.isAdmin) {
-        res.status(403).json({ status: "error", message: "Not authorized" });
-        return;
-      }
-
-      await headlineService.updateSource(sourceId, source);
+      await storyService.updateSource(sourceId, source);
       res.json({ status: "ok", message: "Source updated successfully" });
     } catch (error) {
-      const message: string =
-        error instanceof Error ? error.message : "Failed to update source";
-      res.status(400).json({ status: "error", message });
+      console.error("Error updating source:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 );
@@ -432,6 +413,21 @@ app.post("/api/auth/signout", (req: Request, res: Response): void => {
   userService.clearAuthCookie(res);
   res.json({ status: "ok", message: "Signed out successfully" });
 });
+
+// Secret admin endpoint for complete rescrape
+app.post(
+  "/api/admin/rescrape",
+  isAdmin,
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      await scraperService.collectAll();
+      res.json({ status: "ok", message: "Complete rescrape initiated" });
+    } catch (error) {
+      console.error("Error in complete rescrape:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 // Start the server and agenda service
 async function startServer(): Promise<void> {

@@ -131,7 +131,6 @@ function updateUserAvatar(user) {
 }
 
 async function signOut() {
-  console.log("Signing out...");
   try {
     const response = await fetch("/api/auth/signout", {
       method: "POST",
@@ -140,11 +139,9 @@ async function signOut() {
 
     if (response.ok) {
       window.location.reload();
-    } else {
-      console.error("Failed to sign out");
     }
   } catch (error) {
-    console.error("Error signing out:", error);
+    // Error signing out
   }
 }
 
@@ -189,7 +186,6 @@ async function handleSignInSubmit(event) {
     document.getElementById("signInFormContainer")?.classList.add("hidden");
     document.getElementById("signInConfirmation")?.classList.remove("hidden");
   } catch (error) {
-    console.error("Error:", error);
     alert(error.message);
   }
 }
@@ -224,7 +220,6 @@ async function getCurrentUser() {
       return null;
     }
   } catch (error) {
-    console.error("Error fetching current user:", error);
     state.currentUser = null;
     state.isAdmin = false;
     updateUserAvatar(null);
