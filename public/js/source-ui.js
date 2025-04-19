@@ -51,7 +51,7 @@ export function renderSourcesGrid(sources, searchTerm = "", state) {
                 type="checkbox"
                 id="source-${source._id}"
                 ${isChecked ? "checked" : ""}
-                onchange="handleSourceToggle('${source._id}')"
+                onchange="handleSourceToggle('${source._id}', event)"
                 class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
               />
               <div>
@@ -193,7 +193,7 @@ function generateSourceTile(source, state, tagSection = "") {
             type="checkbox"
             id="source-${uniqueId}"
             ${isChecked ? "checked" : ""}
-            onchange="handleSourceToggle('${source._id}')"
+            onchange="handleSourceToggle('${source._id}', event)"
             class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:bg-gray-700"
           />
           <div>

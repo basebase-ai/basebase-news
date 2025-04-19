@@ -121,7 +121,7 @@ function generateSourceHTML(source) {
                           }</span>`
                         : ""
                     }
-                  <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-10 mr-1 mt-0.5 shadow-sm">
+                  <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-20 mr-1 mt-0.5 shadow-sm">
                     ${formatTimeAgo(
                       new Date(story.updatedAt || story.createdAt)
                     )}
@@ -130,7 +130,7 @@ function generateSourceHTML(source) {
                 ${
                   false && story.imageUrl
                     ? `<div class="mt-2 rounded-md overflow-hidden ${
-                        state.denseMode ? "h-16" : "h-24"
+                        state.denseMode ? "h-24" : "h-36"
                       }">
                       <img src="${
                         story.imageUrl
@@ -517,14 +517,14 @@ async function refreshSource(sourceId) {
                     }</span>`
                   : ""
               }
-                <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-10 mr-1 mt-0.5 shadow-sm">
+                <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-20 mr-1 mt-0.5 shadow-sm">
                   ${formatTimeAgo(new Date(story.updatedAt || story.createdAt))}
                 </span>
               </div>
               ${
                 story.imageUrl
                   ? `<div class="mt-2 rounded-md overflow-hidden ${
-                      state.denseMode ? "h-16" : "h-24"
+                      state.denseMode ? "h-24" : "h-36"
                     }">
                     <img src="${
                       story.imageUrl
@@ -617,7 +617,7 @@ function showPreviewModal(element) {
   const contentText = description || summary || "";
 
   previewModal.innerHTML = `
-    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col mx-auto font-poppins">
+    <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col mx-auto font-poppins">
       <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white truncate">Story Preview</h2>
         <button onclick="sourceService.closePreviewModal()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-poppins">
@@ -628,7 +628,7 @@ function showPreviewModal(element) {
       <div class="flex-1 overflow-y-auto">
         ${
           imageUrl
-            ? `<div class="w-full h-64 bg-gray-100 dark:bg-gray-800">
+            ? `<div class="w-full h-96 bg-gray-100 dark:bg-gray-800">
                 <img src="${imageUrl}" alt="${headline}" class="w-full h-full object-cover">
               </div>`
             : ""

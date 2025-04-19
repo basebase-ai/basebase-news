@@ -176,11 +176,18 @@ export function renderSourcesGrid(sources, searchTerm = "") {
   }
 }
 
-async function handleSourceToggle(sourceId) {
+async function handleSourceToggle(sourceId, event) {
   if (!state.currentUser) return;
 
-  const checkbox = document.getElementById(`source-${sourceId}`);
-  const isChecked = checkbox.checked;
+  // Find the checkbox that triggered this event (might have a suffix in its ID)
+  const checkboxId = event?.target?.id || `source-${sourceId}`;
+  const isChecked =
+    event?.target?.checked ?? document.getElementById(checkboxId)?.checked;
+
+  if (isChecked === undefined) {
+    console.error("Could not determine checkbox state for source:", sourceId);
+    return;
+  }
 
   try {
     const response = await fetch("/api/users/me/sources", {
@@ -203,11 +210,26 @@ async function handleSourceToggle(sourceId) {
     const updatedUser = await response.json();
     state.currentUser = updatedUser.user;
 
+    // Update all checkboxes for this source in the modal
+    document
+      .querySelectorAll(`[id^="source-${sourceId}"]`)
+      .forEach((checkbox) => {
+        checkbox.checked = isChecked;
+      });
+
     // Update the main content area without closing the modal
     await headlineService.loadHeadlines(state.currentUser?.sourceIds || []);
   } catch (error) {
     console.error("Failed to update sources:", error);
     alert("Failed to update sources. Please try again.");
+
+    // Revert checkbox state if the API call failed
+    document
+      .querySelectorAll(`[id^="source-${sourceId}"]`)
+      .forEach((checkbox) => {
+        checkbox.checked =
+          state.currentUser?.sourceIds?.includes(sourceId) || false;
+      });
   }
 }
 
