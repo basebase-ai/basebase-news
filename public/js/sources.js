@@ -739,7 +739,7 @@ function showPreviewModal(element) {
           href="${articleUrl}" 
           target="_blank" 
           rel="noopener" 
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors font-poppins"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors font-poppins min-w-[110px] text-center whitespace-nowrap"
         >
           Go to Story
         </a>
