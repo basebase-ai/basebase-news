@@ -44,7 +44,7 @@ export class UserService {
     // Find or create user
     let user = await User.findOne({ email });
     if (!user) {
-      // Get default sources with top_news_us tag
+      // Get default sources with popular tag
       const defaultSources = await Source.find({ tags: "popular" });
       const defaultSourceIds = defaultSources.map((source) => source._id);
 

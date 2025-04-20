@@ -89,7 +89,7 @@ function generateSourceHTML(source) {
                 class="block relative cursor-pointer"
                 data-story-id="${story._id}"
                 data-story-url="${story.articleUrl}"
-                data-story-headline="${story.fullHeadline.replace(
+                data-story-headline="${(story.fullHeadline || "").replace(
                   /"/g,
                   "&quot;"
                 )}"
@@ -112,9 +112,11 @@ function generateSourceHTML(source) {
                 } ${
                       readIds.has(story._id) ? "read" : ""
                     } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
-                      story.fullHeadline
+                      story.fullHeadline || ""
                     }">
-                  <span class="font-semibold">${story.fullHeadline}</span>${
+                  <span class="font-semibold">${
+                    story.fullHeadline || ""
+                  }</span>${
                       story.description || story.summary
                         ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${
                             story.description || story.summary
@@ -251,7 +253,9 @@ async function handleNewSourceSubmit(event) {
       // If it's a duplicate source (409 Conflict)
       if (response.status === 409 && errorData.source) {
         closeNewSourceModal();
-        alert("This source already exists in the system.");
+        alert(
+          `This source (${errorData.source.name}) already exists in the system.`
+        );
 
         // If the user is logged in, we can add the existing source to their list
         if (state.currentUser && errorData.source._id) {
@@ -561,7 +565,7 @@ async function refreshSource(sourceId) {
               class="block relative cursor-pointer"
               data-story-id="${story._id}"
               data-story-url="${story.articleUrl}"
-              data-story-headline="${story.fullHeadline.replace(
+              data-story-headline="${(story.fullHeadline || "").replace(
                 /"/g,
                 "&quot;"
               )}"
@@ -582,9 +586,9 @@ async function refreshSource(sourceId) {
               } ${
                 readIds.has(story._id) ? "read" : ""
               } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
-                story.fullHeadline
+                story.fullHeadline || ""
               }">
-                <span class="font-semibold">${story.fullHeadline}</span>${
+                <span class="font-semibold">${story.fullHeadline || ""}</span>${
                 story.description || story.summary
                   ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${
                       story.description || story.summary
