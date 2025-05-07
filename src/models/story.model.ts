@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
 export enum Section {
   NEWS = "news",
@@ -18,17 +18,20 @@ export enum NewsTopic {
   HEALTH = "health",
 }
 
-export interface IStory {
+export interface IStory extends Document {
+  articleUrl: string;
   sourceId: mongoose.Types.ObjectId;
   fullHeadline: string;
-  summary: string;
-  description?: string | null;
-  articleUrl: string;
+  summary?: string | null;
+  fullText?: string | null;
   section: Section;
   type: NewsTopic;
   inPageRank: number;
   imageUrl?: string | null;
+  authorNames?: string[];
+  publishDate?: Date;
   archived?: boolean;
+  lastScrapedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -36,20 +39,23 @@ export interface IStory {
 export const Story = mongoose.model<IStory>(
   "Story",
   new mongoose.Schema({
+    articleUrl: { type: String, unique: true, required: true },
     sourceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Source",
       required: true,
     },
     fullHeadline: { type: String, required: true },
-    summary: String,
-    description: String,
-    articleUrl: { type: String, unique: true, required: true },
+    summary: { type: String },
+    fullText: { type: String },
     section: String,
     type: String,
     inPageRank: Number,
     imageUrl: String,
+    authorNames: [String],
+    publishDate: Date,
     archived: { type: Boolean, default: false },
+    lastScrapedAt: { type: Date, default: null },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   })

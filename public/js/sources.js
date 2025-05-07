@@ -97,10 +97,6 @@ function generateSourceHTML(source) {
                   /"/g,
                   "&quot;"
                 )}"
-                data-story-description="${(story.description || "").replace(
-                  /"/g,
-                  "&quot;"
-                )}"
                 data-story-image="${story.imageUrl || ""}"
                 data-has-paywall="${source.hasPaywall ? "true" : "false"}"
                 onclick="sourceService.handleStoryClick(this)"
@@ -117,10 +113,8 @@ function generateSourceHTML(source) {
                   <span class="font-semibold">${
                     story.fullHeadline || ""
                   }</span>${
-                      story.description || story.summary
-                        ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${
-                            story.description || story.summary
-                          }</span>`
+                      story.summary
+                        ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
                         : ""
                     }
                   <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-20 mr-1 mt-0.5 shadow-sm">
@@ -129,17 +123,6 @@ function generateSourceHTML(source) {
                     )}
                   </span>
                 </div>
-                ${
-                  false && story.imageUrl
-                    ? `<div class="mt-2 rounded-md overflow-hidden ${
-                        state.denseMode ? "h-24" : "h-36"
-                      }">
-                      <img src="${
-                        story.imageUrl
-                      }" alt="Preview" class="w-full h-full object-cover" />
-                    </div>`
-                    : ""
-                }
               </a>
             </div>
           `
@@ -573,10 +556,6 @@ async function refreshSource(sourceId) {
                 /"/g,
                 "&quot;"
               )}"
-              data-story-description="${(story.description || "").replace(
-                /"/g,
-                "&quot;"
-              )}"
               data-story-image="${story.imageUrl || ""}"
               data-has-paywall="${source.hasPaywall ? "true" : "false"}"
               onclick="sourceService.handleStoryClick(this)"
@@ -589,27 +568,14 @@ async function refreshSource(sourceId) {
                 story.fullHeadline || ""
               }">
                 <span class="font-semibold">${story.fullHeadline || ""}</span>${
-                story.description || story.summary
-                  ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${
-                      story.description || story.summary
-                    }</span>`
+                story.summary
+                  ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
                   : ""
               }
                 <span class="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white dark:bg-gray-800 px-1.5 py-0.5 pb-2 text-xs text-gray-500 dark:text-gray-400 rounded font-poppins z-20 mr-1 mt-0.5 shadow-sm">
                   ${formatTimeAgo(new Date(story.updatedAt || story.createdAt))}
                 </span>
               </div>
-              ${
-                story.imageUrl
-                  ? `<div class="mt-2 rounded-md overflow-hidden ${
-                      state.denseMode ? "h-24" : "h-36"
-                    }">
-                    <img src="${
-                      story.imageUrl
-                    }" alt="Preview" class="w-full h-full object-cover" />
-                  </div>`
-                  : ""
-              }
             </a>
           </div>
         `
@@ -660,7 +626,6 @@ function showPreviewModal(element) {
   const articleUrl = element.getAttribute("data-story-url");
   const headline = element.getAttribute("data-story-headline");
   const summary = element.getAttribute("data-story-summary");
-  const description = element.getAttribute("data-story-description");
   const imageUrl = element.getAttribute("data-story-image");
   const hasPaywall = element.getAttribute("data-has-paywall") === "true";
 
@@ -692,7 +657,7 @@ function showPreviewModal(element) {
   }
 
   // Use description if available, otherwise fall back to summary
-  const contentText = description || summary || "";
+  const contentText = summary || "";
 
   previewModal.innerHTML = `
     <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col mx-auto font-poppins">

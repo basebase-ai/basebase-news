@@ -7,6 +7,7 @@ import { storyService } from "./story.service";
 import { previewService } from "./preview.service";
 import Parser from "rss-parser";
 import mongoose from "mongoose";
+import { Story } from "../models/story.model";
 
 export class ScraperService {
   private readonly client: ScrapingBeeClient;
@@ -22,6 +23,31 @@ export class ScraperService {
       throw new Error("SCRAPING_BEE_API_KEY environment variable is required");
     }
     this.client = new ScrapingBeeClient(this.apiKey);
+  }
+
+  private cleanJsonResponse(response: string): any {
+    // Remove markdown code block markers if any
+    let str = response.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+
+    // Remove any leading/trailing whitespace
+    str = str.trim();
+
+    // Clean common JSON issues
+    // Replace multiple consecutive newlines with a single newline
+    str = str.replace(/\n+/g, "\n");
+    // Fix trailing commas in objects and arrays
+    str = str.replace(/,(\s*[\]}])/g, "$1");
+
+    // Remove or replace control characters (common source of JSON parsing errors)
+    str = str.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+
+    // Try to parse the JSON
+    try {
+      return JSON.parse(str);
+    } catch (initialParseError) {
+      console.error("JSON parse failed", initialParseError, str);
+    }
+    return null;
   }
 
   private cleanHtml(html: string, source: ISource): string {
@@ -49,24 +75,6 @@ export class ScraperService {
     const truncated = cleanedHtml.slice(0, this.MAX_TOKENS);
     console.log("Length after truncation:", truncated.length);
     return truncated;
-  }
-
-  private cleanJsonString(str: string): string {
-    // Remove markdown code block markers if any
-    str = str.replace(/```json\n?/g, "").replace(/```\n?/g, "");
-    // Find the first occurrence of a JSON array
-    const jsonMatch: RegExpMatchArray | null = str.match(/\[\s*\{/);
-    if (jsonMatch) {
-      str = str.slice(jsonMatch.index);
-    }
-    // Remove any trailing content after the last closing bracket
-    const lastBracket: number = str.lastIndexOf("]");
-    if (lastBracket !== -1) {
-      str = str.slice(0, lastBracket + 1);
-    }
-    // Remove any leading/trailing whitespace
-    str = str.trim();
-    return str;
   }
 
   private makeUrlAbsolute(url: string, baseUrl: string): string {
@@ -108,33 +116,29 @@ ${html}`;
     try {
       response = await this.langChainService.askAi(prompt);
       console.log(`Got response from AI with length ${response.length}`);
-      const cleanedResponse: string = this.cleanJsonString(response);
-      console.log(`Got cleaned response with length ${cleanedResponse.length}`);
-      console.log("Cleaned response:", cleanedResponse);
 
-      try {
-        const stories: IStory[] = JSON.parse(cleanedResponse);
-        console.log(
-          `Got ${stories.length} stories: `,
-          stories.map((h) => h.fullHeadline).join("\n")
-        );
-        return stories.map((story) => ({
-          ...story,
-          articleUrl: this.makeUrlAbsolute(story.articleUrl, baseUrl),
-        }));
-      } catch (parseError: unknown) {
-        console.error("JSON Parse Error:", parseError);
-        console.error("Failed to parse response:", cleanedResponse);
-        const errorMessage =
-          parseError instanceof Error
-            ? parseError.message
-            : "Unknown parse error";
-        throw new Error(`Failed to parse stories JSON: ${errorMessage}`);
+      const stories = this.cleanJsonResponse(response);
+
+      // Handle null response from cleanJsonResponse
+      if (!stories) {
+        console.error("Failed to parse stories from AI response");
+        return [];
       }
+
+      console.log(
+        `Got ${stories.length} stories: `,
+        stories.map((h: any) => h.fullHeadline).join("\n")
+      );
+
+      // make the articleUrl absolute
+      stories.forEach((story: any) => {
+        story.articleUrl = this.makeUrlAbsolute(story.articleUrl, baseUrl);
+      });
+      return stories;
     } catch (error) {
       console.error("Error parsing stories:", error);
       console.error("Raw response:", response);
-      throw error;
+      return []; // Return empty array instead of throwing
     }
   }
 
@@ -183,17 +187,18 @@ ${html}`;
     }
   }
 
-  private async fetchMetadataForStory(story: IStory): Promise<IStory> {
+  private async scrapeStoryDetailsPage(story: IStory): Promise<IStory> {
     try {
       // Only fetch metadata if the URL is valid
       if (story.articleUrl) {
         const metadata = await previewService.getPageMetadata(story.articleUrl);
 
-        const updatedStory = { ...story };
+        // Set lastScrapedAt to current time
+        story.lastScrapedAt = new Date();
 
         // Add image URL if found
         if (metadata.imageUrl) {
-          updatedStory.imageUrl = metadata.imageUrl;
+          story.imageUrl = metadata.imageUrl;
         }
 
         // Use description from article page if it's longer than the existing summary
@@ -204,11 +209,92 @@ ${html}`;
 
           // If metadata description is longer or summary doesn't exist, use the metadata description
           if (metadataDescriptionLength > summaryLength) {
-            updatedStory.description = metadata.description;
+            story.summary = metadata.description;
           }
         }
 
-        return updatedStory;
+        // Try to fetch the full article text
+        try {
+          // Fetch full HTML content
+          const response = await this.retryableRequest(story.articleUrl, {
+            render_js: true,
+            premium_proxy: true,
+          });
+          // use cheerio to extract the text content
+          const $ = cheerio.load(response.data.toString("utf-8"));
+          const textContent = $("body").text();
+          // Ask AI to extract the full text of the article and metadata as JSON
+          const prompt = `
+Extract the following information from this news article as a valid JSON object:
+1. fullText: The complete article text content, excluding navigation, ads, related articles, comments, and other non-article content
+2. authorNames: An array of names of the article's author(s)
+3. publishDate: The publication date of the article in ISO format (YYYY-MM-DD)
+
+If you can't find any clear article text or the article appears to be behind a paywall, set fullText to "PAYWALL_DETECTED" and provide any author or date information if available.
+
+Return only a valid JSON object with these three fields, properly escaped, with no additional text, markdown, or explanation.
+
+HTML content:
+${textContent.substring(0, this.MAX_TOKENS)}
+`;
+
+          const aiResponse = await this.langChainService.askAi(prompt);
+
+          try {
+            // Parse the JSON response
+            const articleData = this.cleanJsonResponse(aiResponse);
+
+            // Handle null response from cleanJsonResponse
+            if (articleData) {
+              // Check if full text was successfully extracted
+              if (
+                articleData.fullText &&
+                articleData.fullText !== "PAYWALL_DETECTED" &&
+                articleData.fullText.length > 100
+              ) {
+                story.fullText = articleData.fullText;
+                console.log(
+                  `Extracted full text for ${story.articleUrl}:\n${articleData.fullText}`
+                );
+              }
+
+              // Add author names if available
+              if (
+                articleData.authorNames &&
+                Array.isArray(articleData.authorNames)
+              ) {
+                story.authorNames = articleData.authorNames;
+              } else if (
+                articleData.authorName &&
+                typeof articleData.authorName === "string"
+              ) {
+                // Handle case where LLM returns a single authorName instead of array
+                story.authorNames = [articleData.authorName];
+              }
+
+              // Add publish date if available
+              if (articleData.publishDate) {
+                const parsedDate = new Date(articleData.publishDate);
+                if (!isNaN(parsedDate.getTime())) {
+                  story.publishDate = parsedDate;
+                }
+              }
+            } else {
+              console.log(
+                `Failed to extract structured data for ${story.articleUrl}`
+              );
+            }
+          } catch (jsonError) {
+            console.error(`Error parsing JSON response: ${jsonError}`);
+          }
+        } catch (extractError) {
+          console.error(
+            `Error extracting article data for ${story.articleUrl}:`,
+            extractError
+          );
+        }
+
+        return story;
       }
     } catch (error) {
       console.error(`Error fetching metadata for ${story.articleUrl}:`, error);
@@ -218,7 +304,7 @@ ${html}`;
     return story;
   }
 
-  public async crawlAll(): Promise<void> {
+  public async scrapeAllSources(): Promise<void> {
     try {
       // Get all sources
       const sources = await Source.find();
@@ -226,7 +312,7 @@ ${html}`;
 
       // Scrape each source one at a time
       for (const source of sources) {
-        await this.crawlOne(source);
+        await this.scrapeSource(source);
       }
       console.log("Completed collecting from all sources");
     } catch (error) {
@@ -240,7 +326,7 @@ ${html}`;
     }
   }
 
-  public async crawlOne(source: ISource): Promise<IStory[]> {
+  public async scrapeSource(source: ISource): Promise<IStory[]> {
     try {
       console.log(
         `Starting collection for source: ${source.name} (${source.homepageUrl})`
@@ -265,26 +351,65 @@ ${html}`;
           stories = await this.readRss(source.id);
         } else {
           // if no RSS feed is found, scrape the homepage
-          stories = await this.scrapeHomepage(source.id);
+          // commented out because it's expensive and no one is using it ATM
+          // stories = await this.scrapeHomepage(source.id);
         }
       }
 
-      // Fetch metadata for stories that need it
-      const enhancedStories: IStory[] = [];
-      for (const story of stories) {
-        if (!story.imageUrl || !story.summary) {
-          const enhancedStory = await this.fetchMetadataForStory(story);
-          enhancedStories.push(enhancedStory);
-        } else {
-          enhancedStories.push(story);
+      // Reset inPageRank for existing stories in this source
+      await Story.updateMany(
+        {
+          sourceId: new mongoose.Types.ObjectId(source.id),
+          inPageRank: { $ne: null },
+        },
+        { inPageRank: null }
+      );
+
+      // Process and save each story individually
+      const savedStories: IStory[] = [];
+      for (const [index, story] of stories.entries()) {
+        try {
+          // Check if the story already exists in the database
+          const existingStory = await Story.findOne({
+            articleUrl: story.articleUrl,
+          });
+
+          let enhancedStory = story;
+
+          // Only scrape details if:
+          // 1. No paywall exists for this source
+          // 2. AND either:
+          //    a. This is a new story, OR
+          //    b. It's an existing story but for some reasonwe haven't scraped its details yet
+          if (
+            !source.hasPaywall &&
+            (!existingStory || !existingStory.lastScrapedAt)
+          ) {
+            console.log(`Scraping story: ${story.articleUrl}`);
+            enhancedStory = await this.scrapeStoryDetailsPage(story);
+          } else {
+            console.log(`Story already exists: ${story.articleUrl}`);
+          }
+
+          // Save the story immediately to the database
+          const savedStory = await storyService.addStory(
+            source.id,
+            enhancedStory,
+            index + 1
+          );
+          savedStories.push(savedStory);
+          console.log(`Saved story: ${savedStory.fullHeadline}`);
+        } catch (storyError) {
+          console.error(
+            `Error processing story ${story.articleUrl}:`,
+            storyError
+          );
+          // Continue with the next story even if one fails
         }
       }
 
-      // Save stories to database
-      await storyService.addStories(source.id, enhancedStories);
-      console.log(`Saved ${enhancedStories.length} stories for ${source.name}`);
-
-      return enhancedStories;
+      console.log(`Saved ${savedStories.length} stories for ${source.name}`);
+      return savedStories;
     } catch (error) {
       console.error(`Error collecting from source ${source.name}:`, error);
       if (error instanceof Error) {
@@ -406,19 +531,20 @@ ${html}`;
         const isValidDate: boolean = !isNaN(publishDate.getTime());
         const createdAt: Date = isValidDate ? publishDate : new Date();
 
+        // Get full content if available
+        const fullContent: string = item.content || "";
+
         return {
           fullHeadline: item.title || "",
           articleUrl: item.link || "",
           summary,
+          fullText: fullContent,
           section: Section.NEWS, // Default to NEWS, can be updated by AI later
           type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
           inPageRank: index + 1,
           sourceId: new mongoose.Types.ObjectId(sourceId),
           imageUrl,
-          archived: false,
-          createdAt,
-          updatedAt: new Date(),
-        };
+        } as IStory;
       });
 
       return stories;

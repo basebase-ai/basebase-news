@@ -33,7 +33,7 @@ class AgendaService {
 
         for (const source of sourcesToScrape) {
           try {
-            await scraperService.crawlOne(source);
+            await scraperService.scrapeSource(source);
           } catch (error) {
             console.error(`Error scraping source ${source.name}:`, error);
           }

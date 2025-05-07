@@ -25,33 +25,65 @@ export class StoryService {
       `Updated inPageRank to null for ${updatedCount.modifiedCount} existing stories`
     );
 
+    // Process each story individually
     for (const [index, story] of stories.entries()) {
-      const existingStory = await Story.findOne({
-        articleUrl: story.articleUrl,
-        sourceId: objectId,
-      });
-
-      if (existingStory) {
-        console.log(`Updating existing story: ${story.articleUrl}`);
-        await Story.findByIdAndUpdate(existingStory._id, {
-          ...story,
-          sourceId: objectId,
-          inPageRank: index + 1,
-          archived: false,
-          updatedAt: new Date(),
-        });
-      } else {
-        console.log(`Creating new story: ${story.articleUrl}`);
-        await Story.create({
-          ...story,
-          sourceId: objectId,
-          inPageRank: index + 1,
-          archived: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
+      await this.addStory(sourceId, story, index + 1);
     }
+  }
+
+  /**
+   * Adds or updates a single story in the database
+   * @param sourceId The ID of the source
+   * @param story The story to add or update
+   * @param rank The rank of the story on the page (optional)
+   * @returns The created or updated story
+   */
+  public async addStory(
+    sourceId: string,
+    story: IStory,
+    rank?: number
+  ): Promise<IStory> {
+    const objectId = new mongoose.Types.ObjectId(sourceId);
+
+    const existingStory = await Story.findOne({
+      articleUrl: story.articleUrl,
+      sourceId: objectId,
+    });
+
+    let result: IStory;
+
+    if (existingStory) {
+      console.log(`Updating existing story: ${story.articleUrl}`);
+      const updatedStory = await Story.findByIdAndUpdate(
+        existingStory._id,
+        {
+          ...story,
+          sourceId: objectId,
+          inPageRank: rank !== undefined ? rank : null,
+          archived: false,
+          updatedAt: new Date(),
+        },
+        { new: true } // Return the updated document
+      );
+
+      if (!updatedStory) {
+        throw new Error(`Failed to update story: ${existingStory._id}`);
+      }
+
+      result = updatedStory;
+    } else {
+      console.log(`Creating new story: ${story.articleUrl}`);
+      result = await Story.create({
+        ...story,
+        sourceId: objectId,
+        inPageRank: rank !== undefined ? rank : null,
+        archived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    return result;
   }
 
   public async getStories(sourceId: string): Promise<IStory[]> {
