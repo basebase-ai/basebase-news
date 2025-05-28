@@ -1,29 +1,30 @@
-import { ScrapingBeeClient } from "scrapingbee";
+// import { ScrapingBeeClient } from "scrapingbee";
 import * as cheerio from "cheerio";
+import axios, { AxiosResponse } from "axios";
 import { ISource, Source } from "../models/source.model";
 import { IStory, NewsTopic, Section } from "../models/story.model";
 import { langChainService } from "./langchain.service";
 import { storyService } from "./story.service";
 import { previewService } from "./preview.service";
-import Parser from "rss-parser";
+import Parser = require("rss-parser");
 import mongoose from "mongoose";
 import { Story } from "../models/story.model";
 
 export class ScraperService {
-  private readonly client: ScrapingBeeClient;
-  private readonly apiKey: string;
+  // private readonly client: ScrapingBeeClient;
+  // private readonly apiKey: string;
   private readonly MAX_TOKENS: number = 100000;
   private readonly langChainService = langChainService;
   private readonly MAX_RETRIES: number = 3;
   private readonly RETRY_DELAY: number = 1000; // 1 second
 
-  constructor() {
-    this.apiKey = process.env.SCRAPING_BEE_API_KEY ?? "";
-    if (!this.apiKey) {
-      throw new Error("SCRAPING_BEE_API_KEY environment variable is required");
-    }
-    this.client = new ScrapingBeeClient(this.apiKey);
-  }
+  // constructor() {
+  //   this.apiKey = process.env.SCRAPING_BEE_API_KEY ?? "";
+  //   if (!this.apiKey) {
+  //     throw new Error("SCRAPING_BEE_API_KEY environment variable is required");
+  //   }
+  //   this.client = new ScrapingBeeClient(this.apiKey);
+  // }
 
   private cleanJsonResponse(response: string): any {
     // Remove markdown code block markers if any
@@ -142,15 +143,19 @@ ${html}`;
     }
   }
 
-  private async retryableRequest(
-    url: string,
-    params: Record<string, boolean>
-  ): Promise<{ data: Buffer }> {
+  private async retryableRequest(url: string): Promise<{ data: string }> {
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        return await this.client.get({ url, params });
+        const response: AxiosResponse<string> = await axios.get(url, {
+          timeout: 30000,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          },
+        });
+        return { data: response.data };
       } catch (error) {
         lastError = error as Error;
         console.error(`Attempt ${attempt} failed:`, lastError.message); // don't need the whole stack trace
@@ -174,14 +179,14 @@ ${html}`;
 
   private async rssExists(url: string): Promise<boolean> {
     try {
-      const response = await this.client.get({
-        url,
-        params: {
-          render_js: false,
-          premium_proxy: true,
+      const response: AxiosResponse<string> = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         },
       });
-      return response.data.toString("utf-8").includes("RSS");
+      return response.data.includes("RSS");
     } catch (error) {
       return false;
     }
@@ -216,12 +221,9 @@ ${html}`;
         // Try to fetch the full article text
         try {
           // Fetch full HTML content
-          const response = await this.retryableRequest(story.articleUrl, {
-            render_js: true,
-            premium_proxy: true,
-          });
+          const response = await this.retryableRequest(story.articleUrl);
           // use cheerio to extract the text content
-          const $ = cheerio.load(response.data.toString("utf-8"));
+          const $ = cheerio.load(response.data);
           const textContent = $("body").text();
           // Ask AI to extract the full text of the article and metadata as JSON
           const prompt = `
@@ -367,7 +369,8 @@ ${textContent.substring(0, this.MAX_TOKENS)}
 
       // Process and save each story individually
       const savedStories: IStory[] = [];
-      for (const [index, story] of stories.entries()) {
+      for (let index = 0; index < stories.length; index++) {
+        const story: IStory = stories[index];
         try {
           // Check if the story already exists in the database
           const existingStory = await Story.findOne({
@@ -381,15 +384,15 @@ ${textContent.substring(0, this.MAX_TOKENS)}
           // 2. AND either:
           //    a. This is a new story, OR
           //    b. It's an existing story but for some reasonwe haven't scraped its details yet
-          if (
-            !source.hasPaywall &&
-            (!existingStory || !existingStory.lastScrapedAt)
-          ) {
-            console.log(`Scraping story: ${story.articleUrl}`);
-            enhancedStory = await this.scrapeStoryDetailsPage(story);
-          } else {
-            console.log(`Story already exists: ${story.articleUrl}`);
-          }
+          // if (
+          //   !source.hasPaywall &&
+          //   (!existingStory || !existingStory.lastScrapedAt)
+          // ) {
+          //   console.log(`Scraping story: ${story.articleUrl}`);
+          //   enhancedStory = await this.scrapeStoryDetailsPage(story);
+          // } else {
+          //   console.log(`Story already exists: ${story.articleUrl}`);
+          // }
 
           // Save the story immediately to the database
           const savedStory = await storyService.addStory(
@@ -428,12 +431,9 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       throw new Error(`Unknown source: ${sourceId}`);
     }
     try {
-      const response = await this.retryableRequest(source.homepageUrl, {
-        render_js: false,
-        premium_proxy: true,
-      });
+      const response = await this.retryableRequest(source.homepageUrl);
 
-      const html: string = response.data.toString("utf-8");
+      const html: string = response.data;
       const cleanedHtml: string = this.cleanHtml(html, source);
       const stories = await this.parseStories(cleanedHtml, source.homepageUrl);
 
@@ -461,9 +461,18 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         },
       });
 
-      const response = await fetch(source.rssUrl);
-      const xmlText = await response.text();
-      const sanitizedXml = this.sanitizeXml(xmlText);
+      const rssResponse: AxiosResponse<string> = await axios.get(
+        source.rssUrl,
+        {
+          timeout: 30000,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          },
+        }
+      );
+      const xmlText: string = rssResponse.data;
+      const sanitizedXml: string = this.sanitizeXml(xmlText);
       const feed = await parser.parseString(sanitizedXml);
 
       // Check if feed has an image and update source if different
