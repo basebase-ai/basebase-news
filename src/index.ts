@@ -361,6 +361,7 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
           isAdmin: user.isAdmin,
           sourceIds: user.sourceIds || [],
           sourceSubscriptionIds: user.sourceSubscriptionIds || [],
+          readIds: user.readIds || [],
         },
       });
     } catch (error) {
@@ -373,6 +374,105 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ status: "error", message: "Server error" });
   }
 });
+
+// Get user's read IDs
+app.get(
+  "/api/users/me/readids",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId } = userService.verifyToken(token);
+      const readIds = await userService.getReadIds(userId);
+
+      res.json({
+        status: "ok",
+        readIds,
+      });
+    } catch (error) {
+      console.error("Error getting read IDs:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to get read IDs" });
+    }
+  }
+);
+
+// Add a read ID
+app.post(
+  "/api/users/me/readids",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId } = userService.verifyToken(token);
+      const { storyId } = req.body;
+
+      if (!storyId) {
+        res
+          .status(400)
+          .json({ status: "error", message: "Story ID is required" });
+        return;
+      }
+
+      const readIds = await userService.addReadId(userId, storyId);
+
+      res.json({
+        status: "ok",
+        readIds,
+      });
+    } catch (error) {
+      console.error("Error adding read ID:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to add read ID" });
+    }
+  }
+);
+
+// Update all read IDs (for syncing localStorage to server)
+app.put(
+  "/api/users/me/readids",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId } = userService.verifyToken(token);
+      const { readIds } = req.body;
+
+      if (!Array.isArray(readIds)) {
+        res
+          .status(400)
+          .json({ status: "error", message: "Read IDs must be an array" });
+        return;
+      }
+
+      const updatedReadIds = await userService.updateReadIds(userId, readIds);
+
+      res.json({
+        status: "ok",
+        readIds: updatedReadIds,
+      });
+    } catch (error) {
+      console.error("Error updating read IDs:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to update read IDs" });
+    }
+  }
+);
 
 app.put(
   "/api/users/me/sources",
@@ -409,6 +509,7 @@ app.put(
           sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
             id.toString()
           ),
+          readIds: user.readIds || [],
         },
       });
     } catch (error) {
@@ -455,6 +556,7 @@ app.put(
           sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
             id.toString()
           ),
+          readIds: user.readIds || [],
         },
       });
     } catch (error) {

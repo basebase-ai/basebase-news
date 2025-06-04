@@ -112,6 +112,51 @@ export class UserService {
       sameSite: "lax",
     });
   }
+
+  public async addReadId(userId: string, storyId: string): Promise<string[]> {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Add the story ID if it's not already in the array
+    if (!user.readIds.includes(storyId)) {
+      user.readIds.push(storyId);
+
+      // Keep only the most recent 100 read IDs
+      if (user.readIds.length > 100) {
+        user.readIds = user.readIds.slice(-100);
+      }
+
+      await user.save();
+    }
+
+    return user.readIds;
+  }
+
+  public async getReadIds(userId: string): Promise<string[]> {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    return user.readIds;
+  }
+
+  public async updateReadIds(
+    userId: string,
+    readIds: string[]
+  ): Promise<string[]> {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Keep only the most recent 100 read IDs
+    user.readIds = readIds.slice(-100);
+    await user.save();
+
+    return user.readIds;
+  }
 }
 
 export const userService = UserService.getInstance();

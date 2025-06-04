@@ -104,6 +104,19 @@ function markAsRead(storyId) {
   stories.forEach((story) => {
     story.classList.add("read");
   });
+
+  // Sync with backend if user is authenticated
+  if (state.currentUser) {
+    fetch("/api/users/me/readids", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ storyId }),
+    }).catch((error) => {
+      console.error("Failed to sync read ID with backend:", error);
+    });
+  }
 }
 
 function showTooltip(element) {

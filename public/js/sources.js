@@ -76,8 +76,7 @@ function generateSourceHTML(source) {
         </div>
       </div>
       <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar px-4" id="stories-${sourceId}">
-        <div class="${state.denseMode ? "space-y-1" : "space-y-2"}">
-          <div class="h-2"></div>
+        <div class="${state.denseMode ? "space-y-px" : "space-y-0.5"} pt-1">
           ${
             stories.length > 0
               ? stories
@@ -110,9 +109,7 @@ function generateSourceHTML(source) {
                     } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
                       story.fullHeadline || ""
                     }">
-                  <span class="font-semibold">${
-                    story.fullHeadline || ""
-                  }</span>${
+                  <span class="font-normal">${story.fullHeadline || ""}</span>${
                       story.summary
                         ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
                         : ""
@@ -567,7 +564,7 @@ async function refreshSource(sourceId) {
               } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
                 story.fullHeadline || ""
               }">
-                <span class="font-semibold">${story.fullHeadline || ""}</span>${
+                <span class="font-normal">${story.fullHeadline || ""}</span>${
                 story.summary
                   ? ` <span class="font-normal text-gray-600 dark:text-gray-400">- ${story.summary}</span>`
                   : ""
@@ -588,8 +585,7 @@ async function refreshSource(sourceId) {
       `;
 
     storiesContainer.innerHTML = `
-      <div class="${state.denseMode ? "space-y-1" : "space-y-2"}">
-        <div class="h-2"></div>
+      <div class="${state.denseMode ? "space-y-px" : "space-y-0.5"}">
         ${storiesHTML}
       </div>
     `;

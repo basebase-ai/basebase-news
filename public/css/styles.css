@@ -3,46 +3,58 @@
 }
 
 body {
-  font-family: "Source Serif Pro", serif;
+  font-family: "Roboto", sans-serif;
   background-color: #f9f9f9;
 }
 
 .ui-font {
-  font-family: "Poppins", sans-serif;
+  font-family: "Roboto", sans-serif;
 }
 
 .font-poppins {
-  font-family: "Poppins", sans-serif !important;
+  font-family: "Roboto", sans-serif !important;
 }
 
 .masthead {
-  font-family: "Playfair Display", serif;
+  font-family: "Roboto", sans-serif;
   font-weight: 900;
   letter-spacing: -0.03em;
 }
 
 .motto {
-  font-family: "Playfair Display", serif;
+  font-family: "Roboto", sans-serif;
   font-style: italic;
   font-weight: 400;
 }
 
 .column-header {
-  font-family: "Playfair Display", serif;
+  font-family: "Roboto", sans-serif;
   font-weight: 700;
 }
 
 .news-headline {
   transition: all 0.2s ease;
   position: relative;
-  font-weight: bold;
+  font-weight: normal;
   color: #111827;
   font-size: 0.9em;
 }
 
 .news-headline.read {
-  color: #9ca3af;
+  color: #d1d5db;
   font-weight: normal;
+}
+
+.news-headline.read .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+.dark .news-headline.read {
+  color: #6b7280;
+}
+
+.dark .news-headline.read .dark\:text-gray-400 {
+  color: #6b7280 !important;
 }
 
 .group:hover .news-headline:not(.read) {
