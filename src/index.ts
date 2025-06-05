@@ -273,13 +273,12 @@ app.delete(
       const { sourceId } = req.params;
       await Source.findByIdAndDelete(sourceId);
 
-      // Remove sourceId from all users' sourceIds and sourceSubscriptionIds arrays
+      // Remove sourceId from all users' sourceIds arrays
       await User.updateMany(
-        { $or: [{ sourceIds: sourceId }, { sourceSubscriptionIds: sourceId }] },
+        { sourceIds: sourceId },
         {
           $pull: {
             sourceIds: sourceId,
-            sourceSubscriptionIds: sourceId,
           },
         }
       );
@@ -389,7 +388,6 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
           last: user.last,
           isAdmin: user.isAdmin,
           sourceIds: user.sourceIds || [],
-          sourceSubscriptionIds: user.sourceSubscriptionIds || [],
           denseMode: user.denseMode || false,
           darkMode: user.darkMode || false,
         },
@@ -471,8 +469,7 @@ app.put(
           first: user.first,
           last: user.last,
           isAdmin: user.isAdmin,
-          sourceIds: user.sourceIds.map((id) => id.toString()),
-          sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
+          sourceIds: user.sourceIds.map((id: mongoose.Types.ObjectId) =>
             id.toString()
           ),
           denseMode: user.denseMode || false,
@@ -484,54 +481,6 @@ app.put(
       res
         .status(500)
         .json({ status: "error", message: "Failed to update sources" });
-    }
-  }
-);
-
-app.put(
-  "/api/users/me/subs",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const token = req.cookies?.auth;
-      if (!token) {
-        res.status(401).json({ status: "error", message: "Not authenticated" });
-        return;
-      }
-
-      const { userId } = userService.verifyToken(token);
-      const user = await User.findById(userId);
-      if (!user) {
-        res.status(404).json({ status: "error", message: "User not found" });
-        return;
-      }
-
-      const { sourceSubscriptionIds } = req.body;
-      user.sourceSubscriptionIds = sourceSubscriptionIds.map(
-        (id: string) => new mongoose.Types.ObjectId(id)
-      );
-      await user.save();
-
-      res.json({
-        status: "ok",
-        user: {
-          id: user._id,
-          email: user.email,
-          first: user.first,
-          last: user.last,
-          isAdmin: user.isAdmin,
-          sourceIds: user.sourceIds.map((id) => id.toString()),
-          sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
-            id.toString()
-          ),
-          denseMode: user.denseMode || false,
-          darkMode: user.darkMode || false,
-        },
-      });
-    } catch (error) {
-      console.error("Error updating user subscriptions:", error);
-      res
-        .status(500)
-        .json({ status: "error", message: "Failed to update subscriptions" });
     }
   }
 );
@@ -572,8 +521,7 @@ app.put(
           first: user.first,
           last: user.last,
           isAdmin: user.isAdmin,
-          sourceIds: user.sourceIds.map((id) => id.toString()),
-          sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
+          sourceIds: user.sourceIds.map((id: mongoose.Types.ObjectId) =>
             id.toString()
           ),
           denseMode: user.denseMode || false,
