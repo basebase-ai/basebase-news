@@ -1,4 +1,5 @@
 import { state } from "./state.js";
+import { headlineService } from "./headlines.js";
 
 function getInitials(first, last) {
   return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
@@ -102,19 +103,31 @@ function updateUserAvatar(user) {
 
     const denseModeToggle = dropdown.querySelector("#denseModeToggle");
     if (denseModeToggle) {
-      denseModeToggle.addEventListener("change", (event) => {
-        state.denseMode = event.target.checked;
-        localStorage.setItem("denseMode", state.denseMode);
-        headlineService.loadHeadlines(state.currentUser?.sourceIds || []);
+      denseModeToggle.addEventListener("change", async (event) => {
+        const newDenseMode = event.target.checked;
+        try {
+          await updateUserPreferences({ denseMode: newDenseMode });
+          state.denseMode = newDenseMode;
+          headlineService.loadHeadlines(state.currentUser?.sourceIds || []);
+        } catch (error) {
+          console.error("Failed to update dense mode:", error);
+          event.target.checked = state.denseMode; // Revert toggle
+        }
       });
     }
 
     const darkModeToggle = dropdown.querySelector("#darkModeToggle");
     if (darkModeToggle) {
-      darkModeToggle.addEventListener("change", (event) => {
-        state.darkMode = event.target.checked;
-        localStorage.setItem("darkMode", state.darkMode);
-        document.documentElement.classList.toggle("dark", state.darkMode);
+      darkModeToggle.addEventListener("change", async (event) => {
+        const newDarkMode = event.target.checked;
+        try {
+          await updateUserPreferences({ darkMode: newDarkMode });
+          state.darkMode = newDarkMode;
+          document.documentElement.classList.toggle("dark", state.darkMode);
+        } catch (error) {
+          console.error("Failed to update dark mode:", error);
+          event.target.checked = state.darkMode; // Revert toggle
+        }
       });
     }
 
@@ -190,6 +203,37 @@ async function handleSignInSubmit(event) {
   }
 }
 
+async function updateUserPreferences(preferences) {
+  try {
+    const response = await fetch("/api/users/me/preferences", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(preferences),
+    });
+
+    const data = await response.json();
+
+    if (data.status === "ok" && data.user) {
+      // Update current user with latest data
+      state.currentUser = {
+        ...data.user,
+        sourceIds: data.user.sourceIds || [],
+      };
+      state.denseMode = data.user.denseMode || false;
+      state.darkMode = data.user.darkMode || false;
+      return data.user;
+    } else {
+      throw new Error(data.message || "Failed to update preferences");
+    }
+  } catch (error) {
+    console.error("Error updating user preferences:", error);
+    throw error;
+  }
+}
+
 async function getCurrentUser() {
   try {
     const response = await fetch("/api/auth/me", {
@@ -203,6 +247,8 @@ async function getCurrentUser() {
         sourceIds: data.user.sourceIds || [],
       };
       state.isAdmin = data.user.isAdmin;
+      state.denseMode = data.user.denseMode || false;
+      state.darkMode = data.user.darkMode || false;
       updateUserAvatar(state.currentUser);
       document
         .getElementById("adminControls")
@@ -235,6 +281,7 @@ export const authService = {
   closeSignInModal,
   handleSignInSubmit,
   updateUserAvatar,
+  updateUserPreferences,
   signOut,
 };
 

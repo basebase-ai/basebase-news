@@ -390,6 +390,8 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
           isAdmin: user.isAdmin,
           sourceIds: user.sourceIds || [],
           sourceSubscriptionIds: user.sourceSubscriptionIds || [],
+          denseMode: user.denseMode || false,
+          darkMode: user.darkMode || false,
         },
       });
     } catch (error) {
@@ -473,6 +475,8 @@ app.put(
           sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
             id.toString()
           ),
+          denseMode: user.denseMode || false,
+          darkMode: user.darkMode || false,
         },
       });
     } catch (error) {
@@ -519,6 +523,8 @@ app.put(
           sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
             id.toString()
           ),
+          denseMode: user.denseMode || false,
+          darkMode: user.darkMode || false,
         },
       });
     } catch (error) {
@@ -526,6 +532,59 @@ app.put(
       res
         .status(500)
         .json({ status: "error", message: "Failed to update subscriptions" });
+    }
+  }
+);
+
+app.put(
+  "/api/users/me/preferences",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId } = userService.verifyToken(token);
+      const user = await User.findById(userId);
+      if (!user) {
+        res.status(404).json({ status: "error", message: "User not found" });
+        return;
+      }
+
+      const { denseMode, darkMode } = req.body;
+
+      if (typeof denseMode === "boolean") {
+        user.denseMode = denseMode;
+      }
+      if (typeof darkMode === "boolean") {
+        user.darkMode = darkMode;
+      }
+
+      await user.save();
+
+      res.json({
+        status: "ok",
+        user: {
+          id: user._id,
+          email: user.email,
+          first: user.first,
+          last: user.last,
+          isAdmin: user.isAdmin,
+          sourceIds: user.sourceIds.map((id) => id.toString()),
+          sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
+            id.toString()
+          ),
+          denseMode: user.denseMode || false,
+          darkMode: user.darkMode || false,
+        },
+      });
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res
+        .status(500)
+        .json({ status: "error", message: "Failed to update preferences" });
     }
   }
 );

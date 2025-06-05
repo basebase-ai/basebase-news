@@ -8,6 +8,8 @@ export interface IUser extends Document {
   sourceIds: Types.ObjectId[];
   sourceSubscriptionIds: Types.ObjectId[];
   isAdmin: boolean;
+  denseMode: boolean;
+  darkMode: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -28,6 +30,8 @@ export const User = mongoose.model<IUser>(
       default: [],
     },
     isAdmin: { type: Boolean, default: false },
+    denseMode: { type: Boolean, default: false },
+    darkMode: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   })

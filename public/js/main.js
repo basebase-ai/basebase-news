@@ -10,12 +10,12 @@ document.addEventListener("DOMContentLoaded", async function () {
   const searchInput = document.getElementById("searchInput");
   const sourceSearchInput = document.getElementById("sourceSearchInput");
 
-  // Initialize dark mode
+  await initialize();
+
+  // Initialize dark mode after user data is loaded
   if (state.darkMode) {
     document.documentElement.classList.add("dark");
   }
-
-  await initialize();
 
   if (searchInput) {
     searchInput.addEventListener(

@@ -2,6 +2,6 @@ export const state = {
   currentUser: null,
   currentSources: [],
   isAdmin: false,
-  denseMode: localStorage.getItem("denseMode") === "true",
-  darkMode: localStorage.getItem("darkMode") === "true",
+  denseMode: false,
+  darkMode: false,
 };
