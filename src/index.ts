@@ -198,7 +198,36 @@ app.get(
         return;
       }
 
-      const stories = await storyService.getStories(sourceId);
+      // Get userId from token if authenticated
+      let userId: string | undefined;
+      try {
+        const token = req.cookies?.auth;
+        console.log(`[API /sources/${sourceId}] Auth token present:`, !!token);
+        if (token) {
+          const decoded = userService.verifyToken(token);
+          userId = decoded.userId;
+          console.log(
+            `[API /sources/${sourceId}] Authenticated userId:`,
+            userId
+          );
+        }
+      } catch (error) {
+        console.log(
+          `[API /sources/${sourceId}] Token verification failed:`,
+          error
+        );
+        // User not authenticated, continue without userId
+      }
+
+      console.log(
+        `[API /sources/${sourceId}] Calling getStories with userId:`,
+        userId
+      );
+      const stories = await storyService.getStories(sourceId, userId);
+      console.log(
+        `[API /sources/${sourceId}] Got ${stories.length} stories, first story:`,
+        stories[0]
+      );
       const sourceWithStories = {
         ...source.toObject(),
         stories,
@@ -361,7 +390,6 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
           isAdmin: user.isAdmin,
           sourceIds: user.sourceIds || [],
           sourceSubscriptionIds: user.sourceSubscriptionIds || [],
-          readIds: user.readIds || [],
         },
       });
     } catch (error) {
@@ -375,34 +403,7 @@ app.get("/api/auth/me", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// Get user's read IDs
-app.get(
-  "/api/users/me/readids",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const token = req.cookies?.auth;
-      if (!token) {
-        res.status(401).json({ status: "error", message: "Not authenticated" });
-        return;
-      }
-
-      const { userId } = userService.verifyToken(token);
-      const readIds = await userService.getReadIds(userId);
-
-      res.json({
-        status: "ok",
-        readIds,
-      });
-    } catch (error) {
-      console.error("Error getting read IDs:", error);
-      res
-        .status(500)
-        .json({ status: "error", message: "Failed to get read IDs" });
-    }
-  }
-);
-
-// Add a read ID
+// Mark story as read
 app.post(
   "/api/users/me/readids",
   async (req: Request, res: Response): Promise<void> => {
@@ -423,53 +424,16 @@ app.post(
         return;
       }
 
-      const readIds = await userService.addReadId(userId, storyId);
+      await userService.addReadId(userId, storyId);
 
       res.json({
         status: "ok",
-        readIds,
       });
     } catch (error) {
-      console.error("Error adding read ID:", error);
+      console.error("Error marking story as read:", error);
       res
         .status(500)
-        .json({ status: "error", message: "Failed to add read ID" });
-    }
-  }
-);
-
-// Update all read IDs (for syncing localStorage to server)
-app.put(
-  "/api/users/me/readids",
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const token = req.cookies?.auth;
-      if (!token) {
-        res.status(401).json({ status: "error", message: "Not authenticated" });
-        return;
-      }
-
-      const { userId } = userService.verifyToken(token);
-      const { readIds } = req.body;
-
-      if (!Array.isArray(readIds)) {
-        res
-          .status(400)
-          .json({ status: "error", message: "Read IDs must be an array" });
-        return;
-      }
-
-      const updatedReadIds = await userService.updateReadIds(userId, readIds);
-
-      res.json({
-        status: "ok",
-        readIds: updatedReadIds,
-      });
-    } catch (error) {
-      console.error("Error updating read IDs:", error);
-      res
-        .status(500)
-        .json({ status: "error", message: "Failed to update read IDs" });
+        .json({ status: "error", message: "Failed to mark story as read" });
     }
   }
 );
@@ -509,7 +473,6 @@ app.put(
           sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
             id.toString()
           ),
-          readIds: user.readIds || [],
         },
       });
     } catch (error) {
@@ -556,7 +519,6 @@ app.put(
           sourceSubscriptionIds: user.sourceSubscriptionIds.map((id) =>
             id.toString()
           ),
-          readIds: user.readIds || [],
         },
       });
     } catch (error) {

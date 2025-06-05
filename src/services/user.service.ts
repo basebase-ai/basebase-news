@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { Source } from "../models/source.model";
+import { StoryStatus } from "../models/story-status.model";
 import { Response } from "express";
 import { Types } from "mongoose";
 
@@ -113,49 +114,32 @@ export class UserService {
     });
   }
 
-  public async addReadId(userId: string, storyId: string): Promise<string[]> {
+  public async addReadId(userId: string, storyId: string): Promise<void> {
+    console.log(
+      `[UserService.addReadId] Called for userId: ${userId}, storyId: ${storyId}`
+    );
+
     const user = await User.findById(userId);
     if (!user) {
+      console.log(`[UserService.addReadId] User not found: ${userId}`);
       throw new Error("User not found");
     }
 
-    // Add the story ID if it's not already in the array
-    if (!user.readIds.includes(storyId)) {
-      user.readIds.push(storyId);
+    // Create or update StoryStatus record
+    const result = await StoryStatus.findOneAndUpdate(
+      {
+        userId: new Types.ObjectId(userId),
+        storyId: new Types.ObjectId(storyId),
+      },
+      {
+        userId: new Types.ObjectId(userId),
+        storyId: new Types.ObjectId(storyId),
+        status: "READ" as const,
+      },
+      { upsert: true, new: true }
+    );
 
-      // Keep only the most recent 100 read IDs
-      if (user.readIds.length > 100) {
-        user.readIds = user.readIds.slice(-100);
-      }
-
-      await user.save();
-    }
-
-    return user.readIds;
-  }
-
-  public async getReadIds(userId: string): Promise<string[]> {
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-    return user.readIds;
-  }
-
-  public async updateReadIds(
-    userId: string,
-    readIds: string[]
-  ): Promise<string[]> {
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Keep only the most recent 100 read IDs
-    user.readIds = readIds.slice(-100);
-    await user.save();
-
-    return user.readIds;
+    console.log(`[UserService.addReadId] StoryStatus upsert result:`, result);
   }
 }
 

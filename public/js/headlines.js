@@ -90,19 +90,22 @@ function filterHeadlines(searchTerm) {
 }
 
 function markAsRead(storyId) {
-  sourceService.readIds.add(storyId);
-  if (sourceService.readIds.size > 100) {
-    const idsArray = Array.from(sourceService.readIds);
-    sourceService.readIds = new Set(idsArray.slice(-100));
-  }
-  localStorage.setItem("readIds", JSON.stringify([...sourceService.readIds]));
-
   // Update all matching stories immediately
   const stories = document.querySelectorAll(
     `[data-story-id="${storyId}"] .news-headline`
   );
   stories.forEach((story) => {
     story.classList.add("read");
+  });
+
+  // Update the status in currentSources
+  state.currentSources.forEach((source) => {
+    if (source.stories) {
+      const story = source.stories.find((s) => s._id === storyId);
+      if (story) {
+        story.status = "READ";
+      }
+    }
   });
 
   // Sync with backend if user is authenticated
@@ -114,7 +117,7 @@ function markAsRead(storyId) {
       },
       body: JSON.stringify({ storyId }),
     }).catch((error) => {
-      console.error("Failed to sync read ID with backend:", error);
+      console.error("Failed to sync read status with backend:", error);
     });
   }
 }

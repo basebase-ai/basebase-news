@@ -2,7 +2,6 @@ import { state } from "./state.js";
 import { loadAllSources, renderSourcesGrid } from "./main.js";
 
 let currentSources = [];
-let readIds = new Set(JSON.parse(localStorage.getItem("readIds") || "[]"));
 let currentPreviewStory = null;
 
 function formatTimeAgo(date) {
@@ -105,7 +104,7 @@ function generateSourceHTML(source) {
                     ? "truncate"
                     : "whitespace-normal line-clamp-2"
                 } ${
-                      readIds.has(story._id) ? "read" : ""
+                      story.status === "READ" ? "read" : ""
                     } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
                       story.fullHeadline || ""
                     }">
@@ -560,7 +559,7 @@ async function refreshSource(sourceId) {
               <div class="news-headline ${
                 state.denseMode ? "truncate" : "whitespace-normal line-clamp-2"
               } ${
-                readIds.has(story._id) ? "read" : ""
+                story.status === "READ" ? "read" : ""
               } text-gray-900 dark:text-white font-poppins relative" data-original-text="${
                 story.fullHeadline || ""
               }">
@@ -762,7 +761,6 @@ export const sourceService = {
   setCurrentSources(sources) {
     currentSources = sources;
   },
-  readIds,
 };
 
 // Make service available globally

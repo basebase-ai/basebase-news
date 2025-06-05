@@ -258,9 +258,6 @@ async function initialize() {
           ?.classList.remove("hidden");
       }
 
-      // Sync read IDs when user logs in
-      await syncReadIds();
-
       await headlineService.loadHeadlines(user.sourceIds);
     } else {
       // Fetch popular sources for non-signed in users
@@ -272,53 +269,6 @@ async function initialize() {
     }
   } catch (error) {
     // Failed to initialize
-  }
-}
-
-async function syncReadIds() {
-  if (!state.currentUser) return;
-
-  try {
-    // Get localStorage read IDs
-    const localReadIds = JSON.parse(localStorage.getItem("readIds") || "[]");
-
-    // Get backend read IDs
-    const response = await fetch("/api/users/me/readids");
-    if (!response.ok) {
-      console.error("Failed to fetch backend read IDs");
-      return;
-    }
-
-    const data = await response.json();
-    const backendReadIds = data.readIds || [];
-
-    // Merge localStorage and backend read IDs (remove duplicates)
-    const mergedReadIds = [...new Set([...localReadIds, ...backendReadIds])];
-
-    // Update backend with merged list
-    if (mergedReadIds.length > 0) {
-      const updateResponse = await fetch("/api/users/me/readids", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ readIds: mergedReadIds }),
-      });
-
-      if (updateResponse.ok) {
-        const updateData = await updateResponse.json();
-        const finalReadIds = updateData.readIds || [];
-
-        // Update localStorage and sourceService with the final merged list
-        localStorage.setItem("readIds", JSON.stringify(finalReadIds));
-        sourceService.readIds = new Set(finalReadIds);
-      }
-    } else {
-      // If no read IDs, just update sourceService with backend data
-      sourceService.readIds = new Set(backendReadIds);
-    }
-  } catch (error) {
-    console.error("Failed to sync read IDs:", error);
   }
 }
 
