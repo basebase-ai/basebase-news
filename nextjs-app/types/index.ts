@@ -1,0 +1,38 @@
+export interface User {
+  _id: string;
+  first: string;
+  last: string;
+  email: string;
+  isAdmin: boolean;
+  sourceIds: string[];
+  denseMode: boolean;
+  darkMode: boolean;
+}
+
+export interface Source {
+  _id: string;
+  name: string;
+  homepageUrl: string;
+  rssUrl?: string;
+  includeSelector?: string;
+  excludeSelector?: string;
+  biasScore?: number;
+  tags?: string[];
+  imageUrl?: string;
+}
+
+export interface Story {
+  _id: string;
+  articleUrl: string;
+  fullHeadline: string;
+  sourceName: string;
+  sourceUrl: string;
+  publishDate: string;
+  summary?: string;
+  imageUrl?: string;
+  authorNames?: string[];
+  section?: string;
+  type?: string;
+  inPageRank?: number;
+  status?: "READ" | "UNREAD";
+}
