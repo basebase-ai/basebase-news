@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import { Story, Source } from '@/types';
+import { Menu } from '@headlessui/react';
+import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 
 const formatDate = (dateStr: string): string => {
   try {
@@ -28,11 +30,11 @@ const formatDate = (dateStr: string): string => {
 };
 
 export default function SourceGrid() {
-  const { currentUser, currentSources, denseMode } = useAppState();
+  const { currentUser, currentSources, denseMode, searchTerm, setCurrentUser } = useAppState();
   const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshingSources, setRefreshingSources] = useState<Set<string>>(new Set());
 
   const markAsRead = async (storyId: string) => {
     try {
@@ -121,8 +123,73 @@ export default function SourceGrid() {
     const term = searchTerm.toLowerCase();
     return headlines.filter(headline =>
       (headline.fullHeadline?.toLowerCase() || '').includes(term) ||
-      (headline.sourceName?.toLowerCase() || '').includes(term)
+      (headline.summary?.toLowerCase() || '').includes(term)
     );
+  };
+
+  const handleRefreshSource = async (sourceId: string) => {
+    try {
+      setRefreshingSources(prev => new Set(Array.from(prev).concat(sourceId)));
+      setSourceHeadlines(prev => {
+        const newMap = new Map(prev);
+        newMap.set(sourceId, []);
+        return newMap;
+      });
+
+      const response = await fetch(`/api/sources/${sourceId}/scrape`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        // Reload the headlines for this source
+        loadHeadlines();
+      } else {
+        throw new Error('Failed to refresh source');
+      }
+    } catch (error) {
+      console.error('Failed to refresh source:', error);
+    } finally {
+      setRefreshingSources(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(sourceId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRemoveSource = async (sourceId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
+      const response = await fetch('/api/users/me', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceIds: updatedSourceIds,
+        }),
+      });
+
+      if (response.ok) {
+        setCurrentUser({
+          ...currentUser,
+          sourceIds: updatedSourceIds,
+        });
+        
+        // Remove the source from local state
+        setSourceHeadlines(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(sourceId);
+          return newMap;
+        });
+      } else {
+        throw new Error('Failed to update user sources');
+      }
+    } catch (error) {
+      console.error('Failed to remove source:', error);
+    }
   };
 
   if (loading) {
@@ -155,32 +222,72 @@ export default function SourceGrid() {
         const source = getSourceById(sourceId);
         const headlines = sourceHeadlines.get(sourceId) || [];
         const filteredHeadlines = filterHeadlines(headlines);
+        const isRefreshing = refreshingSources.has(sourceId);
 
         if (!source) return null;
 
         return (
           <div key={sourceId} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden h-[250px] flex flex-col">
-            <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3 shrink-0">
-              {source.imageUrl ? (
-                <img 
-                  src={source.imageUrl} 
-                  alt={source.name} 
-                  className="w-6 h-6 object-contain"
-                />
-              ) : (
-                <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
-                  <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
-                    {source.name.charAt(0)}
-                  </span>
-                </div>
-              )}
-              <h2 className="font-bold text-gray-900 dark:text-white text-sm">
-                {source.name}
-              </h2>
+            <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
+              <div className="flex items-center space-x-3">
+                {source.imageUrl ? (
+                  <img 
+                    src={source.imageUrl} 
+                    alt={source.name} 
+                    className="w-6 h-6 object-contain"
+                  />
+                ) : (
+                  <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                      {source.name.charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <h2 className="font-bold text-gray-900 dark:text-white text-sm">
+                  {source.name}
+                </h2>
+              </div>
+              
+              <Menu as="div" className="relative">
+                <Menu.Button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                  <EllipsisVerticalIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                </Menu.Button>
+                <Menu.Items className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-100 dark:border-gray-700 focus:outline-none z-10">
+                  <Menu.Item>
+                    {({ active }: { active: boolean }) => (
+                      <button
+                        className={`${
+                          active ? 'bg-gray-50 dark:bg-gray-700' : ''
+                        } flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200`}
+                        onClick={() => handleRefreshSource(sourceId)}
+                        disabled={isRefreshing}
+                      >
+                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }: { active: boolean }) => (
+                      <button
+                        className={`${
+                          active ? 'bg-gray-50 dark:bg-gray-700' : ''
+                        } flex w-full items-center px-3 py-2 text-sm text-red-600 dark:text-red-400`}
+                        onClick={() => handleRemoveSource(sourceId)}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </Menu.Item>
+                </Menu.Items>
+              </Menu>
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              {filteredHeadlines.length === 0 ? (
+              {isRefreshing ? (
+                <div className="p-2 text-center text-gray-500 dark:text-gray-400 text-sm">
+                  Refreshing...
+                </div>
+              ) : filteredHeadlines.length === 0 ? (
                 <div className="p-2 text-center text-gray-500 dark:text-gray-400 text-sm">
                   No headlines found
                 </div>

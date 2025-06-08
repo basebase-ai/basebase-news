@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import type { User } from '@/types';
+import AddSourceModal from './AddSourceModal';
 
 interface UserPreferences {
   denseMode?: boolean;
@@ -12,6 +13,7 @@ interface UserPreferences {
 export default function UserAvatar() {
   const { currentUser, setCurrentUser, setDarkMode, setDenseMode } = useAppState();
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -101,9 +103,19 @@ export default function UserAvatar() {
         >
           <div className="py-1">
             <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-              Signed in as<br />{currentUser.first} {currentUser.last}
+              {currentUser.first} {currentUser.last}
             </div>
             
+            <button
+              onClick={() => {
+                setAddSourceModalOpen(true);
+                setDropdownVisible(false);
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              Add source...
+            </button>
+
             <div className="px-4 py-2 flex items-center justify-between">
               <span className="text-sm text-gray-700 dark:text-gray-300">Dense Mode</span>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -139,6 +151,11 @@ export default function UserAvatar() {
           </div>
         </div>
       )}
+
+      <AddSourceModal
+        isOpen={addSourceModalOpen}
+        onClose={() => setAddSourceModalOpen(false)}
+      />
     </div>
   );
 } 

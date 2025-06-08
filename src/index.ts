@@ -69,6 +69,7 @@ app.get("/hello", (req: Request, res: Response): void => {
 app.get("/api/sources", async (_req: Request, res: Response): Promise<void> => {
   try {
     const sources = await sourceService.getSources();
+    console.log("/api/sources returning", sources);
     res.json(sources);
   } catch (error) {
     console.error("Error getting sources:", error);

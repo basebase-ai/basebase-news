@@ -45,7 +45,7 @@ function updateUserAvatar(user) {
     dropdown.innerHTML = `
       <div class="py-1">
         <div class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 ui-font font-normal">
-          Signed in as<br>${user.first} ${user.last}
+          ${user.first} ${user.last}
         </div>
         <div class="px-4 py-2 flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
           <span class="ui-font font-normal">Dense Mode</span>

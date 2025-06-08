@@ -9,6 +9,7 @@ interface AppState {
   isAdmin: boolean;
   denseMode: boolean;
   darkMode: boolean;
+  searchTerm: string;
 }
 
 interface AppContextType extends AppState {
@@ -16,6 +17,7 @@ interface AppContextType extends AppState {
   setCurrentSources: Dispatch<SetStateAction<Source[]>>;
   setDenseMode: (mode: boolean) => void;
   setDarkMode: (mode: boolean) => void;
+  setSearchTerm: (term: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isAdmin: false,
     denseMode: false,
     darkMode: false,
+    searchTerm: '',
   });
 
   // Only watch darkMode changes
@@ -54,13 +57,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, darkMode: mode }));
   }, []);
 
+  const setSearchTerm = useCallback((term: string) => {
+    setState(prev => ({ ...prev, searchTerm: term }));
+  }, []);
+
   const value = useMemo(() => ({
     ...state,
     setCurrentUser,
     setCurrentSources,
     setDenseMode,
     setDarkMode,
-  }), [state, setCurrentUser, setCurrentSources, setDenseMode, setDarkMode]);
+    setSearchTerm,
+  }), [state, setCurrentUser, setCurrentSources, setDenseMode, setDarkMode, setSearchTerm]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
