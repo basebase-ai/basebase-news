@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction } from 'react';
-import type { User, Source } from '@/types';
+import type { User, Source, Story } from '@/types';
 
 interface AppState {
   currentUser: User | null;
@@ -10,6 +10,7 @@ interface AppState {
   denseMode: boolean;
   darkMode: boolean;
   searchTerm: string;
+  sourceHeadlines: Map<string, Story[]>;
 }
 
 interface AppContextType extends AppState {
@@ -18,6 +19,7 @@ interface AppContextType extends AppState {
   setDenseMode: (mode: boolean) => void;
   setDarkMode: (mode: boolean) => void;
   setSearchTerm: (term: string) => void;
+  setSourceHeadlines: (headlines: Map<string, Story[]>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -30,6 +32,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     denseMode: false,
     darkMode: false,
     searchTerm: '',
+    sourceHeadlines: new Map(),
   });
 
   // Only watch darkMode changes
@@ -61,6 +64,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, searchTerm: term }));
   }, []);
 
+  const setSourceHeadlines = useCallback((headlines: Map<string, Story[]>) => {
+    setState(prev => ({ ...prev, sourceHeadlines: headlines }));
+  }, []);
+
   const value = useMemo(() => ({
     ...state,
     setCurrentUser,
@@ -68,7 +75,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDenseMode,
     setDarkMode,
     setSearchTerm,
-  }), [state, setCurrentUser, setCurrentSources, setDenseMode, setDarkMode, setSearchTerm]);
+    setSourceHeadlines,
+  }), [state, setCurrentUser, setCurrentSources, setDenseMode, setDarkMode, setSearchTerm, setSourceHeadlines]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

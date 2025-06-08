@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import { Story, Source } from '@/types';
 import { Menu } from '@headlessui/react';
@@ -35,6 +35,69 @@ export default function SourceGrid() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshingSources, setRefreshingSources] = useState<Set<string>>(new Set());
+  const initialLoadDone = useRef(false);
+  const headlinesRef = useRef<Map<string, Story[]>>(new Map());
+
+  // Keep the ref in sync with state, but only when headlines actually change
+  useEffect(() => {
+    if (sourceHeadlines.size !== headlinesRef.current.size || 
+        Array.from(sourceHeadlines.keys()).some(key => 
+          !headlinesRef.current.has(key) || 
+          sourceHeadlines.get(key) !== headlinesRef.current.get(key))) {
+      headlinesRef.current = sourceHeadlines;
+    }
+  }, [sourceHeadlines]);
+
+  const loadHeadlines = useCallback(async () => {
+    if (!currentUser?.sourceIds?.length) return;
+    
+    try {
+      if (!initialLoadDone.current) {
+        setLoading(true);
+      }
+      setError(null);
+      
+      const newSourceHeadlines = new Map<string, Story[]>();
+      
+      for (const sourceId of currentUser.sourceIds) {
+        try {
+          const response = await fetch(`/api/sources/${sourceId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.source?.stories) {
+              const stories = data.source.stories as Story[];
+              const sortedStories = [...stories].sort((a: Story, b: Story) => {
+                const dateA = new Date(a.publishDate);
+                const dateB = new Date(b.publishDate);
+                return dateB.getTime() - dateA.getTime();
+              });
+              newSourceHeadlines.set(sourceId, sortedStories);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching stories for source ${sourceId}:`, error);
+        }
+      }
+      
+      setSourceHeadlines(newSourceHeadlines);
+      initialLoadDone.current = true;
+    } catch (error) {
+      console.error('Error loading headlines:', error);
+      setError('Failed to load headlines');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.sourceIds]);
+
+  useEffect(() => {
+    if (currentUser?.sourceIds?.length && currentSources?.length && !initialLoadDone.current) {
+      loadHeadlines();
+    }
+  }, [currentUser?.sourceIds, currentSources?.length, loadHeadlines]);
+
+  const getSourceById = (sourceId: string): Source | undefined => {
+    return currentSources?.find(source => source._id === sourceId);
+  };
 
   const markAsRead = async (storyId: string) => {
     try {
@@ -47,94 +110,28 @@ export default function SourceGrid() {
       });
 
       if (response.ok) {
-        // Update the local state to mark the story as read
-        setSourceHeadlines(prev => {
-          const newMap = new Map(prev);
-          newMap.forEach((stories, sourceId) => {
-            const updatedStories = stories.map(story => 
-              story._id === storyId 
-                ? { ...story, status: 'READ' as const }
-                : story
-            );
-            newMap.set(sourceId, updatedStories);
-          });
-          return newMap;
+        const newMap = new Map(sourceHeadlines);
+        newMap.forEach((stories, sourceId) => {
+          const updatedStories = stories.map(story => 
+            story._id === storyId 
+              ? { ...story, status: 'READ' as const }
+              : story
+          );
+          newMap.set(sourceId, updatedStories);
         });
+        setSourceHeadlines(newMap);
       }
     } catch (error) {
       console.error('Failed to mark story as read:', error);
     }
   };
 
-  const loadHeadlines = useCallback(async () => {
-    if (!currentUser?.sourceIds?.length || !currentSources?.length) {
-      console.log('No sourceIds or sources available, skipping headlines fetch');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const newSourceHeadlines = new Map<string, Story[]>();
-      
-      // Fetch stories from each source
-      for (const sourceId of currentUser.sourceIds) {
-        try {
-          const response = await fetch(`/api/sources/${sourceId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.source?.stories) {
-              // Sort stories by date
-              const sortedStories = [...data.source.stories].sort((a, b) => {
-                const dateA = new Date(a.publishDate);
-                const dateB = new Date(b.publishDate);
-                return isNaN(dateB.getTime()) || isNaN(dateA.getTime()) 
-                  ? 0 
-                  : dateB.getTime() - dateA.getTime();
-              });
-              newSourceHeadlines.set(sourceId, sortedStories);
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to fetch stories for source ${sourceId}:`, error);
-        }
-      }
-      
-      setSourceHeadlines(newSourceHeadlines);
-    } catch (error) {
-      console.error('Failed to fetch headlines:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch headlines');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser?.sourceIds, currentSources]);
-
-  useEffect(() => {
-    loadHeadlines();
-  }, [loadHeadlines]);
-
-  const getSourceById = (sourceId: string): Source | undefined => {
-    return currentSources?.find(source => source._id === sourceId);
-  };
-
-  const filterHeadlines = (headlines: Story[]): Story[] => {
-    if (!searchTerm) return headlines;
-    const term = searchTerm.toLowerCase();
-    return headlines.filter(headline =>
-      (headline.fullHeadline?.toLowerCase() || '').includes(term) ||
-      (headline.summary?.toLowerCase() || '').includes(term)
-    );
-  };
-
   const handleRefreshSource = async (sourceId: string) => {
     try {
       setRefreshingSources(prev => new Set(Array.from(prev).concat(sourceId)));
-      setSourceHeadlines(prev => {
-        const newMap = new Map(prev);
-        newMap.set(sourceId, []);
-        return newMap;
-      });
+      const newMap = new Map(sourceHeadlines);
+      newMap.set(sourceId, []);
+      setSourceHeadlines(newMap);
 
       const response = await fetch(`/api/sources/${sourceId}/scrape`, {
         method: 'POST',
@@ -162,8 +159,8 @@ export default function SourceGrid() {
 
     try {
       const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
-      const response = await fetch('/api/users/me', {
-        method: 'PATCH',
+      const response = await fetch('/api/users/me/sources', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -173,23 +170,26 @@ export default function SourceGrid() {
       });
 
       if (response.ok) {
-        setCurrentUser({
-          ...currentUser,
-          sourceIds: updatedSourceIds,
-        });
-        
-        // Remove the source from local state
-        setSourceHeadlines(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(sourceId);
-          return newMap;
-        });
+        const { user } = await response.json();
+        setCurrentUser(user);
+        const newMap = new Map(sourceHeadlines);
+        newMap.delete(sourceId);
+        setSourceHeadlines(newMap);
       } else {
         throw new Error('Failed to update user sources');
       }
     } catch (error) {
       console.error('Failed to remove source:', error);
     }
+  };
+
+  const filterHeadlines = (headlines: Story[]): Story[] => {
+    if (!searchTerm) return headlines;
+    const term = searchTerm.toLowerCase();
+    return headlines.filter(headline =>
+      (headline.fullHeadline?.toLowerCase() || '').includes(term) ||
+      (headline.summary?.toLowerCase() || '').includes(term)
+    );
   };
 
   if (loading) {

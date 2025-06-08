@@ -1,15 +1,16 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { Source } from '@/types';
+import { Source, Story } from '@/types';
 import { useAppState } from '@/lib/state/AppContext';
 
 interface AddSourceModalProps {
   isOpen: boolean;
   onClose: () => void;
+  setSourceHeadlines: (updater: (prev: Map<string, Story[]>) => Map<string, Story[]>) => void;
 }
 
-export default function AddSourceModal({ isOpen, onClose }: AddSourceModalProps) {
+export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines }: AddSourceModalProps) {
   const { currentUser, setCurrentUser } = useAppState();
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,10 +70,10 @@ export default function AddSourceModal({ isOpen, onClose }: AddSourceModalProps)
     try {
       const updatedSourceIds = currentUser.sourceIds.includes(sourceId) 
         ? currentUser.sourceIds 
-        : [...currentUser.sourceIds, sourceId];
+        : [sourceId, ...currentUser.sourceIds];
       
-      const response = await fetch('/api/users/me', {
-        method: 'PATCH',
+      const response = await fetch('/api/users/me/sources', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -82,10 +83,30 @@ export default function AddSourceModal({ isOpen, onClose }: AddSourceModalProps)
       });
 
       if (response.ok) {
-        setCurrentUser({
-          ...currentUser,
-          sourceIds: updatedSourceIds,
-        });
+        const { user } = await response.json();
+        
+        // Fetch the new source's headlines
+        const sourceResponse = await fetch(`/api/sources/${sourceId}`);
+        if (sourceResponse.ok) {
+          const { source } = await sourceResponse.json();
+          setSourceHeadlines(prev => {
+            const newMap = new Map(prev);
+            if (source?.stories) {
+              // Sort stories by date
+              const sortedStories = [...source.stories].sort((a, b) => {
+                const dateA = new Date(a.publishDate);
+                const dateB = new Date(b.publishDate);
+                return isNaN(dateB.getTime()) || isNaN(dateA.getTime()) 
+                  ? 0 
+                  : dateB.getTime() - dateA.getTime();
+              });
+              newMap.set(sourceId, sortedStories);
+            }
+            return newMap;
+          });
+        }
+        
+        setCurrentUser(user);
       } else {
         throw new Error('Failed to update user sources');
       }
@@ -125,9 +146,20 @@ export default function AddSourceModal({ isOpen, onClose }: AddSourceModalProps)
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all">
-                <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                  Add Source
-                </Dialog.Title>
+                <div className="flex justify-between items-center mb-4">
+                  <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                    Add Source
+                  </Dialog.Title>
+                  <button
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="sr-only">Close</span>
+                  </button>
+                </div>
 
                 <button
                   className="mb-6 flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"

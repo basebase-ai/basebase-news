@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
-import type { User } from '@/types';
+import type { User, Story } from '@/types';
 import AddSourceModal from './AddSourceModal';
 
 interface UserPreferences {
@@ -14,6 +14,7 @@ export default function UserAvatar() {
   const { currentUser, setCurrentUser, setDarkMode, setDenseMode } = useAppState();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
+  const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
   const dropdownRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -155,6 +156,7 @@ export default function UserAvatar() {
       <AddSourceModal
         isOpen={addSourceModalOpen}
         onClose={() => setAddSourceModalOpen(false)}
+        setSourceHeadlines={setSourceHeadlines}
       />
     </div>
   );
