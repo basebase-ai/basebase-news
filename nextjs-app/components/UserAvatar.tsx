@@ -2,19 +2,20 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
-import type { User, Story } from '@/types';
-import AddSourceModal from './AddSourceModal';
+import type { User } from '@/types';
+
+interface UserAvatarProps {
+  onAddSource: () => void;
+}
 
 interface UserPreferences {
   denseMode?: boolean;
   darkMode?: boolean;
 }
 
-export default function UserAvatar() {
+export default function UserAvatar({ onAddSource }: UserAvatarProps) {
   const { currentUser, setCurrentUser, setDarkMode, setDenseMode } = useAppState();
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
-  const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
   const dropdownRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -109,7 +110,7 @@ export default function UserAvatar() {
             
             <button
               onClick={() => {
-                setAddSourceModalOpen(true);
+                onAddSource();
                 setDropdownVisible(false);
               }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -152,12 +153,6 @@ export default function UserAvatar() {
           </div>
         </div>
       )}
-
-      <AddSourceModal
-        isOpen={addSourceModalOpen}
-        onClose={() => setAddSourceModalOpen(false)}
-        setSourceHeadlines={setSourceHeadlines}
-      />
     </div>
   );
 } 

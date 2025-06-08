@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { Source, Story } from '@/types';
 import { useAppState } from '@/lib/state/AppContext';
 
@@ -8,10 +8,11 @@ interface AddSourceModalProps {
   isOpen: boolean;
   onClose: () => void;
   setSourceHeadlines: (updater: (prev: Map<string, Story[]>) => Map<string, Story[]>) => void;
+  onEditSource: (source: Source) => void;
 }
 
-export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines }: AddSourceModalProps) {
-  const { currentUser, setCurrentUser } = useAppState();
+export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines, onEditSource }: AddSourceModalProps) {
+  const { currentUser, setCurrentUser, currentSources, setCurrentSources } = useAppState();
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,29 +85,34 @@ export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines }: 
 
       if (response.ok) {
         const { user } = await response.json();
+        setCurrentUser(user);
         
-        // Fetch the new source's headlines
+        // Fetch the new source's headlines and update currentSources
         const sourceResponse = await fetch(`/api/sources/${sourceId}`);
         if (sourceResponse.ok) {
           const { source } = await sourceResponse.json();
-          setSourceHeadlines(prev => {
-            const newMap = new Map(prev);
-            if (source?.stories) {
-              // Sort stories by date
+          if (source) {
+            // Update currentSources if the source isn't already there
+            if (!currentSources?.some(s => s._id === source._id)) {
+              setCurrentSources(prev => [...(prev || []), source]);
+            }
+            
+            if (source.stories) {
               const sortedStories = [...source.stories].sort((a, b) => {
                 const dateA = new Date(a.publishDate);
                 const dateB = new Date(b.publishDate);
-                return isNaN(dateB.getTime()) || isNaN(dateA.getTime()) 
-                  ? 0 
-                  : dateB.getTime() - dateA.getTime();
+                return dateB.getTime() - dateA.getTime();
               });
-              newMap.set(sourceId, sortedStories);
+              setSourceHeadlines(prev => {
+                const newMap = new Map(prev);
+                newMap.set(sourceId, sortedStories);
+                return newMap;
+              });
             }
-            return newMap;
-          });
+            // Close the modal after successfully adding the source
+            onClose();
+          }
         }
-        
-        setCurrentUser(user);
       } else {
         throw new Error('Failed to update user sources');
       }
@@ -115,121 +121,168 @@ export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines }: 
     }
   };
 
+  const handleRemoveSource = async (sourceId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
+      
+      const response = await fetch('/api/users/me/sources', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceIds: updatedSourceIds,
+        }),
+      });
+
+      if (response.ok) {
+        const { user } = await response.json();
+        setCurrentUser(user);
+        setCurrentSources(prev => prev.filter(s => s._id !== sourceId));
+      } else {
+        throw new Error('Failed to update user sources');
+      }
+    } catch (error) {
+      console.error('Failed to remove source:', error);
+    }
+  };
+
   const isSourceAdded = (sourceId: string): boolean => {
     return currentUser?.sourceIds.includes(sourceId) || false;
   };
 
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
-        </Transition.Child>
+    <>
+      <Transition appear show={isOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={onClose}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all">
-                <div className="flex justify-between items-center mb-4">
-                  <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
-                    Add Source
-                  </Dialog.Title>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all">
+                  <div className="flex justify-between items-center mb-4">
+                    <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                      Add Source
+                    </Dialog.Title>
+                    <button
+                      onClick={onClose}
+                      className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                    >
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="sr-only">Close</span>
+                    </button>
+                  </div>
+
                   <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                    className="mb-6 flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    onClick={() => {
+                      onClose();
+                      // TODO: Open create source modal
+                    }}
                   >
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span className="sr-only">Close</span>
+                    <PlusIcon className="h-5 w-5" />
+                    <span>Create New Source</span>
                   </button>
-                </div>
 
-                <button
-                  className="mb-6 flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                  onClick={() => {
-                    onClose();
-                    // TODO: Open create source modal
-                  }}
-                >
-                  <PlusIcon className="h-5 w-5" />
-                  <span>Create New Source</span>
-                </button>
-
-                {loading ? (
-                  <div className="text-center py-4 text-gray-600 dark:text-gray-400">
-                    Loading sources...
-                  </div>
-                ) : error ? (
-                  <div className="text-center py-4 text-red-500">
-                    {error}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {sources.map(source => (
-                      <div
-                        key={source._id}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {source.imageUrl ? (
-                            <img
-                              src={source.imageUrl}
-                              alt={source.name}
-                              className="w-8 h-8 object-contain"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
-                              <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
-                                {source.name.charAt(0)}
-                              </span>
+                  {loading ? (
+                    <div className="text-center py-4 text-gray-600 dark:text-gray-400">
+                      Loading sources...
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-4 text-red-500">
+                      {error}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {sources.map(source => (
+                        <div
+                          key={source._id}
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
+                            {source.imageUrl ? (
+                              <img
+                                src={source.imageUrl}
+                                alt={source.name}
+                                className="w-8 h-8 object-contain"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
+                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                                  {source.name.charAt(0)}
+                                </span>
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-medium text-gray-900 dark:text-white">
+                                {source.name}
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {source.homepageUrl}
+                              </p>
                             </div>
-                          )}
-                          <div>
-                            <h3 className="font-medium text-gray-900 dark:text-white">
-                              {source.name}
-                            </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {source.homepageUrl}
-                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {currentUser?.isAdmin && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditSource(source);
+                                }}
+                                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600"
+                              >
+                                <Cog6ToothIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                            <button
+                              className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                                isSourceAdded(source._id)
+                                  ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30'
+                                  : 'bg-primary text-white hover:bg-primary-dark'
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                isSourceAdded(source._id) 
+                                  ? handleRemoveSource(source._id)
+                                  : handleAddSource(source._id);
+                              }}
+                            >
+                              {isSourceAdded(source._id) ? 'Remove' : 'Add'}
+                            </button>
                           </div>
                         </div>
-                        <button
-                          className={`px-4 py-2 text-sm font-medium rounded-lg ${
-                            isSourceAdded(source._id)
-                              ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                              : 'bg-primary text-white hover:bg-primary-dark'
-                          }`}
-                          onClick={() => handleAddSource(source._id)}
-                          disabled={isSourceAdded(source._id)}
-                        >
-                          {isSourceAdded(source._id) ? 'Added' : 'Add'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Dialog.Panel>
-            </Transition.Child>
+                      ))}
+                    </div>
+                  )}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
           </div>
-        </div>
-      </Dialog>
-    </Transition>
+        </Dialog>
+      </Transition>
+    </>
   );
 } 

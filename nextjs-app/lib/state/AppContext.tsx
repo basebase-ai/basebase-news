@@ -35,7 +35,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     sourceHeadlines: new Map(),
   });
 
-  // Only watch darkMode changes
+  // Initialize state from user preferences
+  useEffect(() => {
+    const user = state.currentUser;
+    if (user?.denseMode !== undefined || user?.darkMode !== undefined) {
+      setState(prev => ({
+        ...prev,
+        denseMode: user.denseMode || false,
+        darkMode: user.darkMode || false,
+      }));
+    }
+  }, [state.currentUser]);
+
+  // Watch darkMode changes
   useEffect(() => {
     if (state.darkMode) {
       document.documentElement.classList.add('dark');
@@ -45,7 +57,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.darkMode]);
 
   const setCurrentUser = useCallback((user: User | null) => {
-    setState(prev => ({ ...prev, currentUser: user, isAdmin: user?.isAdmin || false }));
+    setState(prev => ({ 
+      ...prev, 
+      currentUser: user, 
+      isAdmin: user?.isAdmin || false,
+      denseMode: user?.denseMode || false,
+      darkMode: user?.darkMode || false,
+    }));
   }, []);
 
   const setCurrentSources = useCallback((sources: SetStateAction<Source[]>) => {

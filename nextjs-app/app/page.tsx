@@ -1,15 +1,21 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import SourceGrid from '@/components/SourceGrid';
 import UserAvatar from '@/components/UserAvatar';
 import SourceSettings from '@/components/SourceSettings';
 import SignInModal from '@/components/SignInModal';
+import AddSourceModal from '@/components/AddSourceModal';
 import Image from 'next/image';
+import { Source, Story } from '@/types';
 
 export default function Home() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
+  const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
+  const [sourceSettingsOpen, setSourceSettingsOpen] = useState(false);
+  const [editingSource, setEditingSource] = useState<Source | null>(null);
+  const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
 
   const initializeUser = useCallback(async () => {
     try {
@@ -65,11 +71,11 @@ export default function Home() {
             <input
               type="text"
               placeholder="Search headlines..."
-              className="w-48 md:w-64 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-48 md:w-64 h-8 px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <UserAvatar />
+            <UserAvatar onAddSource={() => setAddSourceModalOpen(true)} />
           </div>
         </div>
       </header>
@@ -80,7 +86,25 @@ export default function Home() {
         </div>
       </main>
 
-      <SourceSettings />
+      <AddSourceModal
+        isOpen={addSourceModalOpen}
+        onClose={() => setAddSourceModalOpen(false)}
+        setSourceHeadlines={setSourceHeadlines}
+        onEditSource={(source) => {
+          setEditingSource(source);
+          setSourceSettingsOpen(true);
+        }}
+      />
+
+      <SourceSettings
+        isOpen={sourceSettingsOpen}
+        onClose={() => {
+          setSourceSettingsOpen(false);
+          setEditingSource(null);
+        }}
+        editingSource={editingSource}
+      />
+
       <SignInModal />
     </div>
   );

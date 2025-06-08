@@ -19,6 +19,7 @@ export interface Source {
   biasScore?: number;
   tags?: string[];
   imageUrl?: string;
+  lastScrapedAt?: string;
 }
 
 export interface Story {
