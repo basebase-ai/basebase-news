@@ -7,7 +7,7 @@ import SourceBox from './SourceBox';
 import SourceSettings from './SourceSettings';
 
 export default function SourceGrid() {
-  const { currentUser, currentSources, searchTerm, setCurrentUser } = useAppState();
+  const { currentUser, currentSources, searchTerm, setCurrentUser, denseMode } = useAppState();
   const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
   const [loadingSources, setLoadingSources] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -191,6 +191,7 @@ export default function SourceGrid() {
             source={source}
             headlines={headlines}
             isRefreshing={isRefreshing}
+            denseMode={denseMode}
             onRefresh={handleRefreshSource}
             onRemove={handleRemoveSource}
             onMarkAsRead={markAsRead}

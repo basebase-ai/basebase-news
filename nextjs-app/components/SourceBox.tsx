@@ -9,6 +9,7 @@ interface SourceBoxProps {
   source: Source;
   headlines: Story[];
   isRefreshing: boolean;
+  denseMode: boolean;
   onRefresh: (sourceId: string) => void;
   onRemove: (sourceId: string) => void;
   onMarkAsRead: (storyId: string) => void;
@@ -62,6 +63,7 @@ export default function SourceBox({
   source, 
   headlines, 
   isRefreshing, 
+  denseMode,
   onRefresh, 
   onRemove, 
   onMarkAsRead,
@@ -180,7 +182,7 @@ export default function SourceBox({
             {filteredHeadlines.map(headline => (
               <article 
                 key={headline._id} 
-                className="pl-3 pr-2 pt-1 pb-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 group relative"
+                className={`pl-3 pr-2 ${denseMode ? 'pt-1 pb-0' : 'py-2'} hover:bg-gray-50 dark:hover:bg-gray-700/50 group relative`}
               >
                 <a
                   href={headline.articleUrl}
@@ -189,25 +191,25 @@ export default function SourceBox({
                   className="block"
                   onClick={() => onMarkAsRead(headline._id)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className={`text-sm truncate ${
+                  <div className="flex items-center justify-between gap-2">
+                    <div className={`text-sm ${denseMode ? 'truncate' : 'line-clamp-2'} ${
                       headline.status === 'READ' 
                         ? 'text-gray-400 dark:text-gray-500' 
                         : 'text-gray-900 dark:text-white'
                     }`}>
-                      {headline.fullHeadline}
+                      <span className={!denseMode ? 'font-medium' : ''}>{headline.fullHeadline}</span>
                       {headline.summary && (
-                        <span className={headline.status === 'READ' 
+                        <span className={`${headline.status === 'READ' 
                           ? 'text-gray-400 dark:text-gray-500'
                           : 'text-gray-500 dark:text-gray-400'
-                        }>
-                          {" - "}
+                        }`}>
+                          {denseMode ? " - " : " — "}
                           {headline.summary}
                         </span>
                       )}
                     </div>
                     {headline.publishDate && (
-                      <div className="hidden group-hover:block text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2 shrink-0">
+                      <div className={`text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0 ${denseMode ? 'hidden group-hover:block' : 'block'}`}>
                         {formatDate(headline.publishDate)}
                       </div>
                     )}
