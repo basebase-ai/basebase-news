@@ -12,6 +12,7 @@ import { User } from "./models/user.model";
 import { userService } from "./services/user.service";
 import { sourceService } from "./services/source.service";
 import { previewService } from "./services/preview.service";
+import { ConnectionService } from "./services/connection.service";
 import nodemailer from "nodemailer";
 import mongoose from "mongoose";
 
@@ -577,6 +578,140 @@ app.post("/api/preview", async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ status: "error", message: errorMessage });
   }
 });
+
+// Connection endpoints
+app.post(
+  "/api/connections",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId: authUserId } = userService.verifyToken(token);
+      const { targetUserId } = req.body;
+
+      if (!targetUserId) {
+        res
+          .status(400)
+          .json({ status: "error", message: "Target user ID is required" });
+        return;
+      }
+
+      const connection = await ConnectionService.addConnection(
+        new mongoose.Types.ObjectId(authUserId),
+        new mongoose.Types.ObjectId(targetUserId)
+      );
+
+      res.json({ status: "ok", connection });
+    } catch (error) {
+      console.error("Error adding connection:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ status: "error", message: errorMessage });
+    }
+  }
+);
+
+app.delete(
+  "/api/connections/:targetUserId",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId: authUserId } = userService.verifyToken(token);
+      const { targetUserId } = req.params;
+
+      const connection = await ConnectionService.removeConnection(
+        new mongoose.Types.ObjectId(authUserId),
+        new mongoose.Types.ObjectId(targetUserId)
+      );
+
+      if (!connection) {
+        res
+          .status(404)
+          .json({ status: "error", message: "Connection not found" });
+        return;
+      }
+
+      res.json({ status: "ok", connection });
+    } catch (error) {
+      console.error("Error removing connection:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ status: "error", message: errorMessage });
+    }
+  }
+);
+
+app.get(
+  "/api/connections",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId: authUserId } = userService.verifyToken(token);
+      const { status } = req.query;
+
+      const connections = await ConnectionService.getUserConnections(
+        new mongoose.Types.ObjectId(authUserId),
+        status as any
+      );
+
+      res.json({ status: "ok", connections });
+    } catch (error) {
+      console.error("Error getting connections:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ status: "error", message: errorMessage });
+    }
+  }
+);
+
+app.get(
+  "/api/connections/:targetUserId",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const token = req.cookies?.auth;
+      if (!token) {
+        res.status(401).json({ status: "error", message: "Not authenticated" });
+        return;
+      }
+
+      const { userId: authUserId } = userService.verifyToken(token);
+      const { targetUserId } = req.params;
+
+      const connection = await ConnectionService.getConnection(
+        new mongoose.Types.ObjectId(authUserId),
+        new mongoose.Types.ObjectId(targetUserId)
+      );
+
+      if (!connection) {
+        res
+          .status(404)
+          .json({ status: "error", message: "Connection not found" });
+        return;
+      }
+
+      res.json({ status: "ok", connection });
+    } catch (error) {
+      console.error("Error getting connection:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ status: "error", message: errorMessage });
+    }
+  }
+);
 
 // Start the server and agenda service
 async function startServer(): Promise<void> {
