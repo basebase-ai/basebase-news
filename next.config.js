@@ -9,6 +9,15 @@ const nextConfig = {
     SMTP_PASS: process.env.SMTP_PASS,
     SMTP_SECURE: process.env.SMTP_SECURE,
   },
+  basePath: "",
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "/api/:path*",
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

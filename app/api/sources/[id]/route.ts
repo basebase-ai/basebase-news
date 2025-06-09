@@ -5,6 +5,7 @@ import { userService } from "@/services/user.service";
 import { User } from "@/models/user.model";
 import { Types } from "mongoose";
 import { Story } from "@/models/story.model";
+import { StoryStatus } from "@/models/story-status.model";
 import { cookies } from "next/headers";
 
 export async function GET(
@@ -62,6 +63,17 @@ export async function GET(
       .limit(50)
       .lean();
 
+    // Get read status for each story
+    const storyIds = stories.map((story) => story._id);
+    const readStatuses = await StoryStatus.find({
+      userId: user._id,
+      storyId: { $in: storyIds },
+    }).lean();
+
+    const readStoryIds = new Set(
+      readStatuses.map((status) => status.storyId.toString())
+    );
+
     return NextResponse.json({
       status: "ok",
       source: {
@@ -88,6 +100,7 @@ export async function GET(
           authorNames: story.authorNames,
           createdAt: story.createdAt,
           lastScrapedAt: story.lastScrapedAt,
+          status: readStoryIds.has(story._id.toString()) ? "READ" : "UNREAD",
         })),
       },
     });

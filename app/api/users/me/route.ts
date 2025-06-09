@@ -33,6 +33,8 @@ export async function GET(req: NextRequest) {
         return response;
       }
 
+      console.log("Backend user object:", user);
+
       return NextResponse.json({
         status: "ok",
         user: {
@@ -40,6 +42,7 @@ export async function GET(req: NextRequest) {
           email: user.email,
           first: user.first,
           last: user.last,
+          imageUrl: user.imageUrl,
           isAdmin: user.isAdmin,
           sourceIds: user.sourceIds.map((id) => id.toString()),
           denseMode: user.denseMode || false,

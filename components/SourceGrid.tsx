@@ -5,6 +5,7 @@ import { useAppState } from '@/lib/state/AppContext';
 import { Story, Source } from '@/types';
 import SourceBox from './SourceBox';
 import SourceSettings from './SourceSettings';
+import { userService } from '@/services/user.service';
 
 export default function SourceGrid() {
   const { currentUser, currentSources, searchTerm, setCurrentUser, denseMode } = useAppState();
@@ -141,29 +142,55 @@ export default function SourceGrid() {
   };
 
   const markAsRead = async (storyId: string) => {
+    console.log('[SourceGrid.markAsRead] Starting to mark story as read:', storyId);
     try {
+      if (!storyId) {
+        console.error('[SourceGrid.markAsRead] No story ID provided');
+        return;
+      }
+
+      const requestBody = JSON.stringify({ storyId });
+      console.log('[SourceGrid.markAsRead] Request body:', requestBody);
+      
       const response = await fetch('/api/users/me/readids', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ storyId }),
+        body: requestBody,
+        credentials: 'include'
+      });
+
+      const responseText = await response.text();
+      console.log('[SourceGrid.markAsRead] API response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText
       });
 
       if (response.ok) {
+        console.log('[SourceGrid.markAsRead] Updating UI state for story:', storyId);
         const newMap = new Map(sourceHeadlines);
         newMap.forEach((stories, sourceId) => {
-          const updatedStories = stories.map(story => 
-            story._id === storyId 
-              ? { ...story, status: 'READ' as const }
-              : story
-          );
+          const updatedStories = stories.map(story => {
+            if (story.id === storyId) {
+              console.log('[SourceGrid.markAsRead] Found story to update:', {
+                id: story.id,
+                oldStatus: story.status,
+                newStatus: 'READ'
+              });
+              return { ...story, status: 'READ' as const };
+            }
+            return story;
+          });
           newMap.set(sourceId, updatedStories);
         });
+        console.log('[SourceGrid.markAsRead] Setting new headlines map');
         setSourceHeadlines(newMap);
       }
     } catch (error) {
-      console.error('Failed to mark story as read:', error);
+      console.error('[SourceGrid.markAsRead] Failed to mark story as read:', error);
     }
   };
 

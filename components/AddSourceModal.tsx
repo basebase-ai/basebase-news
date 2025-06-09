@@ -1,8 +1,9 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { Source, Story } from '@/types';
 import { useAppState } from '@/lib/state/AppContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faCog, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 interface AddSourceModalProps {
   isOpen: boolean;
@@ -109,8 +110,6 @@ export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines, on
                 return newMap;
               });
             }
-            // Close the modal after successfully adding the source
-            onClose();
           }
         }
       } else {
@@ -156,7 +155,7 @@ export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines, on
   return (
     <>
       <Transition appear show={isOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Dialog as="div" className="relative z-50" onClose={(value) => {}}>
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -181,102 +180,103 @@ export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines, on
                 leaveTo="opacity-0 scale-95"
               >
                 <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all">
-                  <div className="flex justify-between items-center mb-4">
-                    <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
-                      Add Source
-                    </Dialog.Title>
+                  <div className="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      Add a new source
+                    </h3>
                     <button
+                      type="button"
+                      className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
                       onClick={onClose}
-                      className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
                     >
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span className="sr-only">Close</span>
+                      <FontAwesomeIcon icon={faTimes} className="h-6 w-6" />
+                      <span className="sr-only">Close modal</span>
                     </button>
                   </div>
+                  <div className="p-6 space-y-6">
+                    <button
+                      className="mb-6 flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      onClick={() => {
+                        onClose();
+                        // TODO: Open create source modal
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faPlus} className="h-5 w-5" />
+                      <span>Create New Source</span>
+                    </button>
 
-                  <button
-                    className="mb-6 flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    onClick={() => {
-                      onClose();
-                      // TODO: Open create source modal
-                    }}
-                  >
-                    <PlusIcon className="h-5 w-5" />
-                    <span>Create New Source</span>
-                  </button>
-
-                  {loading ? (
-                    <div className="text-center py-4 text-gray-600 dark:text-gray-400">
-                      Loading sources...
-                    </div>
-                  ) : error ? (
-                    <div className="text-center py-4 text-red-500">
-                      {error}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {sources.map(source => (
-                        <div
-                          key={source._id}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            {source.imageUrl ? (
-                              <img
-                                src={source.imageUrl}
-                                alt={source.name}
-                                className="w-8 h-8 object-contain"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
-                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
-                                  {source.name.charAt(0)}
-                                </span>
+                    {loading ? (
+                      <div className="text-center py-4 text-gray-600 dark:text-gray-400">
+                        Loading sources...
+                      </div>
+                    ) : error ? (
+                      <div className="text-center py-4 text-red-500">
+                        {error}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {sources.map(source => (
+                          <div
+                            key={source._id}
+                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3">
+                              {source.imageUrl ? (
+                                <img
+                                  src={source.imageUrl}
+                                  alt={source.name}
+                                  className="w-8 h-8 object-contain"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
+                                  <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                                    {source.name.charAt(0)}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-medium text-gray-900 dark:text-white">
+                                  {source.name}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {source.homepageUrl}
+                                </p>
                               </div>
-                            )}
-                            <div>
-                              <h3 className="font-medium text-gray-900 dark:text-white">
-                                {source.name}
-                              </h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {source.homepageUrl}
-                              </p>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {currentUser?.isAdmin && (
+                            <div className="flex items-center space-x-2">
+                              {currentUser?.isAdmin && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEditSource(source);
+                                  }}
+                                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600"
+                                >
+                                  <FontAwesomeIcon icon={faCog} className="h-5 w-5" />
+                                </button>
+                              )}
                               <button
+                                className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                                  isSourceAdded(source._id)
+                                    ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30'
+                                    : 'bg-primary text-white hover:bg-primary-dark'
+                                }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onEditSource(source);
+                                  isSourceAdded(source._id) 
+                                    ? handleRemoveSource(source._id)
+                                    : handleAddSource(source._id);
                                 }}
-                                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600"
                               >
-                                <Cog6ToothIcon className="h-5 w-5" />
+                                {isSourceAdded(source._id) ? 'Remove' : 'Add'}
                               </button>
-                            )}
-                            <button
-                              className={`px-4 py-2 text-sm font-medium rounded-lg ${
-                                isSourceAdded(source._id)
-                                  ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30'
-                                  : 'bg-primary text-white hover:bg-primary-dark'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                isSourceAdded(source._id) 
-                                  ? handleRemoveSource(source._id)
-                                  : handleAddSource(source._id);
-                              }}
-                            >
-                              {isSourceAdded(source._id) ? 'Remove' : 'Add'}
-                            </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+
+                  </div>
                 </Dialog.Panel>
               </Transition.Child>
             </div>

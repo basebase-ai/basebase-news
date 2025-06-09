@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes, faEnvelopeOpen } from '@fortawesome/free-solid-svg-icons';
 
 export default function SignInModal() {
   const { isSignInModalOpen, setSignInModalOpen } = useAppState();
@@ -45,15 +47,17 @@ export default function SignInModal() {
               setSignInModalOpen(false);
               setShowConfirmation(false);
             }}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <i className="ri-close-line text-2xl"></i>
+            <FontAwesomeIcon icon={faTimes} className="text-2xl" />
           </button>
         </div>
 
         {showConfirmation ? (
           <div className="text-center py-8">
-            <i className="ri-mail-send-line text-5xl text-green-500 mb-4"></i>
+            <div className="mb-6 flex justify-center">
+              <FontAwesomeIcon icon={faEnvelopeOpen} className="text-5xl text-green-500 mb-4" />
+            </div>
             <h4 className="text-xl font-semibold mb-2">Check your email</h4>
             <p className="text-gray-600 dark:text-gray-400">
               We&apos;ve sent you a magic link to sign in.
@@ -69,7 +73,7 @@ export default function SignInModal() {
                 type="email"
                 name="email"
                 required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
@@ -81,7 +85,7 @@ export default function SignInModal() {
                 type="text"
                 name="firstName"
                 required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
@@ -93,13 +97,13 @@ export default function SignInModal() {
                 type="text"
                 name="lastName"
                 required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
             >
               Continue with Email
             </button>

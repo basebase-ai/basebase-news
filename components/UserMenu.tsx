@@ -3,8 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import type { User } from '@/types';
+import Avatar from './Avatar';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
-interface UserAvatarProps {
+interface UserMenuProps {
   onAddSource: () => void;
 }
 
@@ -13,7 +16,7 @@ interface UserPreferences {
   darkMode?: boolean;
 }
 
-export default function UserAvatar({ onAddSource }: UserAvatarProps) {
+export default function UserMenu({ onAddSource }: UserMenuProps) {
   const { currentUser, setCurrentUser, setDarkMode, setDenseMode, setSignInModalOpen } = useAppState();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -33,13 +36,6 @@ export default function UserAvatar({ onAddSource }: UserAvatarProps) {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const getInitials = useCallback((first: string | undefined | null, last: string | undefined | null): string => {
-    if (!first || !last) return '?';
-    const firstInitial = first.charAt(0) || '';
-    const lastInitial = last.charAt(0) || '';
-    return firstInitial && lastInitial ? `${firstInitial}${lastInitial}`.toUpperCase() : '?';
   }, []);
 
   const handleSignOut = async () => {
@@ -81,7 +77,7 @@ export default function UserAvatar({ onAddSource }: UserAvatarProps) {
     return (
       <button
         onClick={() => setSignInModalOpen(true)}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
       >
         Sign In
       </button>
@@ -93,9 +89,9 @@ export default function UserAvatar({ onAddSource }: UserAvatarProps) {
       <div
         ref={avatarRef}
         onClick={() => setDropdownVisible(!dropdownVisible)}
-        className="bg-blue-600 w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm cursor-pointer"
+        className="cursor-pointer"
       >
-        {getInitials(currentUser?.first, currentUser?.last)}
+        <Avatar user={currentUser} size="md" />
       </div>
 
       {dropdownVisible && (
@@ -127,7 +123,7 @@ export default function UserAvatar({ onAddSource }: UserAvatarProps) {
                   onChange={(e) => updateUserPreferences({ denseMode: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
 
@@ -140,7 +136,7 @@ export default function UserAvatar({ onAddSource }: UserAvatarProps) {
                   onChange={(e) => updateUserPreferences({ darkMode: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
 
@@ -148,7 +144,7 @@ export default function UserAvatar({ onAddSource }: UserAvatarProps) {
               onClick={handleSignOut}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <i className="ri-logout-box-line mr-2"></i>Sign out
+              <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />Sign out
             </button>
           </div>
         </div>

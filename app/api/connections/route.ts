@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 import { userService } from "@/services/user.service";
 import { ConnectionService } from "@/services/connection.service";
 import mongoose from "mongoose";
+import { connectToDatabase } from "@/services/mongodb.service";
 
 export async function GET(request: Request) {
   try {
+    await connectToDatabase();
     const cookieStore = cookies();
     const token = cookieStore.get("auth")?.value;
 
@@ -20,10 +22,26 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
 
-    const connections = await ConnectionService.getUserConnections(
-      new mongoose.Types.ObjectId(authUserId),
-      status as any
+    console.log(
+      `[API/CONNECTIONS] GET request for userId: ${authUserId}, status: ${status}`
     );
+
+    let connections;
+
+    if (status === "REQUESTED") {
+      connections = await ConnectionService.getRequests(
+        new mongoose.Types.ObjectId(authUserId)
+      );
+    } else if (status === "SUGGESTED") {
+      connections = await ConnectionService.getSuggestedUsers(
+        new mongoose.Types.ObjectId(authUserId)
+      );
+    } else {
+      // Default to getting connected users
+      connections = await ConnectionService.getConnectedUsers(
+        new mongoose.Types.ObjectId(authUserId)
+      );
+    }
 
     return NextResponse.json({ status: "ok", connections });
   } catch (error) {

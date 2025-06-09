@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Never create inline SVGs. Use standard icons from font awesome whenever possible.

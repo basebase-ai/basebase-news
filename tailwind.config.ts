@@ -14,7 +14,8 @@ const config: Config = {
         roboto: ["Roboto", "sans-serif"],
       },
       colors: {
-        primary: "#1a56db",
+        primary: "#62BD6A",
+        "primary-dark": "#4da354",
         secondary: "#4f46e5",
       },
       borderRadius: {

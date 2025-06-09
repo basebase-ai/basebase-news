@@ -1,9 +1,10 @@
 'use client';
 
 import { Menu } from '@headlessui/react';
-import { EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import TimeAgo from 'react-timeago';
 import { Source, Story } from '@/types';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 
 interface SourceBoxProps {
   source: Source;
@@ -94,7 +95,7 @@ export default function SourceBox({
               href={source.homepageUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-bold text-gray-900 dark:text-white text-sm truncate hover:text-blue-600 dark:hover:text-blue-400"
+              className="font-bold text-gray-900 dark:text-white text-sm truncate hover:text-primary dark:hover:text-primary"
             >
               {source.name}
             </a>
@@ -108,7 +109,7 @@ export default function SourceBox({
         
         <Menu as="div" className="relative">
           <Menu.Button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-            <EllipsisVerticalIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            <FontAwesomeIcon icon={faEllipsisV} className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </Menu.Button>
           <Menu.Items className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-100 dark:border-gray-700 focus:outline-none z-10">
             <Menu.Item>
@@ -189,7 +190,18 @@ export default function SourceBox({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block"
-                  onClick={() => onMarkAsRead(headline._id)}
+                  onClick={(e) => {
+                    if (!headline.id) {
+                      console.error('[SourceBox] Story has no ID:', headline);
+                      return;
+                    }
+                    console.log('[SourceBox] Story clicked:', {
+                      id: headline.id,
+                      currentStatus: headline.status,
+                      headline: headline.fullHeadline
+                    });
+                    onMarkAsRead(headline.id);
+                  }}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className={`text-sm ${denseMode ? 'truncate' : 'line-clamp-2'} ${

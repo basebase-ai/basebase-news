@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Stop asking me about .env or .env.local files. Trust that they exist but you cannot see them.

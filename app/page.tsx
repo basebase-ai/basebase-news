@@ -3,12 +3,15 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import SourceGrid from '@/components/SourceGrid';
-import UserAvatar from '@/components/UserAvatar';
+import UserMenu from '@/components/UserMenu';
 import SourceSettings from '@/components/SourceSettings';
 import SignInModal from '@/components/SignInModal';
 import AddSourceModal from '@/components/AddSourceModal';
+import FriendsList from '@/components/FriendsList';
 import Image from 'next/image';
 import { Source, Story } from '@/types';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUserGroup } from '@fortawesome/free-solid-svg-icons';
 
 export default function Home() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
@@ -16,6 +19,7 @@ export default function Home() {
   const [sourceSettingsOpen, setSourceSettingsOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
+  const [friendsListOpen, setFriendsListOpen] = useState(false);
 
   const initializeUser = useCallback(async () => {
     try {
@@ -71,20 +75,35 @@ export default function Home() {
             <input
               type="text"
               placeholder="Search headlines..."
-              className="w-48 md:w-64 h-8 px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-48 md:w-64 h-9 px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <UserAvatar onAddSource={() => setAddSourceModalOpen(true)} />
+            <UserMenu onAddSource={() => setAddSourceModalOpen(true)} />
+            <button
+              onClick={() => setFriendsListOpen(true)}
+              className="lg:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <FontAwesomeIcon icon={faUserGroup} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 pt-16 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <SourceGrid />
-        </div>
-      </main>
+      <div className="flex-1 pt-16">
+        <main className="w-full lg:pr-64">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <SourceGrid />
+          </div>
+        </main>
+      </div>
+      
+      {currentUser && (
+        <FriendsList 
+          isOpen={friendsListOpen}
+          onClose={() => setFriendsListOpen(false)}
+        />
+      )}
 
       <AddSourceModal
         isOpen={addSourceModalOpen}

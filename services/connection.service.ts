@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { Connection, IConnection } from "../models/connection.model";
+import { User, IUser } from "../models/user.model";
 
 export class ConnectionService {
   private static getOrderedIds(
@@ -110,21 +111,103 @@ export class ConnectionService {
     return await Connection.findOne({ firstId, secondId });
   }
 
-  static async getUserConnections(
-    userId: Types.ObjectId,
-    status?: IConnection["status"]
-  ): Promise<IConnection[]> {
-    const query: any = {
+  static async getConnections(
+    userId: Types.ObjectId
+  ): Promise<Types.ObjectId[]> {
+    const connections = await Connection.find({
       $or: [{ firstId: userId }, { secondId: userId }],
-    };
+      status: "CONNECTED",
+    });
 
-    if (status) {
-      query.status = status;
-    }
-
-    return await Connection.find(query).populate(
-      "firstId secondId",
-      "email first last imageUrl"
+    return connections.map((connection) =>
+      connection.firstId.equals(userId)
+        ? connection.secondId
+        : connection.firstId
     );
+  }
+
+  static async getRequests(userId: Types.ObjectId): Promise<IUser[]> {
+    const connections = await Connection.find({
+      $or: [
+        { secondId: userId, status: "FIRST_REQUESTED" },
+        { firstId: userId, status: "SECOND_REQUESTED" },
+      ],
+    }).lean();
+
+    console.log(
+      `[getRequests] Found ${connections.length} raw connections for userId: ${userId}`
+    );
+
+    const requesterIds = connections.map((c) =>
+      c.firstId.equals(userId) ? c.secondId : c.firstId
+    );
+
+    console.log(
+      `[getRequests] Mapped to ${requesterIds.length} requesterIds:`,
+      requesterIds
+    );
+
+    const users = await User.find({ _id: { $in: requesterIds } }).lean();
+
+    console.log(`[getRequests] Found ${users.length} user documents`);
+    return users;
+  }
+
+  static async getConnectedUsers(userId: Types.ObjectId): Promise<IUser[]> {
+    const connections = await Connection.find({
+      $or: [{ firstId: userId }, { secondId: userId }],
+      status: "CONNECTED",
+    }).lean();
+
+    console.log(
+      `[getConnectedUsers] Found ${connections.length} raw connections for userId: ${userId}`
+    );
+
+    const friendIds = connections.map((c) =>
+      c.firstId.equals(userId) ? c.secondId : c.firstId
+    );
+
+    console.log(
+      `[getConnectedUsers] Mapped to ${friendIds.length} friendIds:`,
+      friendIds
+    );
+
+    const users = await User.find({ _id: { $in: friendIds } }).lean();
+
+    console.log(`[getConnectedUsers] Found ${users.length} user documents`);
+    return users;
+  }
+
+  static async getSuggestedUsers(userId: Types.ObjectId): Promise<IUser[]> {
+    const connections = await Connection.find({
+      $or: [{ firstId: userId }, { secondId: userId }],
+    });
+
+    console.log(
+      `[getSuggestedUsers] Found ${connections.length} existing connections for userId: ${userId}`
+    );
+
+    const existingConnectionUserIds = connections.map((c) =>
+      (c.firstId as Types.ObjectId).equals(userId)
+        ? (c.secondId as Types.ObjectId)
+        : (c.firstId as Types.ObjectId)
+    );
+
+    const excludedUserIds = [userId, ...existingConnectionUserIds];
+
+    console.log(
+      `[getSuggestedUsers] Excluding ${excludedUserIds.length} userIds:`,
+      excludedUserIds
+    );
+
+    const suggestedUsers = await User.find({
+      _id: { $nin: excludedUserIds },
+    }).lean();
+
+    console.log(
+      `[getSuggestedUsers] Found ${suggestedUsers.length} suggested users`
+    );
+
+    return suggestedUsers as IUser[];
   }
 }

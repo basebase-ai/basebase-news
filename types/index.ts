@@ -2,6 +2,7 @@ export interface User {
   _id: string;
   first: string;
   last: string;
+  imageUrl?: string;
   email: string;
   isAdmin: boolean;
   sourceIds: string[];
@@ -23,7 +24,7 @@ export interface Source {
 }
 
 export interface Story {
-  _id: string;
+  id: string;
   articleUrl: string;
   fullHeadline: string;
   sourceName: string;
