@@ -7,7 +7,11 @@ import SourceBox from './SourceBox';
 import SourceSettings from './SourceSettings';
 import { userService } from '@/services/user.service';
 
-export default function SourceGrid() {
+interface SourceGridProps {
+  friendsListOpen: boolean;
+}
+
+export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   const { currentUser, currentSources, searchTerm, setCurrentUser, denseMode } = useAppState();
   const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
   const [loadingSources, setLoadingSources] = useState<Set<string>>(new Set());
@@ -194,6 +198,41 @@ export default function SourceGrid() {
     }
   };
 
+  const toggleStar = async (storyId: string) => {
+    console.log('[SourceGrid.toggleStar] Starting to toggle star for story:', storyId);
+    try {
+      if (!storyId) {
+        console.error('[SourceGrid.toggleStar] No story ID provided');
+        return;
+      }
+
+      const response = await fetch('/api/users/me/stories/star', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ storyId }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const newMap = new Map(sourceHeadlines);
+        newMap.forEach((stories, sourceId) => {
+          const updatedStories = stories.map(story => {
+            if (story.id === storyId) {
+              return { ...story, starred: !story.starred };
+            }
+            return story;
+          });
+          newMap.set(sourceId, updatedStories);
+        });
+        setSourceHeadlines(newMap);
+      }
+    } catch (error) {
+      console.error('[SourceGrid.toggleStar] Failed to toggle star:', error);
+    }
+  };
+
   if (!currentUser?.sourceIds?.length) {
     return (
       <div className="text-center py-4 text-gray-500 dark:text-gray-400">
@@ -222,6 +261,7 @@ export default function SourceGrid() {
             onRefresh={handleRefreshSource}
             onRemove={handleRemoveSource}
             onMarkAsRead={markAsRead}
+            onToggleStar={toggleStar}
             onOpenSettings={(source) => {
               setEditingSource(source);
               setSourceSettingsOpen(true);

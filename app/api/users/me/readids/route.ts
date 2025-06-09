@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { userService } from "@/services/user.service";
+import { storyService } from "@/services/story.service";
 
 export async function POST(request: Request) {
   console.log("[API/readids] Starting POST request");
@@ -33,8 +34,8 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("[API/readids] Calling userService.addReadId");
-    await userService.addReadId(userId, storyId);
+    console.log("[API/readids] Calling storyService.addReadId");
+    await storyService.addReadId(userId, storyId);
     console.log("[API/readids] Successfully marked story as read");
 
     return NextResponse.json({ status: "ok" });

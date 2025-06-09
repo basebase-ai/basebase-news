@@ -94,34 +94,6 @@ export class UserService {
   public verifyToken(token: string): { userId: string } {
     return jwt.verify(token, this.JWT_SECRET) as { userId: string };
   }
-
-  public async addReadId(userId: string, storyId: string): Promise<void> {
-    console.log(
-      `[UserService.addReadId] Called for userId: ${userId}, storyId: ${storyId}`
-    );
-
-    const user = await User.findById(userId);
-    if (!user) {
-      console.log(`[UserService.addReadId] User not found: ${userId}`);
-      throw new Error("User not found");
-    }
-
-    // Create or update StoryStatus record
-    const result = await StoryStatus.findOneAndUpdate(
-      {
-        userId: new Types.ObjectId(userId),
-        storyId: new Types.ObjectId(storyId),
-      },
-      {
-        userId: new Types.ObjectId(userId),
-        storyId: new Types.ObjectId(storyId),
-        status: "READ" as const,
-      },
-      { upsert: true, new: true }
-    );
-
-    console.log(`[UserService.addReadId] StoryStatus upsert result:`, result);
-  }
 }
 
 export const userService = UserService.getInstance();

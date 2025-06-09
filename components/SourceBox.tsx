@@ -4,7 +4,8 @@ import { Menu } from '@headlessui/react';
 import TimeAgo from 'react-timeago';
 import { Source, Story } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEllipsisV } from '@fortawesome/free-solid-svg-icons';
+import { faEllipsisV, faStar } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 
 interface SourceBoxProps {
   source: Source;
@@ -15,6 +16,7 @@ interface SourceBoxProps {
   onRemove: (sourceId: string) => void;
   onMarkAsRead: (storyId: string) => void;
   onOpenSettings: (source: Source) => void;
+  onToggleStar: (storyId: string) => void;
   searchTerm?: string;
 }
 
@@ -69,6 +71,7 @@ export default function SourceBox({
   onRemove, 
   onMarkAsRead,
   onOpenSettings,
+  onToggleStar,
   searchTerm 
 }: SourceBoxProps) {
   const filteredHeadlines = filterHeadlines(headlines, searchTerm);
@@ -220,11 +223,30 @@ export default function SourceBox({
                         </span>
                       )}
                     </div>
-                    {headline.createdAt && (
-                      <div className={`text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0 ${denseMode ? 'hidden group-hover:block' : 'block'}`}>
-                        {formatDate(headline.createdAt)}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {headline.createdAt && (
+                        <div className={`text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ${denseMode ? 'hidden group-hover:block' : 'block'}`}>
+                          {formatDate(headline.createdAt)}
+                        </div>
+                      )}
+                      {headline.status === 'READ' && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (headline.id) {
+                              onToggleStar(headline.id);
+                            }
+                          }}
+                          className="text-gray-400 hover:text-yellow-400 dark:text-gray-500 dark:hover:text-yellow-400 transition-colors"
+                        >
+                          <FontAwesomeIcon 
+                            icon={headline.starred ? faStar : faStarRegular} 
+                            className={`w-4 h-4 ${headline.starred ? 'text-yellow-400' : ''}`}
+                          />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </a>
               </article>

@@ -4,6 +4,7 @@ export interface IStoryStatus extends Document {
   userId: Types.ObjectId;
   storyId: Types.ObjectId;
   status: "READ";
+  starred: boolean;
 }
 
 const storyStatusSchema = new mongoose.Schema(
@@ -21,6 +22,11 @@ const storyStatusSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["READ"],
+      required: true,
+    },
+    starred: {
+      type: Boolean,
+      default: false,
       required: true,
     },
   },

@@ -1,9 +1,10 @@
 import { Story, IStory } from "../models/story.model";
 import { StoryStatus } from "../models/story-status.model";
-import mongoose, { PipelineStage } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import { ISource } from "../models/source.model";
 import { scraperService } from "./scraper.service";
 import { connectToDatabase } from "./mongodb.service";
+import { User } from "@/models/user.model";
 
 interface StoryDocument extends IStory, mongoose.Document {}
 
@@ -209,18 +210,17 @@ export class StoryService {
       const storyStatuses = await StoryStatus.find({
         userId: new mongoose.Types.ObjectId(userId),
         storyId: { $in: storyIds },
-        status: "READ",
       });
 
       console.log(
-        `[StoryService.getStories] Found ${storyStatuses.length} read story statuses:`,
+        `[StoryService.getStories] Found ${storyStatuses.length} story statuses:`,
         storyStatuses
       );
 
       const statusMap = new Map(
         storyStatuses.map((status) => [
           status.storyId.toString(),
-          status.status,
+          { status: status.status, starred: status.starred },
         ])
       );
 
@@ -229,12 +229,16 @@ export class StoryService {
         Array.from(statusMap.entries())
       );
 
-      const storiesWithStatus = allStories.map((story) => ({
-        ...story.toObject(),
-        status:
-          statusMap.get((story._id as mongoose.Types.ObjectId).toString()) ||
-          null,
-      }));
+      const storiesWithStatus = allStories.map((story) => {
+        const storyStatus = statusMap.get(
+          (story._id as mongoose.Types.ObjectId).toString()
+        );
+        return {
+          ...story.toObject(),
+          status: storyStatus?.status || null,
+          starred: storyStatus?.starred || false,
+        };
+      });
 
       console.log(
         `[StoryService.getStories] First few stories with status:`,
@@ -252,6 +256,83 @@ export class StoryService {
       `[StoryService.getStories] No userId provided, returning stories without status`
     );
     return allStories;
+  }
+
+  public async addReadId(userId: string, storyId: string): Promise<void> {
+    console.log(
+      `[UserService.addReadId] Called for userId: ${userId}, storyId: ${storyId}`
+    );
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`[UserService.addReadId] User not found: ${userId}`);
+      throw new Error("User not found");
+    }
+
+    // Create or update StoryStatus record
+    const result = await StoryStatus.findOneAndUpdate(
+      {
+        userId: new Types.ObjectId(userId),
+        storyId: new Types.ObjectId(storyId),
+      },
+      {
+        userId: new Types.ObjectId(userId),
+        storyId: new Types.ObjectId(storyId),
+        status: "READ" as const,
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`[UserService.addReadId] StoryStatus upsert result:`, result);
+  }
+
+  public async addStar(userId: string, storyId: string): Promise<void> {
+    console.log(
+      `[StoryService.addStar] Called for userId: ${userId}, storyId: ${storyId}`
+    );
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`[StoryService.addStar] User not found: ${userId}`);
+      throw new Error("User not found");
+    }
+
+    await StoryStatus.findOneAndUpdate(
+      {
+        userId: new Types.ObjectId(userId),
+        storyId: new Types.ObjectId(storyId),
+      },
+      {
+        userId: new Types.ObjectId(userId),
+        storyId: new Types.ObjectId(storyId),
+        status: "READ" as const,
+        starred: true,
+      },
+      { upsert: true, new: true }
+    );
+  }
+
+  public async removeStar(userId: string, storyId: string): Promise<void> {
+    console.log(
+      `[StoryService.removeStar] Called for userId: ${userId}, storyId: ${storyId}`
+    );
+
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`[StoryService.removeStar] User not found: ${userId}`);
+      throw new Error("User not found");
+    }
+
+    await StoryStatus.findOneAndUpdate(
+      {
+        userId: new Types.ObjectId(userId),
+        storyId: new Types.ObjectId(storyId),
+      },
+      {
+        starred: false,
+      },
+      { new: true }
+    );
   }
 }
 

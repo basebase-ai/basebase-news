@@ -6,7 +6,7 @@ import { useAppState } from '@/lib/state/AppContext';
 import type { User } from '@/types';
 import Avatar from './Avatar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faCheck, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 
 interface FriendsListProps {
   isOpen: boolean;
@@ -99,42 +99,47 @@ export default function FriendsList({ isOpen, onClose }: FriendsListProps) {
   console.log('[Render] loading:', loading, 'suggestions:', suggestions.length);
 
   return (
-    <aside className="hidden lg:block fixed top-16 right-0 w-64 h-[calc(100%-4rem)] bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white">People</h2>
-        <button onClick={onClose} className="lg:hidden p-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-          <FontAwesomeIcon icon={faTimes} className="h-6 w-6" />
-        </button>
+    <Transition
+      show={isOpen}
+      as={React.Fragment}
+      enter="transition ease-out duration-200"
+      enterFrom="opacity-0 translate-x-full"
+      enterTo="opacity-100 translate-x-0"
+      leave="transition ease-in duration-150"
+      leaveFrom="opacity-100 translate-x-0"
+      leaveTo="opacity-0 translate-x-full"
+    >
+      <div className="fixed top-16 right-0 w-64 h-[calc(100%-4rem)] bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 z-50">
+        <div className="overflow-y-auto h-full p-4">
+          {loading ? (
+            <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+          ) : (
+            <>
+              {friends.length > 0 && (
+                <section className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Friends</h3>
+                  <ul className="space-y-1">{friends.map(user => renderUser(user, 'friend'))}</ul>
+                </section>
+              )}
+              {requests.length > 0 && (
+                <section className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Requests</h3>
+                  <ul className="space-y-1">{requests.map(user => renderUser(user, 'request'))}</ul>
+                </section>
+              )}
+              {suggestions.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Suggestions</h3>
+                  <ul className="space-y-1">{suggestions.map(user => renderUser(user, 'suggestion'))}</ul>
+                </section>
+              )}
+              {!friends.length && !requests.length && !suggestions.length && (
+                <p className="text-gray-500 dark:text-gray-400 text-sm">No new friend suggestions.</p>
+              )}
+            </>
+          )}
+        </div>
       </div>
-      <div className="overflow-y-auto h-[calc(100%-4rem)] p-4">
-        {loading ? (
-          <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-        ) : (
-          <>
-            {friends.length > 0 && (
-              <section className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Friends</h3>
-                <ul className="space-y-1">{friends.map(user => renderUser(user, 'friend'))}</ul>
-              </section>
-            )}
-            {requests.length > 0 && (
-              <section className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Requests</h3>
-                <ul className="space-y-1">{requests.map(user => renderUser(user, 'request'))}</ul>
-              </section>
-            )}
-            {suggestions.length > 0 && (
-              <section>
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Suggestions</h3>
-                <ul className="space-y-1">{suggestions.map(user => renderUser(user, 'suggestion'))}</ul>
-              </section>
-            )}
-            {!friends.length && !requests.length && !suggestions.length && (
-              <p className="text-gray-500 dark:text-gray-400 text-sm">No new friend suggestions.</p>
-            )}
-          </>
-        )}
-      </div>
-    </aside>
+    </Transition>
   );
 } 

@@ -37,5 +37,6 @@ export interface Story {
   type?: string;
   inPageRank?: number;
   status?: "READ" | "UNREAD";
+  starred?: boolean;
   createdAt?: string;
 }

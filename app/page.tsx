@@ -79,21 +79,25 @@ export default function Home() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <UserMenu onAddSource={() => setAddSourceModalOpen(true)} />
             <button
-              onClick={() => setFriendsListOpen(true)}
-              className="lg:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => setFriendsListOpen(!friendsListOpen)}
+              className={`p-2 rounded-full transition-colors ${
+                friendsListOpen 
+                  ? 'bg-primary/10 text-primary dark:bg-primary/20' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
+              }`}
             >
-              <FontAwesomeIcon icon={faUserGroup} className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+              <FontAwesomeIcon icon={faUserGroup} className="h-6 w-6" />
             </button>
+            <UserMenu onAddSource={() => setAddSourceModalOpen(true)} />
           </div>
         </div>
       </header>
 
       <div className="flex-1 pt-16">
-        <main className="w-full lg:pr-64">
+        <main className={`w-full ${friendsListOpen ? 'lg:pr-64' : ''}`}>
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <SourceGrid />
+            <SourceGrid friendsListOpen={friendsListOpen} />
           </div>
         </main>
       </div>
