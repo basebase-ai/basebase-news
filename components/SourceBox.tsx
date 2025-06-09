@@ -182,7 +182,7 @@ export default function SourceBox({
           <div className="space-y-0 pt-0.5">
             {filteredHeadlines.map(headline => (
               <article 
-                key={headline._id} 
+                key={headline.id} 
                 className={`pl-3 pr-2 ${denseMode ? 'pt-1 pb-0' : 'py-2'} hover:bg-gray-50 dark:hover:bg-gray-700/50 group relative`}
               >
                 <a

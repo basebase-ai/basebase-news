@@ -3,6 +3,8 @@ import { userService } from "@/services/user.service";
 import { User } from "@/models/user.model";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
