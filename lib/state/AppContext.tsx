@@ -1,0 +1,124 @@
+'use client';
+
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction } from 'react';
+import type { User, Source, Story } from '@/types';
+
+interface AppState {
+  currentUser: User | null;
+  currentSources: Source[];
+  isAdmin: boolean;
+  denseMode: boolean;
+  darkMode: boolean;
+  searchTerm: string;
+  sourceHeadlines: Map<string, Story[]>;
+  isSignInModalOpen: boolean;
+  toast: { message: string; type: 'success' | 'error' } | null;
+}
+
+interface AppContextType extends AppState {
+  setCurrentUser: (user: User | null) => void;
+  setCurrentSources: Dispatch<SetStateAction<Source[]>>;
+  setDenseMode: (mode: boolean) => void;
+  setDarkMode: (mode: boolean) => void;
+  setSearchTerm: (term: string) => void;
+  setSourceHeadlines: (headlines: Map<string, Story[]>) => void;
+  setSignInModalOpen: (isOpen: boolean) => void;
+  setToast: (toast: { message: string; type: 'success' | 'error' } | null) => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<AppState>({
+    currentUser: null,
+    currentSources: [],
+    isAdmin: false,
+    denseMode: false,
+    darkMode: false,
+    searchTerm: '',
+    sourceHeadlines: new Map(),
+    isSignInModalOpen: false,
+    toast: null,
+  });
+
+  // Initialize state from user preferences
+  useEffect(() => {
+    const user = state.currentUser;
+    if (user?.denseMode !== undefined || user?.darkMode !== undefined) {
+      setState(prev => ({
+        ...prev,
+        denseMode: user.denseMode || false,
+        darkMode: user.darkMode || false,
+      }));
+    }
+  }, [state.currentUser]);
+
+  // Watch darkMode changes
+  useEffect(() => {
+    if (state.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [state.darkMode]);
+
+  const setCurrentUser = useCallback((user: User | null) => {
+    setState(prev => ({ 
+      ...prev, 
+      currentUser: user, 
+      isAdmin: user?.isAdmin || false,
+      denseMode: user?.denseMode || false,
+      darkMode: user?.darkMode || false,
+    }));
+  }, []);
+
+  const setCurrentSources = useCallback((sources: SetStateAction<Source[]>) => {
+    setState(prev => ({ ...prev, currentSources: typeof sources === 'function' ? sources(prev.currentSources) : sources }));
+  }, []);
+
+  const setDenseMode = useCallback((mode: boolean) => {
+    setState(prev => ({ ...prev, denseMode: mode }));
+  }, []);
+
+  const setDarkMode = useCallback((mode: boolean) => {
+    setState(prev => ({ ...prev, darkMode: mode }));
+  }, []);
+
+  const setSearchTerm = useCallback((term: string) => {
+    setState(prev => ({ ...prev, searchTerm: term }));
+  }, []);
+
+  const setSourceHeadlines = useCallback((headlines: Map<string, Story[]>) => {
+    setState(prev => ({ ...prev, sourceHeadlines: headlines }));
+  }, []);
+
+  const setSignInModalOpen = useCallback((isOpen: boolean) => {
+    setState(prev => ({ ...prev, isSignInModalOpen: isOpen }));
+  }, []);
+
+  const setToast = useCallback((toast: { message: string; type: 'success' | 'error' } | null) => {
+    setState(prev => ({ ...prev, toast }));
+  }, []);
+
+  const value = useMemo(() => ({
+    ...state,
+    setCurrentUser,
+    setCurrentSources,
+    setDenseMode,
+    setDarkMode,
+    setSearchTerm,
+    setSourceHeadlines,
+    setSignInModalOpen,
+    setToast,
+  }), [state, setCurrentUser, setCurrentSources, setDenseMode, setDarkMode, setSearchTerm, setSourceHeadlines, setSignInModalOpen, setToast]);
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+export function useAppState() {
+  const context = useContext(AppContext);
+  if (context === undefined) {
+    throw new Error('useAppState must be used within an AppProvider');
+  }
+  return context;
+} 
