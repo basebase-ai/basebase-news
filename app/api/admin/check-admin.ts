@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { User } from "@/models/user.model";
-import { authService } from "@/services/auth.service";
+import { edgeAuthService } from "@/services/auth.edge.service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     await connectToDatabase();
-    const { userId } = authService.verifyToken(token);
+    const { userId } = await edgeAuthService.verifyToken(token);
     const user = await User.findById(userId);
 
     if (!user?.isAdmin) {

@@ -42,7 +42,7 @@ class AgendaService {
   }
 
   public async scheduleScrape(): Promise<void> {
-    await this.agenda.now("scrape sources");
+    await this.agenda.now("scrape sources", {});
   }
 }
 

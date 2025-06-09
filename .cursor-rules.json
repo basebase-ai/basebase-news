@@ -1,0 +1,3 @@
+{
+  "rules": ["Do not ask me about .env or .env.local files."]
+}

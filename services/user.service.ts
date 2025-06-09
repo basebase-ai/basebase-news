@@ -4,7 +4,6 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { Source } from "../models/source.model";
 import { StoryStatus } from "../models/story-status.model";
-import { Response } from "express";
 import { Types } from "mongoose";
 
 export class UserService {
@@ -94,23 +93,6 @@ export class UserService {
 
   public verifyToken(token: string): { userId: string } {
     return jwt.verify(token, this.JWT_SECRET) as { userId: string };
-  }
-
-  public setAuthCookie(res: Response, token: string): void {
-    res.cookie("auth", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
-    });
-  }
-
-  public clearAuthCookie(res: Response): void {
-    res.clearCookie("auth", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
   }
 
   public async addReadId(userId: string, storyId: string): Promise<void> {
