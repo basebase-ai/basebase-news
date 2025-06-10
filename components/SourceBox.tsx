@@ -123,7 +123,7 @@ export default function SourceBox({
           </div>
         </div>
         <Menu as="div" className="relative">
-          <Menu.Button className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+          <Menu.Button className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
             <FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" />
           </Menu.Button>
           <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700 focus:outline-none">
@@ -220,7 +220,7 @@ export default function SourceBox({
                   <div 
                     className={`flex items-start justify-between gap-4 ${headline.status === 'READ' ? 'opacity-50' : ''}`}
                   >
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       {denseMode ? (
                         <p className="text-sm text-gray-800 dark:text-gray-100 truncate">
                           <span className="font-medium">{headline.fullHeadline}</span>
