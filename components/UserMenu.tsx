@@ -7,16 +7,14 @@ import Avatar from './Avatar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
-interface UserMenuProps {
-  onEditSources: () => void;
-}
+interface UserMenuProps {}
 
 interface UserPreferences {
   denseMode?: boolean;
   darkMode?: boolean;
 }
 
-export default function UserMenu({ onEditSources }: UserMenuProps) {
+export default function UserMenu({}: UserMenuProps) {
   const { currentUser, setCurrentUser, setDarkMode, setDenseMode, setSignInModalOpen } = useAppState();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -103,16 +101,6 @@ export default function UserMenu({ onEditSources }: UserMenuProps) {
             <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
               {currentUser.first} {currentUser.last}
             </div>
-            
-            <button
-              onClick={() => {
-                onEditSources();
-                setDropdownVisible(false);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              Edit Sources
-            </button>
 
             <div className="px-4 py-2 flex items-center justify-between">
               <span className="text-sm text-gray-700 dark:text-gray-300">Dense Mode</span>

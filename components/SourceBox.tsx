@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Menu } from '@headlessui/react';
@@ -12,14 +12,9 @@ import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 
 interface SourceBoxProps {
   source: Source;
-  headlines: Story[];
-  isRefreshing: boolean;
   denseMode: boolean;
-  onRefresh: (sourceId: string) => void;
   onRemove: (sourceId: string) => void;
-  onMarkAsRead: (storyId: string) => void;
   onOpenSettings: (source: Source) => void;
-  onToggleStar: (storyId: string) => void;
   searchTerm?: string;
 }
 
@@ -69,18 +64,145 @@ interface SourceBoxInternalProps extends SourceBoxProps {
 
 export default function SourceBox({ 
   source, 
-  headlines, 
-  isRefreshing, 
   denseMode,
-  onRefresh, 
   onRemove, 
-  onMarkAsRead,
   onOpenSettings,
-  onToggleStar,
   searchTerm,
   dragHandleAttributes,
   dragHandleListeners
 }: SourceBoxInternalProps) {
+  const [headlines, setHeadlines] = useState<Story[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  const loadHeadlines = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/sources/${source._id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.source?.stories) {
+          const stories = data.source.stories as Story[];
+          const sortedStories = [...stories].sort((a: Story, b: Story) => {
+            const dateA = new Date(a.publishDate);
+            const dateB = new Date(b.publishDate);
+            return dateB.getTime() - dateA.getTime();
+          });
+          setHeadlines(sortedStories);
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching stories for source ${source._id}:`, error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [source._id]);
+
+  useEffect(() => {
+    loadHeadlines();
+  }, [loadHeadlines]);
+
+  const handleRefreshSource = async () => {
+    try {
+      setIsRefreshing(true);
+      setHeadlines([]);
+
+      const response = await fetch(`/api/sources/${source._id}/scrape`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        // Reload the headlines for this source
+        await loadHeadlines();
+      } else {
+        throw new Error('Failed to refresh source');
+      }
+    } catch (error) {
+      console.error('Failed to refresh source:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const markAsRead = async (storyId: string) => {
+    console.log('[SourceBox.markAsRead] Starting to mark story as read:', storyId);
+    try {
+      if (!storyId) {
+        console.error('[SourceBox.markAsRead] No story ID provided');
+        return;
+      }
+
+      const requestBody = JSON.stringify({ storyId });
+      console.log('[SourceBox.markAsRead] Request body:', requestBody);
+      
+      const response = await fetch('/api/users/me/readids', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: requestBody,
+        credentials: 'include'
+      });
+
+      const responseText = await response.text();
+      console.log('[SourceBox.markAsRead] API response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText
+      });
+
+      if (response.ok) {
+        console.log('[SourceBox.markAsRead] Updating UI state for story:', storyId);
+        const updatedHeadlines = headlines.map(story => {
+          if (story.id === storyId) {
+            console.log('[SourceBox.markAsRead] Found story to update:', {
+              id: story.id,
+              oldStatus: story.status,
+              newStatus: 'READ'
+            });
+            return { ...story, status: 'READ' as const };
+          }
+          return story;
+        });
+        console.log('[SourceBox.markAsRead] Setting new headlines');
+        setHeadlines(updatedHeadlines);
+      }
+    } catch (error) {
+      console.error('[SourceBox.markAsRead] Failed to mark story as read:', error);
+    }
+  };
+
+  const toggleStar = async (storyId: string) => {
+    console.log('[SourceBox.toggleStar] Starting to toggle star for story:', storyId);
+    try {
+      if (!storyId) {
+        console.error('[SourceBox.toggleStar] No story ID provided');
+        return;
+      }
+
+      const response = await fetch('/api/users/me/stories/star', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ storyId }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const updatedHeadlines = headlines.map(story => {
+          if (story.id === storyId) {
+            return { ...story, starred: !story.starred };
+          }
+          return story;
+        });
+        setHeadlines(updatedHeadlines);
+      }
+    } catch (error) {
+      console.error('[SourceBox.toggleStar] Failed to toggle star:', error);
+    }
+  };
+
   const filteredHeadlines = filterHeadlines(headlines, searchTerm);
 
   return (
@@ -133,7 +255,7 @@ export default function SourceBox({
                   className={`${
                     active ? 'bg-gray-50 dark:bg-gray-700' : ''
                   } flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200`}
-                  onClick={() => onRefresh(source._id)}
+                  onClick={handleRefreshSource}
                 >
                   Refresh
                 </button>
@@ -188,9 +310,13 @@ export default function SourceBox({
           <div className="p-2 text-center text-gray-500 dark:text-gray-400 text-sm">
             Refreshing...
           </div>
-        ) : filteredHeadlines.length === 0 ? (
+        ) : isLoading ? (
           <div className="p-2 text-center text-gray-500 dark:text-gray-400 text-sm">
             Loading stories...
+          </div>
+        ) : filteredHeadlines.length === 0 ? (
+          <div className="p-2 text-center text-gray-500 dark:text-gray-400 text-sm">
+            No stories found
           </div>
         ) : (
           <div className="space-y-0 pt-0.5">
@@ -214,7 +340,7 @@ export default function SourceBox({
                       currentStatus: headline.status,
                       headline: headline.fullHeadline
                     });
-                    onMarkAsRead(headline.id);
+                    markAsRead(headline.id);
                   }}
                 >
                   <div 
@@ -249,7 +375,7 @@ export default function SourceBox({
                             e.preventDefault();
                             e.stopPropagation();
                             if (headline.id) {
-                              onToggleStar(headline.id);
+                              toggleStar(headline.id);
                             }
                           }}
                           className="text-gray-400 hover:text-yellow-400 dark:text-gray-500 dark:hover:text-yellow-400 transition-colors"
