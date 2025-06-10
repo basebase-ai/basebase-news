@@ -26,10 +26,15 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
       homepageUrl = `https://${homepageUrl}`;
     }
 
+    let rssUrl = (formData.get('rssUrl') as string) || null;
+    if (rssUrl && !/^https?:\/\//i.test(rssUrl)) {
+      rssUrl = `https://${rssUrl}`;
+    }
+
     const sourceData = {
       name: formData.get('name') as string,
       homepageUrl: homepageUrl,
-      rssUrl: (formData.get('rssUrl') as string) || null,
+      rssUrl: rssUrl,
       includeSelector: (formData.get('includeSelector') as string) || null,
       excludeSelector: (formData.get('excludeSelector') as string) || null,
       biasScore: formData.get('biasScore') ? parseFloat(formData.get('biasScore') as string) : null,
@@ -53,6 +58,7 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
             : [...prev, updatedSource]
         );
         setToast({ message: 'Source saved successfully!', type: 'success' });
+        
         onSourceSave();
         onClose();
       } else {
@@ -102,7 +108,7 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
               Homepage URL
             </label>
             <input
-              type="url"
+              type="text"
               name="homepageUrl"
               required
               defaultValue={editingSource?.homepageUrl}
@@ -115,7 +121,7 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
               RSS URL (optional)
             </label>
             <input
-              type="url"
+              type="text"
               name="rssUrl"
               defaultValue={editingSource?.rssUrl}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"

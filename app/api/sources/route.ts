@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { Source } from "@/models/source.model";
+import { scraperService } from "@/services/scraper.service";
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -22,15 +23,16 @@ export async function GET(): Promise<NextResponse> {
 interface SourceRequestBody {
   name: string;
   homepageUrl: string;
+  rssUrl: string;
   includeSelector: string;
-  feedUrl: string;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    console.log("POST /api/sources");
     await connectToDatabase();
     const body = await request.json();
-    const { name, homepageUrl, includeSelector, feedUrl } = body;
+    const { name, homepageUrl, includeSelector, rssUrl } = body;
 
     if (!name || !homepageUrl) {
       return NextResponse.json(
@@ -59,9 +61,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       name,
       homepageUrl: normalizedUrl,
       includeSelector,
-      feedUrl,
+      rssUrl,
     });
     await newSource.save();
+
+    console.log("POST /api/sources: newSource", newSource);
+
+    scraperService.scrapeSource(newSource).catch((error) => {
+      console.error(`Error scraping source ${newSource.name}:`, error);
+    });
 
     return NextResponse.json({ source: newSource }, { status: 201 });
   } catch (error) {
