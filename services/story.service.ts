@@ -1,10 +1,13 @@
 import { Story, IStory } from "../models/story.model";
-import { StoryStatus } from "../models/story-status.model";
+import { StoryStatus, IStoryStatus } from "../models/story-status.model";
 import mongoose, { PipelineStage, Types } from "mongoose";
 import { ISource } from "../models/source.model";
 import { scraperService } from "./scraper.service";
 import { connectToDatabase } from "./mongodb.service";
-import { User } from "@/models/user.model";
+import { User, IUser } from "../models/user.model";
+import { ConnectionService } from "./connection.service";
+import { Source } from "../models/source.model";
+import type { IConnection } from "../models/connection.model";
 
 interface StoryDocument extends IStory, mongoose.Document {}
 
@@ -333,6 +336,57 @@ export class StoryService {
       },
       { new: true }
     );
+  }
+
+  public async getStarredStories(userId: string) {
+    const userObjectId = new Types.ObjectId(userId);
+    const connectedUserIds =
+      await ConnectionService.getConnections(userObjectId);
+
+    const storyStatuses = await StoryStatus.find({
+      userId: { $in: connectedUserIds },
+      starred: true,
+    })
+      .populate({
+        path: "storyId",
+        select: "fullHeadline articleUrl createdAt sourceId",
+      })
+      .populate({
+        path: "userId",
+        select: "_id first last imageUrl email",
+      })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    const stories = await Promise.all(
+      storyStatuses.map(async (status) => {
+        const story = status.storyId as unknown as IStory;
+        const user = status.userId as unknown as IUser;
+        const source = await Source.findById(story.sourceId)
+          .select("name")
+          .lean();
+
+        return {
+          story: {
+            id: (story._id as Types.ObjectId).toString(),
+            fullHeadline: story.fullHeadline,
+            articleUrl: story.articleUrl,
+            createdAt: story.createdAt || new Date(),
+            sourceId: story.sourceId.toString(),
+            sourceName: source?.name || "Unknown Source",
+          },
+          user: {
+            _id: (user._id as Types.ObjectId).toString(),
+            first: user.first,
+            last: user.last,
+            imageUrl: user.imageUrl,
+            email: user.email,
+          },
+        };
+      })
+    );
+
+    return stories;
   }
 }
 

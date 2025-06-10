@@ -37,17 +37,14 @@ export default function FriendsList({ isOpen, onClose }: FriendsListProps) {
 
       if (friendsRes.ok) {
         const data = await friendsRes.json();
-        console.log('[FriendsList] Friends data:', data.connections);
         setFriends(data.connections || []);
       }
       if (requestsRes.ok) {
         const data = await requestsRes.json();
-        console.log('[FriendsList] Requests data:', data.connections);
         setRequests(data.connections || []);
       }
       if (suggestionsRes.ok) {
         const data = await suggestionsRes.json();
-        console.log('[FriendsList] Suggestions data:', data.connections);
         setSuggestions(data.connections || []);
       }
     } catch (error) {

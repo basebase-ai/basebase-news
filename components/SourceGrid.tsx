@@ -6,6 +6,7 @@ import { Story, Source } from '@/types';
 import SourceBox from './SourceBox';
 import SourceSettings from './SourceSettings';
 import { userService } from '@/services/user.service';
+import StarredStories from './StarredStories';
 
 interface SourceGridProps {
   friendsListOpen: boolean;
@@ -21,6 +22,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const initialLoadDone = useRef(false);
   const headlinesRef = useRef<Map<string, Story[]>>(new Map());
+  const [showAllStarred, setShowAllStarred] = useState(false);
 
   // Keep the ref in sync with state, but only when headlines actually change
   useEffect(() => {
@@ -233,6 +235,22 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
     }
   };
 
+  if (showAllStarred) {
+    return (
+      <div className="space-y-6">
+        <StarredStories />
+        <div className="flex justify-end pt-2">
+          <button
+            className="px-4 py-1.5 rounded bg-gray-100 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 transition"
+            onClick={() => setShowAllStarred(false)}
+          >
+            Back to Sources
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentUser?.sourceIds?.length) {
     return (
       <div className="text-center py-4 text-gray-500 dark:text-gray-400">
@@ -242,34 +260,37 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {currentUser.sourceIds.map(sourceId => {
-        const source = currentSources?.find(s => s._id === sourceId);
-        const headlines = sourceHeadlines.get(sourceId) || [];
-        const isRefreshing = refreshingSources.has(sourceId);
-        const isLoading = loadingSources.has(sourceId);
+    <div className="space-y-6">
+      <StarredStories limit={3} onViewAll={() => setShowAllStarred(true)} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {currentUser.sourceIds.map(sourceId => {
+          const source = currentSources?.find(s => s._id === sourceId);
+          const headlines = sourceHeadlines.get(sourceId) || [];
+          const isRefreshing = refreshingSources.has(sourceId);
+          const isLoading = loadingSources.has(sourceId);
 
-        if (!source) return null;
+          if (!source) return null;
 
-        return (
-          <SourceBox
-            key={sourceId}
-            source={source}
-            headlines={headlines}
-            isRefreshing={isRefreshing}
-            denseMode={denseMode}
-            onRefresh={handleRefreshSource}
-            onRemove={handleRemoveSource}
-            onMarkAsRead={markAsRead}
-            onToggleStar={toggleStar}
-            onOpenSettings={(source) => {
-              setEditingSource(source);
-              setSourceSettingsOpen(true);
-            }}
-            searchTerm={searchTerm}
-          />
-        );
-      })}
+          return (
+            <SourceBox
+              key={sourceId}
+              source={source}
+              headlines={headlines}
+              isRefreshing={isRefreshing}
+              denseMode={denseMode}
+              onRefresh={handleRefreshSource}
+              onRemove={handleRemoveSource}
+              onMarkAsRead={markAsRead}
+              onToggleStar={toggleStar}
+              onOpenSettings={(source) => {
+                setEditingSource(source);
+                setSourceSettingsOpen(true);
+              }}
+              searchTerm={searchTerm}
+            />
+          );
+        })}
+      </div>
       <SourceSettings
         isOpen={sourceSettingsOpen}
         onClose={() => {

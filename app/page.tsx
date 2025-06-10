@@ -74,8 +74,8 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             <input
               type="text"
-              placeholder="Search headlines..."
-              className="w-48 md:w-64 h-9 px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+              placeholder="Search..."
+              className="w-32 md:w-32 h-9 px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
