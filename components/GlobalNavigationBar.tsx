@@ -9,13 +9,13 @@ import { faUserGroup } from '@fortawesome/free-solid-svg-icons';
 interface GlobalNavigationBarProps {
   friendsListOpen: boolean;
   onToggleFriendsList: () => void;
-  onAddSource: () => void;
+  onEditSources: () => void;
 }
 
 export default function GlobalNavigationBar({
   friendsListOpen,
   onToggleFriendsList,
-  onAddSource,
+  onEditSources,
 }: GlobalNavigationBarProps) {
   const { searchTerm, setSearchTerm } = useAppState();
 
@@ -50,7 +50,7 @@ export default function GlobalNavigationBar({
           >
             <FontAwesomeIcon icon={faUserGroup} className="h-6 w-6" />
           </button>
-          <UserMenu onAddSource={onAddSource} />
+          <UserMenu onEditSources={onEditSources} />
         </div>
       </div>
     </header>

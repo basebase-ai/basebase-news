@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 interface UserMenuProps {
-  onAddSource: () => void;
+  onEditSources: () => void;
 }
 
 interface UserPreferences {
@@ -16,7 +16,7 @@ interface UserPreferences {
   darkMode?: boolean;
 }
 
-export default function UserMenu({ onAddSource }: UserMenuProps) {
+export default function UserMenu({ onEditSources }: UserMenuProps) {
   const { currentUser, setCurrentUser, setDarkMode, setDenseMode, setSignInModalOpen } = useAppState();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -106,7 +106,7 @@ export default function UserMenu({ onAddSource }: UserMenuProps) {
             
             <button
               onClick={() => {
-                onAddSource();
+                onEditSources();
                 setDropdownVisible(false);
               }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"

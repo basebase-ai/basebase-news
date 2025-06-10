@@ -10,9 +10,10 @@ interface SourceSettingsProps {
   isOpen: boolean;
   onClose: () => void;
   editingSource: Source | null;
+  onSourceSave: () => void;
 }
 
-export default function SourceSettings({ isOpen, onClose, editingSource }: SourceSettingsProps) {
+export default function SourceSettings({ isOpen, onClose, editingSource, onSourceSave }: SourceSettingsProps) {
   const { currentUser, currentSources, setCurrentSources, setToast } = useAppState();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -20,9 +21,14 @@ export default function SourceSettings({ isOpen, onClose, editingSource }: Sourc
     const form = e.currentTarget;
     const formData = new FormData(form);
     
+    let homepageUrl = formData.get('homepageUrl') as string;
+    if (homepageUrl && !/^https?:\/\//i.test(homepageUrl)) {
+      homepageUrl = `https://${homepageUrl}`;
+    }
+
     const sourceData = {
       name: formData.get('name') as string,
-      homepageUrl: formData.get('homepageUrl') as string,
+      homepageUrl: homepageUrl,
       rssUrl: (formData.get('rssUrl') as string) || null,
       includeSelector: (formData.get('includeSelector') as string) || null,
       excludeSelector: (formData.get('excludeSelector') as string) || null,
@@ -47,6 +53,7 @@ export default function SourceSettings({ isOpen, onClose, editingSource }: Sourc
             : [...prev, updatedSource]
         );
         setToast({ message: 'Source saved successfully!', type: 'success' });
+        onSourceSave();
         onClose();
       } else {
         const { message } = await response.json();

@@ -5,14 +5,15 @@ import { useAppState } from '@/lib/state/AppContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faCog, faTimes } from '@fortawesome/free-solid-svg-icons';
 
-interface AddSourceModalProps {
+interface EditSourcesProps {
   isOpen: boolean;
   onClose: () => void;
   setSourceHeadlines: (updater: (prev: Map<string, Story[]>) => Map<string, Story[]>) => void;
-  onEditSource: (source: Source) => void;
+  onEditSource: (source: Source | null) => void;
+  sourceListVersion: number;
 }
 
-export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines, onEditSource }: AddSourceModalProps) {
+export default function EditSources({ isOpen, onClose, setSourceHeadlines, onEditSource, sourceListVersion }: EditSourcesProps) {
   const { currentUser, setCurrentUser, currentSources, setCurrentSources } = useAppState();
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines, on
       console.log('Modal opened, triggering source fetch');
       fetchSources();
     }
-  }, [isOpen]);
+  }, [isOpen, sourceListVersion]);
 
   const handleAddSource = async (sourceId: string) => {
     if (!currentUser) return;
@@ -197,8 +198,7 @@ export default function AddSourceModal({ isOpen, onClose, setSourceHeadlines, on
                     <button
                       className="mb-6 flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                       onClick={() => {
-                        onClose();
-                        // TODO: Open create source modal
+                        onEditSource(null);
                       }}
                     >
                       <FontAwesomeIcon icon={faPlus} className="h-5 w-5" />

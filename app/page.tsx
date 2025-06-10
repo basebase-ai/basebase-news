@@ -5,18 +5,23 @@ import { useAppState } from '@/lib/state/AppContext';
 import SourceGrid from '@/components/SourceGrid';
 import SourceSettings from '@/components/SourceSettings';
 import SignInModal from '@/components/SignInModal';
-import AddSourceModal from '@/components/AddSourceModal';
+import EditSources from '@/components/EditSources';
 import FriendsList from '@/components/FriendsList';
 import GlobalNavigationBar from '@/components/GlobalNavigationBar';
 import { Source, Story } from '@/types';
 
 export default function Home() {
   const { currentUser, setCurrentUser, setCurrentSources } = useAppState();
-  const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
+  const [editSourcesModalOpen, setEditSourcesModalOpen] = useState(false);
   const [sourceSettingsOpen, setSourceSettingsOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
   const [friendsListOpen, setFriendsListOpen] = useState(false);
+  const [sourceListVersion, setSourceListVersion] = useState(0);
+
+  const handleSourceSave = () => {
+    setSourceListVersion(v => v + 1);
+  };
 
   const initializeUser = useCallback(async () => {
     try {
@@ -59,7 +64,7 @@ export default function Home() {
       <GlobalNavigationBar
         friendsListOpen={friendsListOpen}
         onToggleFriendsList={() => setFriendsListOpen(!friendsListOpen)}
-        onAddSource={() => setAddSourceModalOpen(true)}
+        onEditSources={() => setEditSourcesModalOpen(true)}
       />
 
       <div className="flex-1 pt-16">
@@ -77,14 +82,15 @@ export default function Home() {
         />
       )}
 
-      <AddSourceModal
-        isOpen={addSourceModalOpen}
-        onClose={() => setAddSourceModalOpen(false)}
+      <EditSources
+        isOpen={editSourcesModalOpen}
+        onClose={() => setEditSourcesModalOpen(false)}
         setSourceHeadlines={setSourceHeadlines}
-        onEditSource={(source) => {
+        onEditSource={(source: Source | null) => {
           setEditingSource(source);
           setSourceSettingsOpen(true);
         }}
+        sourceListVersion={sourceListVersion}
       />
 
       <SourceSettings
@@ -94,6 +100,7 @@ export default function Home() {
           setEditingSource(null);
         }}
         editingSource={editingSource}
+        onSourceSave={handleSourceSave}
       />
 
       <SignInModal />

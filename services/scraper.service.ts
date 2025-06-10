@@ -245,7 +245,7 @@ ${html}`;
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         },
       });
-      return response.data.includes("RSS");
+      return response.data.includes("xml");
     } catch (error) {
       return false;
     }
@@ -411,6 +411,7 @@ ${textContent.substring(0, this.MAX_TOKENS)}
           await Source.findByIdAndUpdate(source.id, { rssUrl });
           stories = await this.readRss(source.id);
         } else {
+          console.log(`No RSS feed found at ${rssUrl}`);
           // if no RSS feed is found, scrape the homepage
           // commented out because it's expensive and no one is using it ATM
           // stories = await this.scrapeHomepage(source.id);
