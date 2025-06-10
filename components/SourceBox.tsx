@@ -221,9 +221,20 @@ export default function SourceBox({
                     className={`flex items-start justify-between gap-4 ${headline.status === 'READ' ? 'opacity-50' : ''}`}
                   >
                     <div className="flex-1">
-                      <h3 className={`font-medium ${denseMode ? 'text-sm' : 'text-base'} text-gray-800 dark:text-gray-100`}>
-                        {headline.fullHeadline}
-                      </h3>
+                      {denseMode ? (
+                        <p className="text-sm text-gray-800 dark:text-gray-100 truncate">
+                          <span className="font-medium">{headline.fullHeadline}</span>
+                          {headline.summary && (
+                            <span className="text-gray-500 dark:text-gray-400">
+                              {' - '}{headline.summary}
+                            </span>
+                          )}
+                        </p>
+                      ) : (
+                        <h3 className={`font-medium text-base text-gray-800 dark:text-gray-100`}>
+                          {headline.fullHeadline}
+                        </h3>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
