@@ -16,6 +16,23 @@ export class UserService {
       throw new Error("JWT_SECRET environment variable is required");
     }
     this.JWT_SECRET = process.env.JWT_SECRET;
+
+    // Validate SMTP configuration
+    if (
+      !process.env.SMTP_HOST ||
+      !process.env.SMTP_PORT ||
+      !process.env.SMTP_USER ||
+      !process.env.SMTP_PASS
+    ) {
+      console.error("Missing SMTP configuration:", {
+        host: !!process.env.SMTP_HOST,
+        port: !!process.env.SMTP_PORT,
+        user: !!process.env.SMTP_USER,
+        pass: !!process.env.SMTP_PASS,
+      });
+      throw new Error("SMTP configuration is incomplete");
+    }
+
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || "587"),

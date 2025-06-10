@@ -1,9 +1,22 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
 import { useAppState } from '@/lib/state/AppContext';
 import { Story, Source } from '@/types';
-import SourceBox from './SourceBox';
+import { SortableSourceBox } from './SourceBox';
 import SourceSettings from './SourceSettings';
 import { userService } from '@/services/user.service';
 import StarredStories from './StarredStories';
@@ -23,6 +36,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   const initialLoadDone = useRef(false);
   const headlinesRef = useRef<Map<string, Story[]>>(new Map());
   const [showAllStarred, setShowAllStarred] = useState(false);
+  const sensors = useSensors(useSensor(PointerSensor));
 
   // Keep the ref in sync with state, but only when headlines actually change
   useEffect(() => {
@@ -89,6 +103,36 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
       loadHeadlines();
     }
   }, [currentUser?.sourceIds, currentSources?.length, loadHeadlines]);
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (active.id !== over?.id && currentUser && over) {
+      const oldIndex = currentUser.sourceIds.indexOf(active.id as string);
+      const newIndex = currentUser.sourceIds.indexOf(over.id as string);
+      
+      const newSourceIds = arrayMove(currentUser.sourceIds, oldIndex, newIndex);
+
+      setCurrentUser({ ...currentUser, sourceIds: newSourceIds });
+
+      try {
+        const response = await fetch('/api/users/me/sources', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceIds: newSourceIds }),
+        });
+
+        if (!response.ok) {
+          // Revert on failure
+          setCurrentUser({ ...currentUser, sourceIds: currentUser.sourceIds });
+        }
+      } catch (error) {
+        console.error('Failed to save source order:', error);
+        // Revert on error
+        setCurrentUser({ ...currentUser, sourceIds: currentUser.sourceIds });
+      }
+    }
+  }
 
   const handleRefreshSource = async (sourceId: string) => {
     try {
@@ -276,35 +320,46 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   return (
     <div className="space-y-6">
       <StarredStories limit={3} onViewAll={() => setShowAllStarred(true)} />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentUser.sourceIds.map(sourceId => {
-          const source = currentSources?.find(s => s._id === sourceId);
-          const headlines = sourceHeadlines.get(sourceId) || [];
-          const isRefreshing = refreshingSources.has(sourceId);
-          const isLoading = loadingSources.has(sourceId);
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={currentUser.sourceIds}
+          strategy={rectSortingStrategy}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentUser.sourceIds.map(sourceId => {
+              const source = currentSources?.find(s => s._id === sourceId);
+              const headlines = sourceHeadlines.get(sourceId) || [];
+              const isRefreshing = refreshingSources.has(sourceId);
+              const isLoading = loadingSources.has(sourceId);
 
-          if (!source) return null;
+              if (!source) return null;
 
-          return (
-            <SourceBox
-              key={sourceId}
-              source={source}
-              headlines={headlines}
-              isRefreshing={isRefreshing}
-              denseMode={denseMode}
-              onRefresh={handleRefreshSource}
-              onRemove={handleRemoveSource}
-              onMarkAsRead={markAsRead}
-              onToggleStar={toggleStar}
-              onOpenSettings={(source) => {
-                setEditingSource(source);
-                setSourceSettingsOpen(true);
-              }}
-              searchTerm={searchTerm}
-            />
-          );
-        })}
-      </div>
+              return (
+                <SortableSourceBox
+                  key={sourceId}
+                  source={source}
+                  headlines={headlines}
+                  isRefreshing={isRefreshing}
+                  denseMode={denseMode}
+                  onRefresh={handleRefreshSource}
+                  onRemove={handleRemoveSource}
+                  onMarkAsRead={markAsRead}
+                  onToggleStar={toggleStar}
+                  onOpenSettings={(source) => {
+                    setEditingSource(source);
+                    setSourceSettingsOpen(true);
+                  }}
+                  searchTerm={searchTerm}
+                />
+              );
+            })}
+          </div>
+        </SortableContext>
+      </DndContext>
       <SourceSettings
         isOpen={sourceSettingsOpen}
         onClose={() => {

@@ -173,8 +173,67 @@ ${html}`;
     );
   }
 
+  private decodeHtmlEntities(text: string): string {
+    return text.replace(/&[#\w]+;/g, (match: string): string => {
+      switch (match) {
+        case "&amp;":
+          return "&";
+        case "&lt;":
+          return "<";
+        case "&gt;":
+          return ">";
+        case "&quot;":
+          return '"';
+        case "&apos;":
+          return "'";
+        case "&#8216;":
+          return "'";
+        case "&#8217;":
+          return "'";
+        case "&#8218;":
+          return "'";
+        case "&#8220;":
+          return '"';
+        case "&#8221;":
+          return '"';
+        case "&#8222;":
+          return '"';
+        case "&#038;":
+          return "&";
+        case "&#039;":
+          return "'";
+        case "&#39;":
+          return "'";
+        case "&#34;":
+          return '"';
+        case "&#60;":
+          return "<";
+        case "&#62;":
+          return ">";
+        case "&#160;":
+          return " ";
+        case "&nbsp;":
+          return " ";
+        case "&ndash;":
+          return "–";
+        case "&mdash;":
+          return "—";
+        case "&hellip;":
+          return "…";
+        case "&trade;":
+          return "™";
+        case "&copy;":
+          return "©";
+        case "&reg;":
+          return "®";
+        default:
+          return match;
+      }
+    });
+  }
+
   private sanitizeXml(xml: string): string {
-    return xml.replace(/&(?!(?:amp|lt|gt|quot|apos);)/g, "&amp;");
+    return xml.replace(/&(?!#?\w+;)/g, "&amp;");
   }
 
   private async rssExists(url: string): Promise<boolean> {
@@ -485,12 +544,13 @@ ${textContent.substring(0, this.MAX_TOKENS)}
           (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
         const hasVideoEnclosure: boolean =
           (item.enclosure && item.enclosure.type === "video/mp4") ?? false;
-        const summary: string =
+        const summary: string = this.decodeHtmlEntities(
           item.contentSnippet ||
-          item.content ||
-          (typeof item.description === "string" ? item.description : "") ||
-          (hasAudioEnclosure ? "Audio recording" : "") ||
-          (hasVideoEnclosure ? "Video recording" : "");
+            item.content ||
+            (typeof item.description === "string" ? item.description : "") ||
+            (hasAudioEnclosure ? "Audio recording" : "") ||
+            (hasVideoEnclosure ? "Video recording" : "")
+        );
 
         // Extract image URL from media:content if available
         let imageUrl: string | null = null;
@@ -544,10 +604,10 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         const fullContent: string = item.content || "";
 
         return {
-          fullHeadline: item.title || "",
+          fullHeadline: this.decodeHtmlEntities(item.title || ""),
           articleUrl: item.link || "",
           summary,
-          fullText: fullContent,
+          fullText: this.decodeHtmlEntities(fullContent),
           section: Section.NEWS, // Default to NEWS, can be updated by AI later
           type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
           inPageRank: index + 1,

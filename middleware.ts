@@ -5,7 +5,8 @@ export async function middleware(request: NextRequest) {
   // Skip auth check for public routes
   if (
     request.nextUrl.pathname === "/api/auth/signin" ||
-    request.nextUrl.pathname === "/api/auth/verify"
+    request.nextUrl.pathname === "/api/auth/verify" ||
+    request.nextUrl.pathname === "/api/users/me"
   ) {
     return NextResponse.next();
   }

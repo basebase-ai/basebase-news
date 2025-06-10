@@ -1,10 +1,13 @@
 'use client';
 
+import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Menu } from '@headlessui/react';
 import TimeAgo from 'react-timeago';
 import { Source, Story } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEllipsisV, faStar } from '@fortawesome/free-solid-svg-icons';
+import { faEllipsisV, faStar, faGripVertical } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 
 interface SourceBoxProps {
@@ -20,47 +23,49 @@ interface SourceBoxProps {
   searchTerm?: string;
 }
 
-const filterHeadlines = (headlines: Story[], searchTerm?: string): Story[] => {
-  if (!searchTerm) return headlines;
-  const term = searchTerm.toLowerCase();
-  return headlines.filter(headline =>
-    (headline.fullHeadline?.toLowerCase() || '').includes(term) ||
-    (headline.summary?.toLowerCase() || '').includes(term)
-  );
-};
-
-const formatDate = (dateStr: string | undefined): string => {
-  if (!dateStr) return '';
-  
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      return '';
-    }
-    
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMins < 60) {
-      return `${diffMins}m ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours}h ago`;
-    } else if (diffDays < 7) {
-      return `${diffDays}d ago`;
-    } else {
-      return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric'
-      }).format(date);
-    }
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return '';
+function filterHeadlines(headlines: Story[], searchTerm?: string): Story[] {
+  if (!searchTerm) {
+    return headlines;
   }
-};
+  const lowercasedTerm = searchTerm.toLowerCase();
+  return headlines.filter(headline =>
+    headline.fullHeadline?.toLowerCase().includes(lowercasedTerm)
+  );
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export function SortableSourceBox(props: SourceBoxProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.source._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <SourceBox {...props} dragHandleAttributes={attributes} dragHandleListeners={listeners} />
+    </div>
+  );
+}
+
+interface SourceBoxInternalProps extends SourceBoxProps {
+  dragHandleAttributes?: React.HTMLAttributes<HTMLDivElement>;
+  dragHandleListeners?: React.HTMLAttributes<HTMLDivElement>;
+}
 
 export default function SourceBox({ 
   source, 
@@ -72,14 +77,22 @@ export default function SourceBox({
   onMarkAsRead,
   onOpenSettings,
   onToggleStar,
-  searchTerm 
-}: SourceBoxProps) {
+  searchTerm,
+  dragHandleAttributes,
+  dragHandleListeners
+}: SourceBoxInternalProps) {
   const filteredHeadlines = filterHeadlines(headlines, searchTerm);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden h-[250px] flex flex-col">
       <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-3">
+          <div {...dragHandleAttributes} {...dragHandleListeners} className="cursor-grab active:cursor-grabbing p-2">
+            <FontAwesomeIcon 
+              icon={faGripVertical} 
+              className="w-4 h-4 text-gray-400 dark:text-gray-500"
+            />
+          </div>
           {source.imageUrl ? (
             <img 
               src={source.imageUrl} 
@@ -109,12 +122,11 @@ export default function SourceBox({
             )}
           </div>
         </div>
-        
         <Menu as="div" className="relative">
-          <Menu.Button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-            <FontAwesomeIcon icon={faEllipsisV} className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <Menu.Button className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" />
           </Menu.Button>
-          <Menu.Items className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-100 dark:border-gray-700 focus:outline-none z-10">
+          <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700 focus:outline-none">
             <Menu.Item>
               {({ active }: { active: boolean }) => (
                 <button
@@ -122,24 +134,23 @@ export default function SourceBox({
                     active ? 'bg-gray-50 dark:bg-gray-700' : ''
                   } flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200`}
                   onClick={() => onRefresh(source._id)}
-                  disabled={isRefreshing}
                 >
-                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                  Refresh
                 </button>
               )}
             </Menu.Item>
             <Menu.Item>
-              {({ active }: { active: boolean }) => (
-                <button
-                  className={`${
-                    active ? 'bg-gray-50 dark:bg-gray-700' : ''
-                  } flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200`}
-                  onClick={() => onOpenSettings(source)}
-                >
-                  Settings
-                </button>
-              )}
-            </Menu.Item>
+                {({ active }: { active: boolean }) => (
+                  <button
+                    className={`${
+                      active ? 'bg-gray-50 dark:bg-gray-700' : ''
+                    } flex w-full items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-200`}
+                    onClick={() => onOpenSettings(source)}
+                  >
+                    Settings
+                  </button>
+                )}
+              </Menu.Item>
             {source.rssUrl && (
               <Menu.Item>
                 {({ active }: { active: boolean }) => (
@@ -206,23 +217,15 @@ export default function SourceBox({
                     onMarkAsRead(headline.id);
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className={`text-sm ${denseMode ? 'truncate' : 'line-clamp-2'} ${
-                      headline.status === 'READ' 
-                        ? 'text-gray-400 dark:text-gray-500' 
-                        : 'text-gray-900 dark:text-white'
-                    }`}>
-                      <span className={!denseMode ? 'font-medium' : ''}>{headline.fullHeadline}</span>
-                      {headline.summary && (
-                        <span className={`${headline.status === 'READ' 
-                          ? 'text-gray-400 dark:text-gray-500'
-                          : 'text-gray-500 dark:text-gray-400'
-                        }`}>
-                          {denseMode ? " - " : " — "}
-                          {headline.summary}
-                        </span>
-                      )}
+                  <div 
+                    className={`flex items-start justify-between gap-4 ${headline.status === 'READ' ? 'opacity-50' : ''}`}
+                  >
+                    <div className="flex-1">
+                      <h3 className={`font-medium ${denseMode ? 'text-sm' : 'text-base'} text-gray-800 dark:text-gray-100`}>
+                        {headline.fullHeadline}
+                      </h3>
                     </div>
+
                     <div className="flex items-center gap-2 shrink-0">
                       {headline.createdAt && (
                         <div className={`text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ${denseMode ? 'hidden group-hover:block' : 'block'}`}>

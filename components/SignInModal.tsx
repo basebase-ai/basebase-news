@@ -15,6 +15,7 @@ export default function SignInModal() {
     const formData = new FormData(form);
 
     try {
+      console.log('Submitting sign-in form...');
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -25,11 +26,18 @@ export default function SignInModal() {
         }),
       });
 
+      const data = await response.json();
+      console.log('Sign-in response:', data);
+
       if (response.ok) {
         setShowConfirmation(true);
+      } else {
+        console.error('Sign-in failed:', data.message);
+        // You might want to show an error message to the user here
       }
     } catch (error) {
       console.error('Sign in error:', error);
+      // You might want to show an error message to the user here
     }
   };
 
