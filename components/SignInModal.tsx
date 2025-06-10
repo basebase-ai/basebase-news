@@ -37,7 +37,7 @@ export default function SignInModal() {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md relative">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
             Sign In
@@ -47,7 +47,7 @@ export default function SignInModal() {
               setSignInModalOpen(false);
               setShowConfirmation(false);
             }}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <FontAwesomeIcon icon={faTimes} className="text-2xl" />
           </button>

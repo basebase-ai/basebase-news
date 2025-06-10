@@ -63,15 +63,18 @@ export async function GET(
       .limit(50)
       .lean();
 
-    // Get read status for each story
+    // Get read and star status for each story
     const storyIds = stories.map((story) => story._id);
-    const readStatuses = await StoryStatus.find({
+    const storyStatuses = await StoryStatus.find({
       userId: user._id,
       storyId: { $in: storyIds },
     }).lean();
 
-    const readStoryIds = new Set(
-      readStatuses.map((status) => status.storyId.toString())
+    const statusMap = new Map(
+      storyStatuses.map((status) => [
+        status.storyId.toString(),
+        { status: status.status, starred: status.starred },
+      ])
     );
 
     return NextResponse.json({
@@ -88,20 +91,24 @@ export async function GET(
         tags: source.tags,
         imageUrl: source.imageUrl,
         hasPaywall: source.hasPaywall,
-        stories: stories.map((story) => ({
-          id: story._id.toString(),
-          articleUrl: story.articleUrl,
-          fullHeadline: story.fullHeadline,
-          summary: story.summary,
-          section: story.section,
-          type: story.type,
-          inPageRank: story.inPageRank,
-          imageUrl: story.imageUrl,
-          authorNames: story.authorNames,
-          createdAt: story.createdAt,
-          lastScrapedAt: story.lastScrapedAt,
-          status: readStoryIds.has(story._id.toString()) ? "READ" : "UNREAD",
-        })),
+        stories: stories.map((story) => {
+          const storyStatus = statusMap.get(story._id.toString());
+          return {
+            id: story._id.toString(),
+            articleUrl: story.articleUrl,
+            fullHeadline: story.fullHeadline,
+            summary: story.summary,
+            section: story.section,
+            type: story.type,
+            inPageRank: story.inPageRank,
+            imageUrl: story.imageUrl,
+            authorNames: story.authorNames,
+            createdAt: story.createdAt,
+            lastScrapedAt: story.lastScrapedAt,
+            status: storyStatus?.status || "UNREAD",
+            starred: storyStatus?.starred || false,
+          };
+        }),
       },
     });
   } catch (error) {

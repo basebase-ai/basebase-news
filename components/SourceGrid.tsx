@@ -13,7 +13,7 @@ interface SourceGridProps {
 }
 
 export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
-  const { currentUser, currentSources, searchTerm, setCurrentUser, denseMode } = useAppState();
+  const { currentUser, currentSources, searchTerm, setCurrentUser, denseMode, setSignInModalOpen } = useAppState();
   const [sourceHeadlines, setSourceHeadlines] = useState<Map<string, Story[]>>(new Map());
   const [loadingSources, setLoadingSources] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -234,6 +234,20 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
       console.error('[SourceGrid.toggleStar] Failed to toggle star:', error);
     }
   };
+
+  if (!currentUser) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">Please sign in to view stories</p>
+        <button
+          onClick={() => setSignInModalOpen(true)}
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+        >
+          Sign In
+        </button>
+      </div>
+    );
+  }
 
   if (showAllStarred) {
     return (

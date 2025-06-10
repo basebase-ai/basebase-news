@@ -34,17 +34,30 @@ export default function StarredStories({ limit, onViewAll }: StarredStoriesProps
     const fetchStarredStories = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/users/me/stories/starred');
-        if (!response.ok) {
-          throw new Error('Failed to fetch starred stories');
-        }
+        setError(null);
+        console.log('[StarredStories] Fetching starred stories...');
+        
+        const response = await fetch('/api/users/me/stories/starred', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         const data = await response.json();
+        console.log('[StarredStories] API response:', data);
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch starred stories');
+        }
+
         if (data.status === 'ok' && Array.isArray(data.starredStories)) {
+          console.log('[StarredStories] Setting stories:', data.starredStories.length);
           setStarredStories(data.starredStories);
         } else {
           throw new Error('Invalid response format');
         }
       } catch (err) {
+        console.error('[StarredStories] Error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
