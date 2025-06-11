@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useAppState } from '@/lib/state/AppContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
 const menuItems = [
   { href: '/reader', icon: 'ri-compass-3-line', text: 'Reader' },
@@ -16,12 +19,13 @@ interface SideBarProps {
 
 export default function SideBar({ isOpen, onClose }: SideBarProps) {
   const pathname = usePathname();
+  const { sidebarMinimized, setSidebarMinimized } = useAppState();
 
   return (
     <>
       <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose}></div>
-      <aside className={`fixed top-0 left-0 h-full bg-gray-800 text-white w-[228px] transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40`}>
-        <div className="p-4 flex items-center space-x-2">
+      <aside className={`fixed top-0 left-0 h-full bg-gray-800 text-white transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40 ${sidebarMinimized ? 'w-16' : 'w-[228px]'}`}>
+        <div className={`p-4 flex items-center ${sidebarMinimized ? 'justify-center' : 'space-x-2'}`}>
           <Image
             src="/assets/images/logo_150x150.png"
             alt="NewsWithFriends"
@@ -29,26 +33,39 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
             height={32}
             className="w-8 h-8"
           />
-          <Image
-            src="/assets/images/logotype_white.png"
-            alt="NewsWithFriends"
-            width={132}
-            height={26}
-            className="h-[26px] w-auto"
-          />
+          {!sidebarMinimized && (
+            <Image
+              src="/assets/images/logotype_white.png"
+              alt="NewsWithFriends"
+              width={132}
+              height={26}
+              className="h-[26px] w-auto"
+            />
+          )}
         </div>
         <nav>
           <ul>
             {menuItems.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className={`flex items-center p-4 hover:bg-gray-700 ${pathname === item.href ? 'bg-gray-900' : ''}`} onClick={onClose}>
-                    <i className={`${item.icon} mr-3`}></i>
-                    <span>{item.text}</span>
+                <Link 
+                  href={item.href} 
+                  className={`flex items-center ${sidebarMinimized ? 'justify-center px-4' : 'px-4'} py-4 hover:bg-gray-700 ${pathname === item.href ? 'bg-gray-900' : ''}`} 
+                  onClick={onClose}
+                  title={sidebarMinimized ? item.text : undefined}
+                >
+                  <i className={`${item.icon} ${sidebarMinimized ? '' : 'mr-3'} text-[1.3em]`}></i>
+                  {!sidebarMinimized && <span>{item.text}</span>}
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
+        <button
+          onClick={() => setSidebarMinimized(!sidebarMinimized)}
+          className="absolute bottom-4 right-0 transform translate-x-1/2 w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center border border-gray-700 hover:bg-gray-700 transition-colors duration-200 hidden lg:flex"
+        >
+          <FontAwesomeIcon icon={sidebarMinimized ? faChevronRight : faChevronLeft} className="w-4 h-4" />
+        </button>
       </aside>
     </>
   );

@@ -4,7 +4,7 @@ import SourceGrid from '@/components/SourceGrid';
 import { useAppState } from '@/lib/state/AppContext';
 import { useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faSearch } from '@fortawesome/free-solid-svg-icons';
 
 export default function ReaderPage() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
@@ -51,10 +51,13 @@ export default function ReaderPage() {
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reader</h1>
           <div className="relative flex-1 max-w-2xl ml-8">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
               placeholder="Search articles..."
-              className="w-full h-12 px-6 pr-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
+              className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

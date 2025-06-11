@@ -79,7 +79,7 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
       <div className="relative bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            {editingSource ? 'Edit Source' : 'Add New Source'}
+            {editingSource ? 'Edit Source' : 'Create Source'}
           </h3>
           <button
             onClick={onClose}

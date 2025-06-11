@@ -5,7 +5,7 @@ import { Source } from '@/types';
 import { useAppState } from '@/lib/state/AppContext';
 import LoadingSpinner from './LoadingSpinner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faCog } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faCog, faSearch } from '@fortawesome/free-solid-svg-icons';
 import SourceSettings from './SourceSettings';
 
 export default function AllSources() {
@@ -16,6 +16,7 @@ export default function AllSources() {
   const [sourceSettingsOpen, setSourceSettingsOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [sourceListVersion, setSourceListVersion] = useState(0);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
     const fetchSources = async () => {
@@ -110,16 +111,33 @@ export default function AllSources() {
     setSourceListVersion(v => v + 1);
   };
 
+  const filteredSources = sources.filter(source => 
+    source.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    source.homepageUrl.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">All Sources</h2>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white shrink-0">All Sources</h1>
+        <div className="relative flex-1 max-w-2xl ml-8">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search sources..."
+            className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
+          />
+        </div>
         <button
-          className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          className="ml-4 shrink-0 w-12 h-12 flex items-center justify-center text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm"
           onClick={() => handleEditSource(null)}
+          title="Create New Source"
         >
           <FontAwesomeIcon icon={faPlus} className="h-5 w-5" />
-          <span>Create New Source</span>
         </button>
       </div>
 
@@ -128,7 +146,7 @@ export default function AllSources() {
       
       {!loading && !error && (
         <div className="space-y-2">
-          {sources.map(source => (
+          {filteredSources.map(source => (
             <div key={source._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
               <div className="flex items-center space-x-3">
                 {source.imageUrl && <img src={source.imageUrl} alt={source.name} className="w-8 h-8 object-contain" />}

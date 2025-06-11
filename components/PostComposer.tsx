@@ -7,7 +7,7 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import LinkPreview from './LinkPreview';
 
 interface PostComposerProps {
-  story: Story;
+  story?: Story;
   onClose: () => void;
 }
 
@@ -16,7 +16,7 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
   const [isPosting, setIsPosting] = useState<boolean>(false);
 
   const handlePost = async () => {
-    if (!text.trim() || !story.id) {
+    if (!text.trim()) {
       return;
     }
 
@@ -28,7 +28,7 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          storyId: story.id,
+          ...(story?.id && { storyId: story.id }),
           text: text.trim(),
         }),
         credentials: 'include',
@@ -55,7 +55,7 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Share Story
+            {story ? 'Share Story' : 'Create Post'}
           </h2>
           <button
             onClick={onClose}
@@ -75,7 +75,7 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
               id="post-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Share your thoughts about this story..."
+              placeholder={story ? "Share your thoughts about this story..." : "What's on your mind?"}
               className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none"
               maxLength={500}
               disabled={isPosting}
@@ -86,13 +86,15 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
           </div>
 
           {/* Link Preview */}
-          <LinkPreview
-            headline={story.fullHeadline}
-            summary={story.summary}
-            imageUrl={story.imageUrl}
-            articleUrl={story.articleUrl}
-            showFullImage={true}
-          />
+          {story && (
+            <LinkPreview
+              headline={story.fullHeadline}
+              summary={story.summary}
+              imageUrl={story.imageUrl}
+              articleUrl={story.articleUrl}
+              showFullImage={true}
+            />
+          )}
         </div>
 
         {/* Footer */}

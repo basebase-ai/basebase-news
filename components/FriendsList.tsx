@@ -6,7 +6,7 @@ import type { User } from '@/types';
 import Avatar from './Avatar';
 import LoadingSpinner from './LoadingSpinner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faUserPlus, faSearch } from '@fortawesome/free-solid-svg-icons';
 
 interface Connection extends User {
   // Can be extended with connection-specific details if needed
@@ -18,6 +18,7 @@ export default function FriendsList() {
   const [requests, setRequests] = useState<Connection[]>([]);
   const [suggestions, setSuggestions] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const fetchData = useCallback(async () => {
     if (!currentUser) return;
@@ -88,8 +89,40 @@ export default function FriendsList() {
     </li>
   );
 
+  const filterUsers = (users: User[]) => {
+    if (!searchTerm) return users;
+    const term = searchTerm.toLowerCase();
+    return users.filter(user => 
+      `${user.first} ${user.last}`.toLowerCase().includes(term) ||
+      user.email.toLowerCase().includes(term)
+    );
+  };
+
   return (
-    <div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white shrink-0">Friends</h1>
+        <div className="relative flex-1 max-w-2xl ml-8">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search friends..."
+            className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
+          />
+        </div>
+        <button
+          className="ml-4 shrink-0 w-12 h-12 flex items-center justify-center text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm"
+          onClick={() => window.location.href = 'mailto:?subject=Join%20me%20on%20NewsWithFriends&body=I%20think%20you%27d%20enjoy%20using%20NewsWithFriends%20with%20me!%20Check%20it%20out%20at%20https://newswithfriends.com'}
+          title="Invite Friends"
+        >
+          <FontAwesomeIcon icon={faUserPlus} className="h-5 w-5" />
+        </button>
+      </div>
+
       {loading ? (
         <LoadingSpinner message="Loading friends..." />
       ) : (
@@ -97,19 +130,19 @@ export default function FriendsList() {
           {friends.length > 0 && (
             <section className="mb-6">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Friends</h3>
-              <ul className="space-y-1">{friends.map(user => renderUser(user, 'friend'))}</ul>
+              <ul className="space-y-1">{filterUsers(friends).map(user => renderUser(user, 'friend'))}</ul>
             </section>
           )}
           {requests.length > 0 && (
             <section className="mb-6">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Requests</h3>
-              <ul className="space-y-1">{requests.map(user => renderUser(user, 'request'))}</ul>
+              <ul className="space-y-1">{filterUsers(requests).map(user => renderUser(user, 'request'))}</ul>
             </section>
           )}
           {suggestions.length > 0 && (
             <section>
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Suggestions</h3>
-              <ul className="space-y-1">{suggestions.map(user => renderUser(user, 'suggestion'))}</ul>
+              <ul className="space-y-1">{filterUsers(suggestions).map(user => renderUser(user, 'suggestion'))}</ul>
             </section>
           )}
           {!friends.length && !requests.length && !suggestions.length && (

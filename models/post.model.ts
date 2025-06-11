@@ -1,7 +1,7 @@
 import mongoose, { Document, Model } from "mongoose";
 
 export interface IPost extends Document {
-  storyId: mongoose.Types.ObjectId;
+  storyId?: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   text: string;
   createdAt?: Date;
@@ -13,7 +13,7 @@ const postSchema = new mongoose.Schema(
     storyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Story",
-      required: true,
+      required: false,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -20,7 +20,7 @@ interface PostData {
   _id: string;
   text: string;
   createdAt: string;
-  storyId: {
+  storyId?: {
     _id: string;
     fullHeadline: string;
     articleUrl: string;
@@ -132,13 +132,15 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
       </div>
 
       {/* Link preview */}
-      <LinkPreview
-        headline={post.storyId.fullHeadline}
-        summary={post.storyId.summary}
-        imageUrl={post.storyId.imageUrl}
-        articleUrl={post.storyId.articleUrl}
-        showFullImage={true}
-      />
+      {post.storyId && (
+        <LinkPreview
+          headline={post.storyId.fullHeadline}
+          summary={post.storyId.summary}
+          imageUrl={post.storyId.imageUrl}
+          articleUrl={post.storyId.articleUrl}
+          showFullImage={true}
+        />
+      )}
 
       {/* Comments */}
       {post.comments && post.comments.length > 0 && (

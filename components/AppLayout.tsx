@@ -10,7 +10,7 @@ import { Source } from '@/types';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { currentUser } = useAppState();
+  const { currentUser, sidebarMinimized } = useAppState();
   const [sourceSettingsOpen, setSourceSettingsOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [sourceListVersion, setSourceListVersion] = useState(0);
@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <SideBar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:pl-52 flex flex-col flex-1">
+      <div className={`${sidebarMinimized ? 'lg:pl-20' : 'lg:pl-56'} flex flex-col flex-1 transition-[padding] duration-300`}>
         <GlobalNavigationBar
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />

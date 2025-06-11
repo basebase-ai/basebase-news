@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import PostBox from './PostBox';
+import PostComposer from './PostComposer';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch, faPen } from '@fortawesome/free-solid-svg-icons';
 
 interface CommentData {
   _id: string;
@@ -42,6 +45,8 @@ export default function Feed() {
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [showPostComposer, setShowPostComposer] = useState(false);
 
   const fetchPosts = async (): Promise<void> => {
     try {
@@ -80,25 +85,59 @@ export default function Feed() {
     fetchPosts();
   }, []);
 
-  if (loading) {
-    return <LoadingSpinner message="Loading posts..." />;
-  }
-
-  if (error) {
-    return <div className="text-red-500">Error: {error}</div>;
-  }
+  const handlePostCreated = () => {
+    setShowPostComposer(false);
+    fetchPosts();
+  };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Feed</h2>
-      {posts.length === 0 ? (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white shrink-0">Feed</h1>
+        <div className="relative flex-1 max-w-2xl ml-8">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search posts..."
+            className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
+          />
+        </div>
+        <button
+          className="ml-4 shrink-0 w-12 h-12 flex items-center justify-center text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm"
+          onClick={() => setShowPostComposer(true)}
+          title="Create New Post"
+        >
+          <FontAwesomeIcon icon={faPen} className="h-5 w-5" />
+        </button>
+      </div>
+      {loading ? (
+        <LoadingSpinner message="Loading posts..." />
+      ) : error ? (
+        <div className="text-red-500">Error: {error}</div>
+      ) : posts.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400">No posts yet.</p>
       ) : (
         <div className="space-y-4">
-          {posts.map((post) => (
-            <PostBox key={post._id} post={post} onCommentAdded={fetchPosts} />
-          ))}
+          {posts
+            .filter(post => 
+              searchTerm === '' || 
+              post.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              post.storyId?.fullHeadline.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((post) => (
+              <PostBox key={post._id} post={post} onCommentAdded={fetchPosts} />
+            ))}
         </div>
+      )}
+
+      {showPostComposer && (
+        <PostComposer
+          onClose={handlePostCreated}
+        />
       )}
     </div>
   );
