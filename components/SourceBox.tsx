@@ -85,6 +85,10 @@ export default function SourceBox({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showPostComposer, setShowPostComposer] = useState<boolean>(false);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
+  const [hoveredStory, setHoveredStory] = useState<Story | null>(null);
+  const [showTooltip, setShowTooltip] = useState<boolean>(false);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoverTimer, setHoverTimer] = useState<NodeJS.Timeout | null>(null);
 
   const loadHeadlines = useCallback(async () => {
     try {
@@ -201,9 +205,31 @@ export default function SourceBox({
     }
   };
 
-  const handleShare = (e: React.MouseEvent, story: Story) => {
+  const handleShare = async (e: React.MouseEvent, story: Story) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Toggle starred status
+    try {
+      const response = await fetch('/api/users/me/stories/star', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ storyId: story.id }),
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setHeadlines(headlines.map(h => 
+          h.id === story.id ? { ...h, starred: data.starred } : h
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to star story:', error);
+    }
+    
+    // Open share modal
     setSelectedStory(story);
     setShowPostComposer(true);
   };
@@ -211,6 +237,29 @@ export default function SourceBox({
   const handleClosePostComposer = () => {
     setShowPostComposer(false);
     setSelectedStory(null);
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent, story: Story) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10
+    });
+    setHoveredStory(story);
+    
+    const timer = setTimeout(() => {
+      setShowTooltip(true);
+    }, 1000);
+    setHoverTimer(timer);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      setHoverTimer(null);
+    }
+    setShowTooltip(false);
+    setHoveredStory(null);
   };
 
   const filteredHeadlines = filterHeadlines(headlines, searchTerm);
@@ -335,6 +384,8 @@ export default function SourceBox({
                 <article 
                   key={headline.id} 
                   className={`pl-3 pr-2 ${denseMode ? 'pt-1 pb-0' : 'py-2'} hover:bg-gray-50 dark:hover:bg-gray-700/50 group relative`}
+                  onMouseEnter={(e) => handleMouseEnter(e, headline)}
+                  onMouseLeave={handleMouseLeave}
                 >
                   <a
                     href={headline.articleUrl}
@@ -382,7 +433,7 @@ export default function SourceBox({
                         )}
                         {headline.status === 'READ' && (
                           <button
-                            onClick={(e) => handleStar(e, headline)}
+                            onClick={(e) => handleShare(e, headline)}
                             className="text-gray-400 hover:text-yellow-500 dark:text-gray-500 dark:hover:text-yellow-500 transition-colors"
                           >
                             <FontAwesomeIcon 
@@ -406,6 +457,22 @@ export default function SourceBox({
           story={selectedStory}
           onClose={handleClosePostComposer}
         />
+      )}
+
+      {showTooltip && hoveredStory && (
+        <div
+          className="fixed bg-black text-white text-sm rounded-lg p-3 shadow-lg z-50 max-w-sm"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="font-semibold mb-1">{hoveredStory.fullHeadline}</div>
+          {hoveredStory.summary && (
+            <div className="text-gray-300 text-xs">{hoveredStory.summary}</div>
+          )}
+        </div>
       )}
     </>
   );
