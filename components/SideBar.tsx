@@ -24,8 +24,8 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
   return (
     <>
       <div className={`fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose}></div>
-      <aside className={`fixed top-0 left-0 h-full bg-gray-800 text-white transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40 ${sidebarMinimized ? 'w-16' : 'w-[228px]'}`}>
-        <div className={`p-4 flex items-center ${sidebarMinimized ? 'justify-center' : 'space-x-2'}`}>
+      <aside className={`fixed top-0 left-0 h-full bg-gray-800 text-white transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40 ${sidebarMinimized ? 'w-16' : 'w-[228px]'} border-r border-gray-700`}>
+        <div className={`p-4 flex items-center mb-4 ${sidebarMinimized ? 'justify-center' : 'space-x-2'}`}>
           <Image
             src="/assets/images/logo_150x150.png"
             alt="NewsWithFriends"

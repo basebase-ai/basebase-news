@@ -98,7 +98,7 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
   };
 
   return (
-    <article className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3">
+    <article className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3 max-w-[500px]">
       {/* User info and date */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
