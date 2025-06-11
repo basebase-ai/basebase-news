@@ -7,7 +7,8 @@ import { Menu } from '@headlessui/react';
 import TimeAgo from 'react-timeago';
 import { Source, Story } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEllipsisV, faGripVertical } from '@fortawesome/free-solid-svg-icons';
+import { faEllipsisV, faGripVertical, faStar } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 import PostComposer from './PostComposer';
 
 interface SourceBoxProps {
@@ -93,8 +94,8 @@ export default function SourceBox({
         if (data.source?.stories) {
           const stories = data.source.stories as Story[];
           const sortedStories = [...stories].sort((a: Story, b: Story) => {
-            const dateA = new Date(a.publishDate);
-            const dateB = new Date(b.publishDate);
+            const dateA = new Date(a.createdAt || '');
+            const dateB = new Date(b.createdAt || '');
             return dateB.getTime() - dateA.getTime();
           });
           setHeadlines(sortedStories);
@@ -179,6 +180,24 @@ export default function SourceBox({
       }
     } catch (error) {
       console.error('[SourceBox.markAsRead] Failed to mark story as read:', error);
+    }
+  };
+
+  const handleStar = async (e: React.MouseEvent, story: Story) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const response = await fetch(`/api/stories/${story.id}/star`, {
+        method: story.starred ? 'DELETE' : 'POST',
+        credentials: 'include'
+      });
+      if (response.ok) {
+        setHeadlines(headlines.map(h => 
+          h.id === story.id ? { ...h, starred: !h.starred } : h
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to star story:', error);
     }
   };
 
@@ -363,15 +382,13 @@ export default function SourceBox({
                         )}
                         {headline.status === 'READ' && (
                           <button
-                            onClick={(e) => handleShare(e, headline)}
-                            disabled={headline.starred}
-                            className={`text-xs font-medium uppercase px-2 py-0.5 rounded text-white transition-colors ${
-                              headline.starred 
-                                ? 'bg-gray-400 dark:bg-gray-500 cursor-default' 
-                                : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
-                            }`}
+                            onClick={(e) => handleStar(e, headline)}
+                            className="text-gray-400 hover:text-yellow-500 dark:text-gray-500 dark:hover:text-yellow-500 transition-colors"
                           >
-                            {headline.starred ? 'POSTED' : '+ POST'}
+                            <FontAwesomeIcon 
+                              icon={headline.starred ? faStar : faStarRegular} 
+                              className={headline.starred ? "text-yellow-500" : ""}
+                            />
                           </button>
                         )}
                       </div>

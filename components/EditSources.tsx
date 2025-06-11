@@ -101,8 +101,8 @@ export default function EditSources({ isOpen, onClose, setSourceHeadlines, onEdi
             
             if (source.stories) {
               const sortedStories = [...source.stories].sort((a, b) => {
-                const dateA = new Date(a.publishDate);
-                const dateB = new Date(b.publishDate);
+                const dateA = new Date(a.createdAt);
+                const dateB = new Date(b.createdAt);
                 return dateB.getTime() - dateA.getTime();
               });
               setSourceHeadlines(prev => {
