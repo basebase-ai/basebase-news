@@ -1,28 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  // Skip auth check for public routes
-  if (
-    request.nextUrl.pathname === "/api/auth/signin" ||
-    request.nextUrl.pathname === "/api/auth/verify" ||
-    request.nextUrl.pathname === "/api/users/me"
-  ) {
-    return NextResponse.next();
+const protectedRoutes = ["/reader", "/feed", "/friends", "/sources"];
+const authRoutes = ["/auth/signin", "/auth/signup"];
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isAuthenticated = request.cookies.has("auth"); // Adjust based on your auth cookie name
+
+  // If user is on the homepage and authenticated, redirect to reader
+  if (pathname === "/" && isAuthenticated) {
+    return NextResponse.redirect(new URL("/reader", request.url));
   }
 
-  // Check authentication for all other API routes
-  const token = request.cookies.get("auth")?.value;
-  if (!token) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  // If user tries to access auth pages while authenticated, redirect to reader
+  if (isAuthenticated && authRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL("/reader", request.url));
   }
 
-  // Ensure the request stays on the same domain
-  const response = NextResponse.next();
-  response.headers.set("x-middleware-skip", "1");
-  return response;
+  // If user tries to access protected routes while not authenticated, redirect to signin
+  if (!isAuthenticated && protectedRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ["/", ...protectedRoutes, ...authRoutes],
 };

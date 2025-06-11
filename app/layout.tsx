@@ -1,45 +1,47 @@
 import type { Metadata } from 'next';
-import { AppProvider } from '@/lib/state/AppContext';
+import { Inter } from 'next/font/google';
 import './globals.css';
-import Toast from '@/components/Toast';
+import { AppProvider } from '@/lib/state/AppContext';
+import { cookies } from 'next/headers';
+import AppLayout from '@/components/AppLayout';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'NewsWithFriends - Your social news reader!',
-  description: 'NewsWithFriends makes it easy to stay informed with the latest news from your friends and sources.',
-  icons: {
-    icon: '/assets/images/logo_48x48.png',
-    apple: '/assets/images/logo_48x48.png',
-  },
+  title: 'NewsWithFriends',
+  description: 'Discover and discuss news with friends',
 };
 
-// Client component wrapper
-function ClientLayout({ children }: { children: React.ReactNode }) {
-  'use client';
-  
-  return (
-    <AppProvider>
-      {children}
-      <Toast />
-    </AppProvider>
-  );
-}
-
-// Root layout (server component)
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = cookies();
+  const authCookie = cookieStore.get('auth');
+  const isAuthenticated = !!authCookie;
+  
+  console.log('RootLayout auth check:', {
+    hasAuthCookie: !!authCookie,
+    cookieValue: authCookie?.value ? 'present' : 'missing',
+    isAuthenticated
+  });
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
         <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;0,900;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-screen bg-white dark:bg-gray-950 font-roboto" suppressHydrationWarning>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+      <body className={inter.className}>
+        <AppProvider>
+          {isAuthenticated ? (
+            <AppLayout>{children}</AppLayout>
+          ) : (
+            <main>
+              {children}
+            </main>
+          )}
+        </AppProvider>
       </body>
     </html>
   );
