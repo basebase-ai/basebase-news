@@ -1,25 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { Post } from "@/models/post.model";
+import { Story } from "@/models/story.model";
 import { userService } from "@/services/user.service";
 import { User } from "@/models/user.model";
 import { cookies } from "next/headers";
 
 export async function GET(): Promise<NextResponse> {
   try {
+    console.log("[Posts API] Starting GET request");
     await connectToDatabase();
+    console.log("[Posts API] Database connected");
+
+    // Ensure models are registered
+    console.log("[Posts API] Ensuring models are registered...");
+    console.log("[Posts API] Story model:", Story.modelName);
+    console.log("[Posts API] User model:", User.modelName);
+    console.log("[Posts API] Post model:", Post.modelName);
 
     const tokenCookie = cookies().get("auth");
     if (!tokenCookie) {
+      console.log("[Posts API] No auth token found");
       return NextResponse.json(
         { status: "error", message: "Not authenticated" },
         { status: 401 }
       );
     }
     const token = tokenCookie.value;
+    console.log("[Posts API] Token found, verifying...");
 
     const { userId } = userService.verifyToken(token);
+    console.log("[Posts API] Token verified for userId:", userId);
+
     const user = await User.findById(userId);
+    console.log(
+      "[Posts API] User lookup result:",
+      user ? "found" : "not found"
+    );
 
     if (!user) {
       return NextResponse.json(
@@ -28,16 +45,58 @@ export async function GET(): Promise<NextResponse> {
       );
     }
 
+    console.log("[Posts API] Querying posts...");
     const posts = await Post.find({})
       .populate("userId", "first last email imageUrl")
       .populate("storyId", "fullHeadline articleUrl summary imageUrl")
       .sort({ createdAt: -1 })
       .limit(50);
 
-    return NextResponse.json({ status: "ok", posts });
+    console.log("[Posts API] Found", posts.length, "posts");
+
+    // Get comments for each post
+    console.log("[Posts API] Fetching comments for posts...");
+    const { Comment } = await import("@/models/comment.model");
+
+    const postsWithComments = await Promise.all(
+      posts.map(async (post) => {
+        const comments = await Comment.find({ postId: post._id })
+          .populate("userId", "first last email imageUrl")
+          .sort({ createdAt: 1 }); // Oldest first for comments
+
+        return {
+          ...post.toObject(),
+          comments: comments.map((comment) => {
+            const user = comment.userId as any;
+            return {
+              _id: comment._id,
+              text: comment.text,
+              createdAt: comment.createdAt,
+              userId: {
+                _id: user._id,
+                first: user.first,
+                last: user.last,
+                email: user.email,
+                imageUrl: user.imageUrl,
+              },
+            };
+          }),
+        };
+      })
+    );
+
+    console.log("[Posts API] Added comments to posts");
+    return NextResponse.json({ status: "ok", posts: postsWithComments });
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error("Error getting posts:", error);
+    console.error("[Posts API] Error getting posts:", error);
+    if (error instanceof Error) {
+      console.error("[Posts API] Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(

@@ -4,6 +4,19 @@ import { useState, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import PostBox from './PostBox';
 
+interface CommentData {
+  _id: string;
+  text: string;
+  createdAt: string;
+  userId: {
+    _id: string;
+    first: string;
+    last: string;
+    email: string;
+    imageUrl?: string;
+  };
+}
+
 interface PostData {
   _id: string;
   text: string;
@@ -22,6 +35,7 @@ interface PostData {
     email: string;
     imageUrl?: string;
   };
+  comments: CommentData[];
 }
 
 export default function Feed() {
@@ -29,40 +43,40 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        console.log('[Feed] Fetching posts...');
-        
-        const response = await fetch('/api/posts', {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        const data = await response.json();
-        console.log('[Feed] API response:', data);
+  const fetchPosts = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('[Feed] Fetching posts...');
+      
+      const response = await fetch('/api/posts', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      console.log('[Feed] API response:', data);
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch posts');
-        }
-
-        if (data.status === 'ok' && Array.isArray(data.posts)) {
-          console.log('[Feed] Setting posts:', data.posts.length);
-          setPosts(data.posts);
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } catch (err) {
-        console.error('[Feed] Error:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch posts');
       }
-    };
 
+      if (data.status === 'ok' && Array.isArray(data.posts)) {
+        console.log('[Feed] Setting posts:', data.posts.length);
+        setPosts(data.posts);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (err) {
+      console.error('[Feed] Error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchPosts();
   }, []);
 
@@ -82,7 +96,7 @@ export default function Feed() {
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (
-            <PostBox key={post._id} post={post} />
+            <PostBox key={post._id} post={post} onCommentAdded={fetchPosts} />
           ))}
         </div>
       )}
