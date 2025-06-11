@@ -83,7 +83,7 @@ export class UserService {
     // Log email content instead of sending
     console.log("\n=== Sign In Email ===");
     console.log("To:", email);
-    console.log("Subject: Sign in to StoryList");
+    console.log("Subject: Sign in to NewsWithFriends");
     console.log("Link:", signInLink);
     console.log("===================\n");
 
@@ -92,8 +92,8 @@ export class UserService {
       await this.transporter.sendMail({
         from: "noreply@joinable.us",
         to: email,
-        subject: "Sign in to StoryList",
-        html: `Click <a href="${signInLink}">here</a> to sign in to StoryList.`,
+        subject: "Sign in to NewsWithFriends",
+        html: `Click <a href="${signInLink}">here</a> to sign in to NewsWithFriends.`,
       });
       console.log("Email sent successfully!");
     } catch (error) {

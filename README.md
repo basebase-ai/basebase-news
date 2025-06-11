@@ -1,8 +1,8 @@
-# StoryList
+# NewsWithFriends
 
 A modern news headline aggregation web application that brings the world's headlines to you at a glance.
 
-![StoryList](public/assets/images/icon_256x256.png)
+![NewsWithFriends](public/assets/images/icon_256x256.png)
 
 ## Features
 
@@ -73,7 +73,7 @@ See `.env.example` for all required environment variables. The essential ones ar
 
 ## Contributing
 
-We welcome contributions to StoryList! Please follow these steps:
+We welcome contributions to NewsWithFriends! Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`

@@ -1,7 +1,7 @@
 {
-  "name": "storylist",
+  "name": "NewsWithFriends",
   "version": "1.0.0",
-  "description": "A news headline aggregation web app.",
+  "description": "A social news reader.",
   "private": true,
   "scripts": {
     "dev": "next dev",

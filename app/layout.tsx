@@ -4,8 +4,8 @@ import './globals.css';
 import Toast from '@/components/Toast';
 
 export const metadata: Metadata = {
-  title: 'StoryList - Your news dashboard',
-  description: 'Stay informed with StoryList - Your personalized news dashboard that brings the world\'s headlines to you at a glance.',
+  title: 'NewsWithFriends - Your social news reader!',
+  description: 'NewsWithFriends makes it easy to stay informed with the latest news from your friends and sources.',
   icons: {
     icon: '/assets/images/logo_48x48.png',
     apple: '/assets/images/logo_48x48.png',

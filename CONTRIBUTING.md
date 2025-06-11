@@ -1,6 +1,6 @@
-# Contributing to StoryList
+# Contributing to NewsWithFriends
 
-Thank you for considering contributing to StoryList! This document outlines the process for contributing to the project and helps ensure a smooth collaboration.
+Thank you for considering contributing to NewsWithFriends! This document outlines the process for contributing to the project and helps ensure a smooth collaboration.
 
 ## Code of Conduct
 
@@ -92,4 +92,4 @@ If you have questions or need help, please:
 1. Check existing issues and discussions
 2. Create a new discussion or issue for broader topics
 
-Thank you for contributing to StoryList!
+Thank you for contributing to NewsWithFriends!
