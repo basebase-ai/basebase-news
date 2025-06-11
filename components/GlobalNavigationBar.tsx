@@ -25,12 +25,12 @@ export default function GlobalNavigationBar({
           <div className="lg:hidden flex items-center space-x-2">
             <Image
               src="/assets/images/logo_150x150.png"
-              alt="StoryList"
+              alt="NewsWithFriends"
               width={32}
               height={32}
               className="w-8 h-8"
             />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white hidden sm:block">StoryList</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white hidden sm:block">NewsWithFriends</h1>
           </div>
         </div>
         <div className="flex items-center space-x-4">
