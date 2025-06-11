@@ -134,6 +134,7 @@ ${html}`;
       // make the articleUrl absolute
       stories.forEach((story: any) => {
         story.articleUrl = this.makeUrlAbsolute(story.articleUrl, baseUrl);
+        story.fullHeadline = this.decodeHtmlEntities(story.fullHeadline);
       });
       return stories;
     } catch (error) {
@@ -174,6 +175,15 @@ ${html}`;
   }
 
   private decodeHtmlEntities(text: string): string {
+    if (!text) return "";
+
+    // First pass: handle numeric and hex entities
+    text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec));
+    text = text.replace(/&#x([0-9a-f]+);/i, (_, hex) =>
+      String.fromCharCode(parseInt(hex, 16))
+    );
+
+    // Second pass: handle named entities
     return text.replace(/&[#\w]+;/g, (match: string): string => {
       switch (match) {
         case "&amp;":
@@ -227,13 +237,14 @@ ${html}`;
         case "&reg;":
           return "®";
         default:
+          // Try to decode any remaining numeric entities
+          const numericMatch = match.match(/&#(\d+);/);
+          if (numericMatch) {
+            return String.fromCharCode(parseInt(numericMatch[1], 10));
+          }
           return match;
       }
     });
-  }
-
-  private sanitizeXml(xml: string): string {
-    return xml.replace(/&(?!#?\w+;)/g, "&amp;");
   }
 
   private async rssExists(url: string): Promise<boolean> {
@@ -289,11 +300,10 @@ ${html}`;
 Extract the following information from this news article as a valid JSON object:
 1. fullText: The complete article text content, excluding navigation, ads, related articles, comments, and other non-article content
 2. authorNames: An array of names of the article's author(s)
-3. publishDate: The publication date of the article in ISO format (YYYY-MM-DD)
 
-If you can't find any clear article text or the article appears to be behind a paywall, set fullText to "PAYWALL_DETECTED" and provide any author or date information if available.
+If you can't find any clear article text or the article appears to be behind a paywall, set fullText to "PAYWALL_DETECTED" and provide any author information if available.
 
-Return only a valid JSON object with these three fields, properly escaped, with no additional text, markdown, or explanation.
+Return only a valid JSON object with these fields, properly escaped, with no additional text, markdown, or explanation.
 
 HTML content:
 ${textContent.substring(0, this.MAX_TOKENS)}
@@ -331,14 +341,6 @@ ${textContent.substring(0, this.MAX_TOKENS)}
               ) {
                 // Handle case where LLM returns a single authorName instead of array
                 story.authorNames = [articleData.authorName];
-              }
-
-              // Add publish date if available
-              if (articleData.publishDate) {
-                const parsedDate = new Date(articleData.publishDate);
-                if (!isNaN(parsedDate.getTime())) {
-                  story.publishDate = parsedDate;
-                }
               }
             } else {
               console.log(
@@ -517,7 +519,17 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       // Configure the parser to capture media:content tags
       const parser = new Parser({
         customFields: {
-          item: [["media:content", "mediaContent", { keepArray: true }]],
+          item: [
+            // field names are all lowercase because we normalize tags
+            ["media:content", "mediaContent", { keepArray: true }],
+            ["pubdate", "pubDate"],
+            ["isodate", "isoDate"],
+          ],
+        },
+        xml2js: {
+          normalize: true,
+          normalizeTags: true,
+          decodeEntities: true,
         },
       });
 
@@ -532,8 +544,9 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         }
       );
       const xmlText: string = rssResponse.data;
-      const sanitizedXml: string = this.sanitizeXml(xmlText);
-      const feed = await parser.parseString(sanitizedXml);
+      console.log("[RSS Debug] Raw XML snippet:", xmlText.substring(0, 500));
+      const feed = await parser.parseString(xmlText);
+      console.log("[RSS Debug] First feed item:", feed.items[0]);
 
       // Check if feed has an image and update source if different
       if (feed.image?.url && feed.image.url !== source.imageUrl) {
@@ -541,17 +554,12 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       }
 
       const stories: IStory[] = feed.items.map((item: any, index: number) => {
+        // START MAPPING
+        console.log(`[RSS Debug] item:`, item);
         const hasAudioEnclosure: boolean =
           (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
         const hasVideoEnclosure: boolean =
           (item.enclosure && item.enclosure.type === "video/mp4") ?? false;
-        const summary: string = this.decodeHtmlEntities(
-          item.contentSnippet ||
-            item.content ||
-            (typeof item.description === "string" ? item.description : "") ||
-            (hasAudioEnclosure ? "Audio recording" : "") ||
-            (hasVideoEnclosure ? "Video recording" : "")
-        );
 
         // Extract image URL from media:content if available
         let imageUrl: string | null = null;
@@ -595,26 +603,34 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         }
 
         // Get publish date from RSS feed if available
-        const publishDate: Date = item.pubDate
-          ? new Date(item.pubDate)
-          : new Date();
-        const isValidDate: boolean = !isNaN(publishDate.getTime());
-        const createdAt: Date = isValidDate ? publishDate : new Date();
+
+        console.log(`[RSS Debug] Raw pubDate from RSS:`, item.rawPubDate);
 
         // Get full content if available
-        const fullContent: string = item.content || "";
 
         return {
           fullHeadline: this.decodeHtmlEntities(item.title || ""),
           articleUrl: item.link || "",
-          summary,
-          fullText: this.decodeHtmlEntities(fullContent),
+          summary: this.decodeHtmlEntities(
+            item.contentSnippet ||
+              item.content ||
+              (typeof item.description === "string" ? item.description : "") ||
+              (hasAudioEnclosure ? "Audio recording" : "") ||
+              (hasVideoEnclosure ? "Video recording" : "")
+          ),
+          fullText: this.decodeHtmlEntities(item.content || ""),
           section: Section.NEWS, // Default to NEWS, can be updated by AI later
           type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
           inPageRank: index + 1,
           sourceId: new mongoose.Types.ObjectId(sourceId),
           imageUrl,
+          createdAt: item.pubDate
+            ? new Date(item.pubDate)
+            : item.isoDate
+              ? new Date(item.isoDate)
+              : new Date(),
         } as IStory;
+        // END MAPPING
       });
 
       return stories;

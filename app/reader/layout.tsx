@@ -1,6 +1,6 @@
 import AppLayout from '@/components/AppLayout';
 
-export default function DiscoverLayout({
+export default function ReaderLayout({
   children,
 }: {
   children: React.ReactNode;

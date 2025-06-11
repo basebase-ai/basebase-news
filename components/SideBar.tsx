@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 const menuItems = [
-  { href: '/discover', icon: 'ri-compass-3-line', text: 'Discover' },
+  { href: '/reader', icon: 'ri-compass-3-line', text: 'Reader' },
   { href: '/feed', icon: 'ri-star-line', text: 'Feed' },
   { href: '/friends', icon: 'ri-user-heart-line', text: 'Friends' },
   { href: '/sources', icon: 'ri-list-check-2', text: 'All Sources' },
@@ -29,7 +29,13 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
             height={32}
             className="w-8 h-8"
           />
-          <h2 className="text-xl font-bold">NewsWithFriends</h2>
+          <Image
+            src="/assets/images/logotype_white.png"
+            alt="NewsWithFriends"
+            width={132}
+            height={26}
+            className="h-[26px] w-auto"
+          />
         </div>
         <nav>
           <ul>

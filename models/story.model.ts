@@ -29,7 +29,6 @@ export interface IStory extends Document {
   inPageRank: number;
   imageUrl?: string | null;
   authorNames?: string[];
-  publishDate?: Date;
   archived?: boolean;
   lastScrapedAt?: Date | null;
   createdAt?: Date;
@@ -51,7 +50,6 @@ const storySchema = new mongoose.Schema({
   inPageRank: Number,
   imageUrl: String,
   authorNames: [String],
-  publishDate: Date,
   archived: { type: Boolean, default: false },
   lastScrapedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },

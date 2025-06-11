@@ -20,26 +20,6 @@ export class StoryService {
     connectToDatabase();
   }
 
-  public async addStories(sourceId: string, stories: IStory[]): Promise<void> {
-    console.log(`Processing ${stories.length} stories for source ${sourceId}`);
-
-    const objectId = new mongoose.Types.ObjectId(sourceId);
-
-    // Set inPageRank to null for existing stories for this source
-    const updatedCount = await Story.updateMany(
-      { sourceId: objectId, inPageRank: { $ne: null } },
-      { inPageRank: null }
-    );
-    console.log(
-      `Updated inPageRank to null for ${updatedCount.modifiedCount} existing stories`
-    );
-
-    // Process each story individually
-    for (const [index, story] of stories.entries()) {
-      await this.addStory(sourceId, story, index + 1);
-    }
-  }
-
   /**
    * Adds or updates a single story in the database
    * @param sourceId The ID of the source
@@ -54,6 +34,9 @@ export class StoryService {
   ): Promise<IStory> {
     const objectId = new mongoose.Types.ObjectId(sourceId);
 
+    console.log(`[Story Debug] Adding/updating story: "${story.fullHeadline}"`);
+    console.log(`[Story Debug] Story createdAt from RSS:`, story.createdAt);
+
     const existingStory = await Story.findOne({
       articleUrl: story.articleUrl,
       sourceId: objectId,
@@ -62,7 +45,11 @@ export class StoryService {
     let result: IStory;
 
     if (existingStory) {
-      console.log(`Updating existing story: ${story.articleUrl}`);
+      console.log(`[Story Debug] Updating existing story: ${story.articleUrl}`);
+      console.log(
+        `[Story Debug] Existing story createdAt:`,
+        existingStory.createdAt
+      );
       const updatedStory = await Story.findByIdAndUpdate(
         existingStory._id,
         {
@@ -78,18 +65,27 @@ export class StoryService {
       if (!updatedStory) {
         throw new Error(`Failed to update story: ${existingStory._id}`);
       }
-
+      console.log(
+        `[Story Debug] Updated story createdAt:`,
+        updatedStory.createdAt
+      );
       result = updatedStory;
     } else {
-      console.log(`Creating new story: ${story.articleUrl}`);
-      result = await Story.create({
+      console.log(`[Story Debug] Creating new story: ${story.articleUrl}`);
+      const storyToCreate = {
         ...story,
         sourceId: objectId,
         inPageRank: rank !== undefined ? rank : null,
         archived: false,
-        createdAt: new Date(),
+        createdAt: story.createdAt || new Date(),
         updatedAt: new Date(),
-      });
+      };
+      console.log(
+        `[Story Debug] About to save with createdAt:`,
+        storyToCreate.createdAt
+      );
+      result = await Story.create(storyToCreate);
+      console.log(`[Story Debug] Saved story createdAt:`, result.createdAt);
     }
 
     return result;

@@ -29,7 +29,6 @@ export interface Story {
   fullHeadline: string;
   sourceName: string;
   sourceUrl: string;
-  publishDate: string;
   summary?: string;
   imageUrl?: string;
   authorNames?: string[];

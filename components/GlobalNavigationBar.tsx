@@ -13,8 +13,6 @@ interface GlobalNavigationBarProps {
 export default function GlobalNavigationBar({
   onToggleSidebar,
 }: GlobalNavigationBarProps) {
-  const { searchTerm, setSearchTerm } = useAppState();
-
   return (
     <header className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 z-10 border-b border-gray-200 dark:border-gray-700 shadow-sm lg:pl-52">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -33,14 +31,7 @@ export default function GlobalNavigationBar({
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white hidden sm:block">NewsWithFriends</h1>
           </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="w-32 md:w-32 h-9 px-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex items-center">
           <UserMenu />
         </div>
       </div>
