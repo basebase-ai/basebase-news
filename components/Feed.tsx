@@ -1,93 +1,73 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Story } from '@/types';
 import LoadingSpinner from './LoadingSpinner';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons';
-import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
+import PostBox from './PostBox';
 
-interface StarredStoryData {
-  story: {
-    id: string;
+interface PostData {
+  _id: string;
+  text: string;
+  createdAt: string;
+  storyId: {
+    _id: string;
     fullHeadline: string;
     articleUrl: string;
-    createdAt: string | Date;
-    sourceId: string;
-    sourceName: string;
+    summary?: string;
     imageUrl?: string;
   };
-  user: {
+  userId: {
     _id: string;
     first: string;
     last: string;
-    imageUrl?: string;
     email: string;
+    imageUrl?: string;
   };
 }
 
 export default function Feed() {
-  const [starredData, setStarredData] = useState<StarredStoryData[]>([]);
+  const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStarredStories = async () => {
+    const fetchPosts = async () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('[StarredStories] Fetching starred stories...');
+        console.log('[Feed] Fetching posts...');
         
-        const response = await fetch('/api/users/me/stories/starred', {
+        const response = await fetch('/api/posts', {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
         });
         const data = await response.json();
-        console.log('[StarredStories] API response:', data);
+        console.log('[Feed] API response:', data);
 
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch starred stories');
+          throw new Error(data.error || 'Failed to fetch posts');
         }
 
-        if (data.status === 'ok' && Array.isArray(data.starredStories)) {
-          console.log('[StarredStories] Setting stories:', data.starredStories.length);
-          setStarredData(data.starredStories);
+        if (data.status === 'ok' && Array.isArray(data.posts)) {
+          console.log('[Feed] Setting posts:', data.posts.length);
+          setPosts(data.posts);
         } else {
           throw new Error('Invalid response format');
         }
       } catch (err) {
-        console.error('[StarredStories] Error:', err);
+        console.error('[Feed] Error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStarredStories();
+    fetchPosts();
   }, []);
 
-  const handleToggleStar = async (storyId: string, starred?: boolean) => {
-    // TODO: Implement API call to star/unstar story
-    setStarredData(starredData.map(item => 
-      item.story.id === storyId 
-        ? { ...item, story: { ...item.story } } 
-        : item
-    ));
-  };
-
-  const formatDate = (dateValue: string | Date): string => {
-    try {
-      const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
-      return date.toLocaleDateString();
-    } catch {
-      return 'Unknown date';
-    }
-  };
-
   if (loading) {
-    return <LoadingSpinner message="Loading your starred stories..." />;
+    return <LoadingSpinner message="Loading posts..." />;
   }
 
   if (error) {
@@ -95,54 +75,17 @@ export default function Feed() {
   }
 
   return (
-    <div>
-        <h2 className="text-2xl font-bold mb-4">Feed</h2>
-        {starredData.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">No starred stories yet.</p>
-        ) : (
-          <div className="space-y-4">
-              {starredData.map((item) => (
-              <article key={item.story.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <div className="flex gap-4">
-                    {item.story.imageUrl && (
-                      <div className="flex-shrink-0">
-                        <img 
-                          src={item.story.imageUrl} 
-                          alt=""
-                          className="w-20 h-20 object-cover rounded-lg"
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <a 
-                        href={item.story.articleUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-lg font-semibold text-gray-900 dark:text-white hover:text-primary dark:hover:text-primary hover:underline block mb-2"
-                      >
-                          {item.story.fullHeadline}
-                      </a>
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                            <span className="font-medium">{item.story.sourceName}</span>
-                            <span className="mx-2">·</span>
-                            <span>{formatDate(item.story.createdAt)}</span>
-                            <span className="mx-2">·</span>
-                            <span>Starred by {item.user.first} {item.user.last}</span>
-                        </div>
-                        <button 
-                          onClick={() => handleToggleStar(item.story.id, true)} 
-                          className="text-yellow-500 hover:text-yellow-600 transition-colors"
-                        >
-                            <FontAwesomeIcon icon={faStarSolid} className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-              </article>
-              ))}
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Feed</h2>
+      {posts.length === 0 ? (
+        <p className="text-gray-500 dark:text-gray-400">No posts yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <PostBox key={post._id} post={post} />
+          ))}
         </div>
-        )}
+      )}
     </div>
   );
 } 

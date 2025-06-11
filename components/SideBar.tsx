@@ -4,8 +4,8 @@ import { usePathname } from 'next/navigation';
 
 const menuItems = [
   { href: '/discover', icon: 'ri-compass-3-line', text: 'Discover' },
-  { href: '/friends', icon: 'ri-user-heart-line', text: 'Friends' },
   { href: '/feed', icon: 'ri-star-line', text: 'Feed' },
+  { href: '/friends', icon: 'ri-user-heart-line', text: 'Friends' },
   { href: '/sources', icon: 'ri-list-check-2', text: 'All Sources' },
 ];
 
