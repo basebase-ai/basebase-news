@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+import { useState } from 'react';
 import type { User } from '@/types';
 
 const colors = [
@@ -31,6 +33,7 @@ interface AvatarProps {
 
 export default function Avatar({ user, size = 'md' }: AvatarProps) {
   const { first, last, email, imageUrl } = user;
+  const [imageError, setImageError] = useState(false);
 
   const sizeClasses = {
     sm: 'w-8 h-8 text-xs',
@@ -40,13 +43,18 @@ export default function Avatar({ user, size = 'md' }: AvatarProps) {
 
   const selectedSize = sizeClasses[size];
 
-  if (imageUrl) {
+  if (imageUrl && !imageError) {
     return (
-      <img
-        src={imageUrl}
-        alt={`${first || ''} ${last || ''}`}
-        className={`rounded-full object-cover ${selectedSize}`}
-      />
+      <div className={`rounded-full overflow-hidden ${selectedSize}`}>
+        <Image
+          src={imageUrl}
+          alt={`${first || ''} ${last || ''}`}
+          width={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
+          height={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
+          className="object-cover w-full h-full"
+          onError={() => setImageError(true)}
+        />
+      </div>
     );
   }
 

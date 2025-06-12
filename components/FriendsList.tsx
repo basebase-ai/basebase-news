@@ -14,8 +14,7 @@ interface Connection extends User {
 }
 
 export default function FriendsList() {
-  const { currentUser } = useAppState();
-  const [friends, setFriends] = useState<User[]>([]);
+  const { currentUser, friends, setFriends } = useAppState();
   const [requests, setRequests] = useState<Connection[]>([]);
   const [suggestions, setSuggestions] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,16 +27,11 @@ export default function FriendsList() {
 
     try {
       setLoading(true);
-      const [friendsRes, requestsRes, suggestionsRes] = await Promise.all([
-        fetch('/api/connections?status=CONNECTED'),
+      const [requestsRes, suggestionsRes] = await Promise.all([
         fetch('/api/connections?status=REQUESTED'),
         fetch('/api/connections?status=SUGGESTED'),
       ]);
 
-      if (friendsRes.ok) {
-        const data = await friendsRes.json();
-        setFriends(data.connections || []);
-      }
       if (requestsRes.ok) {
         const data = await requestsRes.json();
         setRequests(data.connections || []);
@@ -67,6 +61,12 @@ export default function FriendsList() {
       if (response.ok) {
         // Refresh all data to reflect the new connection status
         fetchData();
+        // Also refresh friends in central state
+        const friendsRes = await fetch('/api/connections?status=CONNECTED');
+        if (friendsRes.ok) {
+          const data = await friendsRes.json();
+          setFriends(data.connections || []);
+        }
       }
     } catch (error) {
       console.error('Failed to add friend:', error);

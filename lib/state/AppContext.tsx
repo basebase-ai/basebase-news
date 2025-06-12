@@ -6,6 +6,7 @@ import type { User, Source, Story } from '@/types';
 interface AppState {
   currentUser: User | null;
   currentSources: Source[];
+  friends: User[];
   isAdmin: boolean;
   denseMode: boolean;
   darkMode: boolean;
@@ -19,6 +20,7 @@ interface AppState {
 interface AppContextType extends AppState {
   setCurrentUser: (user: User | null) => void;
   setCurrentSources: Dispatch<SetStateAction<Source[]>>;
+  setFriends: Dispatch<SetStateAction<User[]>>;
   setDenseMode: (mode: boolean) => void;
   setDarkMode: (mode: boolean) => void;
   setSearchTerm: (term: string) => void;
@@ -34,6 +36,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>({
     currentUser: null,
     currentSources: [],
+    friends: [],
     isAdmin: false,
     denseMode: false,
     darkMode: false,
@@ -54,6 +57,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         darkMode: user.darkMode || false,
       }));
     }
+  }, [state.currentUser]);
+
+  // Fetch friends when user is loaded
+  useEffect(() => {
+    const fetchFriends = async () => {
+      if (!state.currentUser) {
+        setState(prev => ({ ...prev, friends: [] }));
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/connections?status=CONNECTED');
+        if (response.ok) {
+          const data = await response.json();
+          const friendsArray = data.connections || [];
+          setState(prev => ({ ...prev, friends: friendsArray }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch friends:', error);
+      }
+    };
+
+    fetchFriends();
   }, [state.currentUser]);
 
   // Watch darkMode changes
@@ -77,6 +103,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setCurrentSources = useCallback((sources: SetStateAction<Source[]>) => {
     setState(prev => ({ ...prev, currentSources: typeof sources === 'function' ? sources(prev.currentSources) : sources }));
+  }, []);
+
+  const setFriends = useCallback((friends: SetStateAction<User[]>) => {
+    setState(prev => ({ ...prev, friends: typeof friends === 'function' ? friends(prev.friends) : friends }));
   }, []);
 
   const setDenseMode = useCallback((mode: boolean) => {
@@ -111,6 +141,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ...state,
     setCurrentUser,
     setCurrentSources,
+    setFriends,
     setDenseMode,
     setDarkMode,
     setSearchTerm,
@@ -118,7 +149,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSignInModalOpen,
     setToast,
     setSidebarMinimized,
-  }), [state, setCurrentUser, setCurrentSources, setDenseMode, setDarkMode, setSearchTerm, setSourceHeadlines, setSignInModalOpen, setToast, setSidebarMinimized]);
+  }), [state, setCurrentUser, setCurrentSources, setFriends, setDenseMode, setDarkMode, setSearchTerm, setSourceHeadlines, setSignInModalOpen, setToast, setSidebarMinimized]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

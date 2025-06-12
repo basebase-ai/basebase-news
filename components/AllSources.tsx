@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Source } from '@/types';
+import { Source, User } from '@/types';
 import { useAppState } from '@/lib/state/AppContext';
 import LoadingSpinner from './LoadingSpinner';
+import Avatar from './Avatar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faCog, faSearch, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import SourceSettings from './SourceSettings';
@@ -20,7 +21,7 @@ interface SourceStory {
 }
 
 export default function AllSources() {
-  const { currentUser, setCurrentUser, currentSources, setCurrentSources } = useAppState();
+  const { currentUser, setCurrentUser, currentSources, setCurrentSources, friends } = useAppState();
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -162,6 +163,41 @@ export default function AllSources() {
     return currentUser?.sourceIds.includes(sourceId) || false;
   };
 
+  const getFriendsWithSource = (sourceId: string): User[] => {
+    return friends.filter(friend => friend.sourceIds.includes(sourceId));
+  };
+
+  const renderFriendAvatars = (sourceId: string) => {
+    const friendsWithSource = getFriendsWithSource(sourceId);
+    
+    if (friendsWithSource.length === 0) return null;
+
+    const displayedFriends = friendsWithSource.slice(0, 3);
+    const remainingCount = friendsWithSource.length - 3;
+
+    return (
+      <div className="flex items-center">
+        <div className="flex -space-x-2">
+          {displayedFriends.map((friend, index) => (
+            <div 
+              key={friend._id}
+              className="relative ring-2 ring-white dark:ring-gray-700 rounded-full"
+              style={{ zIndex: displayedFriends.length - index }}
+              title={`${friend.first} ${friend.last}`}
+            >
+              <Avatar user={friend} size="sm" />
+            </div>
+          ))}
+        </div>
+        {remainingCount > 0 && (
+          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+            +{remainingCount} more
+          </span>
+        )}
+      </div>
+    );
+  };
+
   const handleEditSource = (source: Source | null) => {
     console.log('handleEditSource called', { 
       source: source?.name || 'new source', 
@@ -232,7 +268,7 @@ export default function AllSources() {
           {filteredSources.map(source => (
             <div key={source._id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between p-3">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 flex-1">
                   {isSourceAdded(source._id) && (
                     <button
                       onClick={() => toggleSourceExpansion(source._id)}
@@ -246,9 +282,16 @@ export default function AllSources() {
                   )}
                   {!isSourceAdded(source._id) && <div className="w-6" />}
                   {source.imageUrl && <img src={source.imageUrl} alt={source.name} className="w-8 h-8 object-contain" />}
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">{source.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{source.homepageUrl}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-900 dark:text-white">{source.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{source.homepageUrl}</p>
+                      </div>
+                      <div className="ml-4">
+                        {renderFriendAvatars(source._id)}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
