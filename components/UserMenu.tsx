@@ -7,14 +7,16 @@ import Avatar from './Avatar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
-interface UserMenuProps {}
+interface UserMenuProps {
+  sidebarMinimized?: boolean;
+}
 
 interface UserPreferences {
   denseMode?: boolean;
   darkMode?: boolean;
 }
 
-export default function UserMenu({}: UserMenuProps) {
+export default function UserMenu({ sidebarMinimized = false }: UserMenuProps) {
   const { currentUser, setCurrentUser, setDarkMode, setDenseMode, setSignInModalOpen } = useAppState();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,9 +77,14 @@ export default function UserMenu({}: UserMenuProps) {
     return (
       <button
         onClick={() => setSignInModalOpen(true)}
-        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+        className={`${
+          sidebarMinimized 
+            ? 'w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-dark transition-colors' 
+            : 'px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors'
+        }`}
+        title={sidebarMinimized ? 'Sign In' : undefined}
       >
-        Sign In
+        {sidebarMinimized ? '?' : 'Sign In'}
       </button>
     );
   }
@@ -87,15 +94,22 @@ export default function UserMenu({}: UserMenuProps) {
       <div
         ref={avatarRef}
         onClick={() => setDropdownVisible(!dropdownVisible)}
-        className="cursor-pointer"
+        className={`cursor-pointer ${sidebarMinimized ? 'flex flex-col items-center space-y-1' : 'flex items-center space-x-3 w-full p-2 rounded-lg hover:bg-gray-700 transition-colors'}`}
       >
         <Avatar user={currentUser} size="md" />
+        {!sidebarMinimized && (
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-white truncate">
+              {currentUser.first} {currentUser.last}
+            </div>
+          </div>
+        )}
       </div>
 
       {dropdownVisible && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700"
+          className={`absolute ${sidebarMinimized ? 'left-14 bottom-0' : 'right-0 bottom-full mb-2'} w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700`}
         >
           <div className="py-1">
             <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">

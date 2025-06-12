@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import GlobalNavigationBar from '@/components/GlobalNavigationBar';
 import SideBar from '@/components/SideBar';
 import { useAppState } from '@/lib/state/AppContext';
@@ -10,10 +10,30 @@ import { Source } from '@/types';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const { sidebarMinimized, currentUser } = useAppState();
+  const { sidebarMinimized, currentUser, setCurrentUser } = useAppState();
   const [sourceSettingsOpen, setSourceSettingsOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const [sourceListVersion, setSourceListVersion] = useState(0);
+
+  const initializeUser = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users/me');
+      if (response.ok) {
+        const { user } = await response.json();
+        setCurrentUser(user);
+      } else if (response.status !== 401) {
+        console.error('Failed to fetch current user:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+    }
+  }, [setCurrentUser]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      initializeUser();
+    }
+  }, [currentUser, initializeUser]);
 
   const handleToggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);

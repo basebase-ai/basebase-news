@@ -48,7 +48,14 @@ export async function GET(): Promise<NextResponse> {
     console.log("[Posts API] Querying posts...");
     const posts = await Post.find({})
       .populate("userId", "first last email imageUrl")
-      .populate("storyId", "fullHeadline articleUrl summary imageUrl")
+      .populate({
+        path: "storyId",
+        select: "fullHeadline articleUrl summary imageUrl sourceId",
+        populate: {
+          path: "sourceId",
+          select: "name homepageUrl imageUrl",
+        },
+      })
       .sort({ createdAt: -1 })
       .limit(50);
 
@@ -64,8 +71,16 @@ export async function GET(): Promise<NextResponse> {
           .populate("userId", "first last email imageUrl")
           .sort({ createdAt: 1 }); // Oldest first for comments
 
+        const postObject = post.toObject();
+
+        const story = postObject.storyId as any;
+        if (story && story.sourceId) {
+          story.source = story.sourceId;
+          delete story.sourceId;
+        }
+
         return {
-          ...post.toObject(),
+          ...postObject,
           comments: comments.map((comment) => {
             const user = comment.userId as any;
             return {

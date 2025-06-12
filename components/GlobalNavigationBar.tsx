@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import { useAppState } from '@/lib/state/AppContext';
-import UserMenu from '@/components/UserMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 
@@ -29,11 +28,14 @@ export default function GlobalNavigationBar({
               height={32}
               className="w-8 h-8"
             />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white hidden sm:block">NewsWithFriends</h1>
+            <Image
+              src="/assets/images/logotype_black.png"
+              alt="NewsWithFriends"
+              width={132}
+              height={26}
+              className="h-[26px] w-auto sm:block dark:invert"
+            />
           </div>
-        </div>
-        <div className="flex items-center">
-          <UserMenu />
         </div>
       </div>
     </header>

@@ -24,12 +24,18 @@ interface PostData {
   _id: string;
   text: string;
   createdAt: string;
-  storyId: {
+  storyId?: {
     _id: string;
     fullHeadline: string;
     articleUrl: string;
     summary?: string;
     imageUrl?: string;
+    source: {
+      _id: string;
+      name: string;
+      homepageUrl: string;
+      imageUrl?: string;
+    }
   };
   userId: {
     _id: string;

@@ -177,73 +177,36 @@ ${html}`;
   private decodeHtmlEntities(text: string): string {
     if (!text) return "";
 
-    // First pass: handle numeric and hex entities
-    text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec));
-    text = text.replace(/&#x([0-9a-f]+);/i, (_, hex) =>
-      String.fromCharCode(parseInt(hex, 16))
-    );
+    // Handle numeric entities (decimal and hex)
+    text = text.replace(/&#(\d+);/g, (_, dec: string): string => {
+      const charCode: number = parseInt(dec, 10);
+      return String.fromCharCode(charCode);
+    });
 
-    // Second pass: handle named entities
-    return text.replace(/&[#\w]+;/g, (match: string): string => {
-      switch (match) {
-        case "&amp;":
-          return "&";
-        case "&lt;":
-          return "<";
-        case "&gt;":
-          return ">";
-        case "&quot;":
-          return '"';
-        case "&apos;":
-          return "'";
-        case "&#8216;":
-          return "'";
-        case "&#8217;":
-          return "'";
-        case "&#8218;":
-          return "'";
-        case "&#8220;":
-          return '"';
-        case "&#8221;":
-          return '"';
-        case "&#8222;":
-          return '"';
-        case "&#038;":
-          return "&";
-        case "&#039;":
-          return "'";
-        case "&#39;":
-          return "'";
-        case "&#34;":
-          return '"';
-        case "&#60;":
-          return "<";
-        case "&#62;":
-          return ">";
-        case "&#160;":
-          return " ";
-        case "&nbsp;":
-          return " ";
-        case "&ndash;":
-          return "–";
-        case "&mdash;":
-          return "—";
-        case "&hellip;":
-          return "…";
-        case "&trade;":
-          return "™";
-        case "&copy;":
-          return "©";
-        case "&reg;":
-          return "®";
-        default:
-          // Try to decode any remaining numeric entities
-          const numericMatch = match.match(/&#(\d+);/);
-          if (numericMatch) {
-            return String.fromCharCode(parseInt(numericMatch[1], 10));
-          }
-          return match;
-      }
+    text = text.replace(/&#x([0-9a-f]+);/gi, (_, hex: string): string => {
+      const charCode: number = parseInt(hex, 16);
+      return String.fromCharCode(charCode);
+    });
+
+    // Handle named entities only
+    const namedEntities: Record<string, string> = {
+      "&amp;": "&",
+      "&lt;": "<",
+      "&gt;": ">",
+      "&quot;": '"',
+      "&apos;": "'",
+      "&nbsp;": " ",
+      "&ndash;": "–",
+      "&mdash;": "—",
+      "&hellip;": "…",
+      "&trade;": "™",
+      "&copy;": "©",
+      "&reg;": "®",
+    };
+
+    // Replace named entities
+    return text.replace(/&[a-zA-Z][a-zA-Z0-9]*;/g, (match: string): string => {
+      return namedEntities[match] || match;
     });
   }
 

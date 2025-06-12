@@ -85,7 +85,6 @@ export default function FriendsList() {
           <Avatar user={user} size="md" />
           <div>
             <h3 className="font-medium text-gray-900 dark:text-white">{user.first} {user.last}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">

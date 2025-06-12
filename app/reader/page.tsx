@@ -9,18 +9,6 @@ import { faXmark, faSearch } from '@fortawesome/free-solid-svg-icons';
 export default function ReaderPage() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
 
-  const initializeUser = useCallback(async () => {
-    try {
-      const response = await fetch('/api/users/me');
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
-      }
-    } catch (error) {
-      console.error('Failed to fetch current user:', error);
-    }
-  }, [setCurrentUser]);
-
   const loadSources = useCallback(async () => {
     if (!currentUser) return;
     
@@ -36,14 +24,14 @@ export default function ReaderPage() {
   }, [currentUser, setCurrentSources]);
 
   useEffect(() => {
-    initializeUser();
-  }, [initializeUser]);
-
-  useEffect(() => {
     if (currentUser) {
       loadSources();
     }
   }, [currentUser, loadSources]);
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
 
   return (
     <div className="min-h-screen dark:bg-gray-900">
@@ -63,7 +51,7 @@ export default function ReaderPage() {
             />
             {searchTerm && (
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={handleClearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                 aria-label="Clear search"
               >

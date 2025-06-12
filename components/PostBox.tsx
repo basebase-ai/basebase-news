@@ -2,6 +2,10 @@
 
 import React, { useState } from 'react';
 import LinkPreview from './LinkPreview';
+import { useAppState } from '@/lib/state/AppContext';
+import { Source } from '@/types';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 
 interface CommentData {
   _id: string;
@@ -26,6 +30,12 @@ interface PostData {
     articleUrl: string;
     summary?: string;
     imageUrl?: string;
+    source: {
+      _id: string;
+      name: string;
+      homepageUrl: string;
+      imageUrl?: string;
+    };
   };
   userId: {
     _id: string;
@@ -45,6 +55,45 @@ interface PostBoxProps {
 export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
   const [commentText, setCommentText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { currentUser, setCurrentUser, currentSources, setCurrentSources } = useAppState();
+  const story = post.storyId;
+
+  const isSourceAdded = (sourceId: string): boolean => {
+    return currentUser?.sourceIds.includes(sourceId) || false;
+  };
+
+  const handleAddSource = async (sourceId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const updatedSourceIds = currentUser.sourceIds.includes(sourceId)
+        ? currentUser.sourceIds
+        : [sourceId, ...currentUser.sourceIds];
+
+      const response = await fetch('/api/users/me/sources', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceIds: updatedSourceIds }),
+      });
+
+      if (response.ok) {
+        const { user } = await response.json();
+        setCurrentUser(user);
+        
+        const sourceResponse = await fetch(`/api/sources/${sourceId}`);
+        if (sourceResponse.ok) {
+          const { source } = await sourceResponse.json();
+          if (source && !currentSources?.some(s => s._id === source._id)) {
+            setCurrentSources(prev => [...(prev || []), source]);
+          }
+        }
+      } else {
+        throw new Error('Failed to update user sources');
+      }
+    } catch (error) {
+      console.error('Failed to add source:', error);
+    }
+  };
 
   const formatDate = (dateString: string): string => {
     try {
@@ -132,14 +181,32 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
       </div>
 
       {/* Link preview */}
-      {post.storyId && (
-        <LinkPreview
-          headline={post.storyId.fullHeadline}
-          summary={post.storyId.summary}
-          imageUrl={post.storyId.imageUrl}
-          articleUrl={post.storyId.articleUrl}
-          showFullImage={true}
-        />
+      {story && (
+        <div className="space-y-2">
+          <LinkPreview
+            headline={story.fullHeadline}
+            summary={story.summary}
+            imageUrl={story.imageUrl}
+            articleUrl={story.articleUrl}
+            showFullImage={true}
+          />
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center space-x-2">
+              {story.source.imageUrl && (
+                <img src={story.source.imageUrl} alt={story.source.name} className="w-4 h-4 object-contain" />
+              )}
+              <span className="text-xs text-gray-500 dark:text-gray-400">{story.source.name}</span>
+            </div>
+            {!isSourceAdded(story.source._id) && (
+              <button
+                onClick={() => handleAddSource(story.source._id)}
+                className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700"
+              >
+                Add
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Comments */}
@@ -188,7 +255,7 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
 
       {/* Add comment input */}
       <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-stretch space-x-2">
           <input
             type="text"
             value={commentText}
@@ -201,9 +268,14 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
           <button
             onClick={handleSubmitComment}
             disabled={!commentText.trim() || isSubmitting}
-            className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-shrink-0 w-10 flex items-center justify-center text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={isSubmitting ? "Adding comment..." : "Add comment"}
           >
-            {isSubmitting ? 'Adding...' : 'Add'}
+            {isSubmitting ? (
+              <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+            ) : (
+              <FontAwesomeIcon icon={faPaperPlane} className="h-5 w-5" />
+            )}
           </button>
         </div>
       </div>
