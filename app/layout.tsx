@@ -7,8 +7,8 @@ import AuthWrapper from '@/components/AuthWrapper';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'NewsWithFriends - Read the news with your friends who get it',
-  description: 'Get out of your news bubble, see what your friends are reading, and discuss the latest news with them. Discover diverse perspectives and build connections through meaningful conversations.',
+  title: 'NewsWithFriends - Social news discovery',
+  description: 'Discover new articles from friends every day that you never would have found otherwise.',
   keywords: ['news', 'friends', 'discussion', 'social news', 'news aggregation', 'current events'],
   authors: [{ name: 'NewsWithFriends' }],
   creator: 'NewsWithFriends',
@@ -23,11 +23,11 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://newswithfriends.com',
     siteName: 'NewsWithFriends',
-    title: 'NewsWithFriends - Read the news with your friends who get it',
-    description: 'Get out of your news bubble, see what your friends are reading, and discuss the latest news with them. Discover diverse perspectives and build connections through meaningful conversations.',
+    title: 'NewsWithFriends - Social news discovery',
+    description: 'Discover new articles from friends every day that you never would have found otherwise.',
     images: [
       {
-        url: '/assets/images/busy-coffee-shop.jpg',
+        url: '/assets/images/hero.avif',
         width: 1200,
         height: 630,
         alt: 'People reading and discussing news together',
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@newswithfriends',
     creator: '@newswithfriends',
-    title: 'NewsWithFriends - Read the news with your friends who get it',
-    description: 'Get out of your news bubble, see what your friends are reading, and discuss the latest news with them.',
-    images: ['/assets/images/busy-coffee-shop.jpg'],
+    title: 'NewsWithFriends - Social news discovery',
+    description: 'Discover new articles from friends every day that you never would have found otherwise.',
+    images: ['/assets/images/hero.avif'],
   },
   robots: {
     index: true,

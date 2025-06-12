@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisV, faGripVertical, faStar } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 import PostComposer from './PostComposer';
+import StoryReactionModal from './StoryReactionModal';
 
 interface SourceBoxProps {
   source: Source;
@@ -89,6 +90,8 @@ export default function SourceBox({
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [hoverTimer, setHoverTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showReactionModal, setShowReactionModal] = useState<boolean>(false);
+  const [reactionStory, setReactionStory] = useState<Story | null>(null);
 
   const loadHeadlines = useCallback(async () => {
     try {
@@ -262,6 +265,71 @@ export default function SourceBox({
     setHoveredStory(null);
   };
 
+  const handleStoryClick = async (story: Story) => {
+    setReactionStory(story);
+    window.open(story.articleUrl, '_blank');
+    
+    // Mark as read
+    try {
+      const response = await fetch('/api/users/me/readids', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ storyId: story.id }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        setHeadlines(headlines.map(h => 
+          h.id === story.id ? { ...h, status: 'READ' as const } : h
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to mark story as read:', error);
+    }
+    
+    // Show reaction modal when user returns to tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setShowReactionModal(true);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  };
+
+  const handleRecommend = async (comment?: string) => {
+    if (!reactionStory) return;
+    
+    try {
+      const response = await fetch('/api/users/me/stories/star', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          storyId: reactionStory.id,
+          comment 
+        }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setHeadlines(headlines.map(h => 
+          h.id === reactionStory.id ? { ...h, starred: data.starred } : h
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to recommend story:', error);
+    } finally {
+      setShowReactionModal(false);
+      setReactionStory(null);
+    }
+  };
+
   const filteredHeadlines = filterHeadlines(headlines, searchTerm);
 
   return (
@@ -391,19 +459,11 @@ export default function SourceBox({
                     href={headline.articleUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block"
                     onClick={(e) => {
-                      if (!headline.id) {
-                        console.error('[SourceBox] Story has no ID:', headline);
-                        return;
-                      }
-                      console.log('[SourceBox] Story clicked:', {
-                        id: headline.id,
-                        currentStatus: headline.status,
-                        headline: headline.fullHeadline
-                      });
-                      markAsRead(headline.id);
+                      e.preventDefault();
+                      handleStoryClick(headline);
                     }}
+                    className="block group-hover:text-primary"
                   >
                     <div 
                       className={`flex items-start justify-between gap-4 ${headline.status === 'READ' ? 'opacity-50' : ''}`}
@@ -494,6 +554,17 @@ export default function SourceBox({
             </div>
           )}
         </div>
+      )}
+
+      {showReactionModal && reactionStory && (
+        <StoryReactionModal
+          story={reactionStory}
+          onClose={() => {
+            setShowReactionModal(false);
+            setReactionStory(null);
+          }}
+          onRecommend={handleRecommend}
+        />
       )}
     </>
   );

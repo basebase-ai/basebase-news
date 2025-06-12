@@ -5,6 +5,7 @@ export interface IStoryStatus extends Document {
   storyId: Types.ObjectId;
   status: "READ";
   starred: boolean;
+  comment?: string;
 }
 
 const storyStatusSchema = new mongoose.Schema(
@@ -28,6 +29,10 @@ const storyStatusSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       required: true,
+    },
+    comment: {
+      type: String,
+      required: false,
     },
   },
   { timestamps: true }

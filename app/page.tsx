@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faNewspaper, faUserFriends, faLightbulb, faComments } from '@fortawesome/free-solid-svg-icons';
+import { faNewspaper, faUserFriends, faLightbulb, faComments, faStar } from '@fortawesome/free-solid-svg-icons';
 
 export default function LandingPage() {
   const ctaHref = '/auth/signin';
@@ -43,8 +43,8 @@ export default function LandingPage() {
       <section className="relative bg-gray-900 text-white pt-32 pb-24">
         <div className="absolute inset-0 overflow-hidden">
           <Image
-            src="/assets/images/busy-coffee-shop.jpg"
-            alt="People reading and discussing news in a coffee shop"
+            src="/assets/images/hero.avif"
+            alt="People reading and discussing news on phones"
             fill
             className="object-cover"
             priority
@@ -53,9 +53,9 @@ export default function LandingPage() {
         </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Read the news with your friends who get it.</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">Social news discovery.</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Get out of your news bubble, see what your friends are reading, and discuss the latest news with them.
+              Discover new articles from friends every day that you never would have found otherwise.
             </p>
             <Link 
               href={ctaHref}
@@ -63,6 +63,76 @@ export default function LandingPage() {
             >
               {ctaText}
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+              <div className="w-16 h-16 rounded-full mx-auto mb-4 overflow-hidden">
+                <Image
+                  src="/assets/images/dan.jpg"
+                  alt="Dan B."
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex justify-center mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <FontAwesomeIcon key={i} icon={faStar} className="h-4 w-4 text-yellow-400" />
+                ))}
+              </div>
+              <p className="text-gray-600 mb-4 italic">
+                &ldquo;This app completely changed how I discover news. I found so many fascinating articles through my friends that I never would have seen on my own.&rdquo;
+              </p>
+              <p className="font-semibold text-gray-900">Dan B.</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+              <div className="w-16 h-16 rounded-full mx-auto mb-4 overflow-hidden">
+                <Image
+                  src="/assets/images/heather.png"
+                  alt="Heather H."
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex justify-center mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <FontAwesomeIcon key={i} icon={faStar} className="h-4 w-4 text-yellow-400" />
+                ))}
+              </div>
+              <p className="text-gray-600 mb-4 italic">
+                &ldquo;Love seeing what my smart friends are reading! It&apos;s like having a personalized news curator that actually understands my interests.&rdquo;
+              </p>
+              <p className="font-semibold text-gray-900">Heather H.</p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+              <div className="w-16 h-16 rounded-full mx-auto mb-4 overflow-hidden">
+                <Image
+                  src="/assets/images/shalom.png"
+                  alt="Shalom O."
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex justify-center mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <FontAwesomeIcon key={i} icon={faStar} className="h-4 w-4 text-yellow-400" />
+                ))}
+              </div>
+              <p className="text-gray-600 mb-4 italic">
+                &ldquo;Finally, a way to break out of my news bubble! The articles my friends share have opened my eyes to perspectives I hadn&apos;t considered.&rdquo;
+              </p>
+              <p className="font-semibold text-gray-900">Shalom O.</p>
+            </div>
           </div>
         </div>
       </section>

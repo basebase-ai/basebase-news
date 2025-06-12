@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     const { userId } = userService.verifyToken(token);
-    const { storyId } = await request.json();
+    const { storyId, comment } = await request.json();
 
     if (!storyId) {
       return NextResponse.json(
@@ -35,6 +35,9 @@ export async function POST(request: Request) {
     if (existingStatus) {
       // Toggle the starred status
       existingStatus.starred = !existingStatus.starred;
+      if (comment) {
+        existingStatus.comment = comment;
+      }
       await existingStatus.save();
       return NextResponse.json({
         status: "ok",
@@ -47,6 +50,7 @@ export async function POST(request: Request) {
         storyId: new mongoose.Types.ObjectId(storyId),
         status: "READ" as const,
         starred: true,
+        comment: comment || undefined,
       });
       return NextResponse.json({
         status: "ok",
