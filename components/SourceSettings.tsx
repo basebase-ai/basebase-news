@@ -71,7 +71,15 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
     }
   };
 
-  if (!currentUser?.isAdmin) return null;
+  // Only allow editing existing sources if user is admin, but allow creating new sources for everyone
+  console.log('SourceSettings render check', {
+    isOpen,
+    editingSource: editingSource?.name || 'new source',
+    currentUser: currentUser ? { email: currentUser.email, isAdmin: currentUser.isAdmin } : null,
+    willRender: isOpen && !(editingSource && !currentUser?.isAdmin)
+  });
+  
+  if (editingSource && !currentUser?.isAdmin) return null;
   if (!isOpen) return null;
 
   return (

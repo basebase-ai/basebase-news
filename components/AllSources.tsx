@@ -103,6 +103,13 @@ export default function AllSources() {
   };
 
   const handleEditSource = (source: Source | null) => {
+    console.log('handleEditSource called', { 
+      source: source?.name || 'new source', 
+      currentUser: currentUser ? { 
+        email: currentUser.email, 
+        isAdmin: currentUser.isAdmin 
+      } : null 
+    });
     setEditingSource(source);
     setSourceSettingsOpen(true);
   };
