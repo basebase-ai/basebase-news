@@ -127,7 +127,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
           items={currentUser.sourceIds}
           strategy={rectSortingStrategy}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
             {currentUser.sourceIds.map(sourceId => {
               const source = currentSources?.find(s => s._id === sourceId);
 

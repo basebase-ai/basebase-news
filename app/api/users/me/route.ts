@@ -35,8 +35,6 @@ export async function GET(req: NextRequest) {
         return response;
       }
 
-      console.log("Backend user object:", user);
-
       return NextResponse.json({
         status: "ok",
         user: {

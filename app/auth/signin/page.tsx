@@ -4,13 +4,18 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelopeOpen } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelopeOpen, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 export default function SignInPage() {
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
     const form = e.currentTarget;
     const formData = new FormData(form);
 
@@ -30,12 +35,12 @@ export default function SignInPage() {
       if (response.ok) {
         setShowConfirmation(true);
       } else {
-        console.error('Sign-in failed:', data.message);
-        // You might want to show an error message to the user here
+        setError(data.message || 'Something went wrong. Please try again.');
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      // You might want to show an error message to the user here
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -68,15 +73,15 @@ export default function SignInPage() {
             )}
           </p>
         </div>
-        <div className="bg-white shadow-md rounded-lg p-8">
-          {showConfirmation ? (
-            <div className="text-center py-8">
-              <div className="mb-6 flex justify-center">
-                <FontAwesomeIcon icon={faEnvelopeOpen} className="text-5xl text-primary mb-4" />
-              </div>
-            </div>
-          ) : (
+        {showConfirmation ? null : (
+          <div className="bg-white shadow-md rounded-lg p-8">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email
@@ -85,7 +90,8 @@ export default function SignInPage() {
                   type="email"
                   name="email"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -97,7 +103,8 @@ export default function SignInPage() {
                   type="text"
                   name="firstName"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -109,19 +116,28 @@ export default function SignInPage() {
                   type="text"
                   name="lastName"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                disabled={isLoading}
+                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Continue with Email
+                {isLoading ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                    Sending...
+                  </>
+                ) : (
+                  'Continue'
+                )}
               </button>
             </form>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

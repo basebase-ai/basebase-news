@@ -3,14 +3,19 @@
 import React, { useState } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faEnvelopeOpen } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faEnvelopeOpen, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 export default function SignInModal() {
   const { isSignInModalOpen, setSignInModalOpen } = useAppState();
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
     const form = e.currentTarget;
     const formData = new FormData(form);
 
@@ -32,12 +37,12 @@ export default function SignInModal() {
       if (response.ok) {
         setShowConfirmation(true);
       } else {
-        console.error('Sign-in failed:', data.message);
-        // You might want to show an error message to the user here
+        setError(data.message || 'Something went wrong. Please try again.');
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      // You might want to show an error message to the user here
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -48,12 +53,13 @@ export default function SignInModal() {
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md relative">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            Sign In
+            {showConfirmation ? 'Check your email' : 'Sign In'}
           </h3>
           <button
             onClick={() => {
               setSignInModalOpen(false);
               setShowConfirmation(false);
+              setError('');
             }}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
@@ -66,13 +72,18 @@ export default function SignInModal() {
             <div className="mb-6 flex justify-center">
               <FontAwesomeIcon icon={faEnvelopeOpen} className="text-5xl text-green-500 mb-4" />
             </div>
-            <h4 className="text-xl font-semibold mb-2">Check your email</h4>
             <p className="text-gray-600 dark:text-gray-400">
               We&apos;ve sent you a magic link to sign in.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email
@@ -81,7 +92,8 @@ export default function SignInModal() {
                 type="email"
                 name="email"
                 required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -93,7 +105,8 @@ export default function SignInModal() {
                 type="text"
                 name="firstName"
                 required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -105,15 +118,24 @@ export default function SignInModal() {
                 type="text"
                 name="lastName"
                 required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+              disabled={isLoading}
+              className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Continue with Email
+              {isLoading ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                  Sending...
+                </>
+              ) : (
+                'Continue'
+              )}
             </button>
           </form>
         )}

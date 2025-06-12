@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { Source } from "../models/source.model";
 import { StoryStatus } from "../models/story-status.model";
 import { Types } from "mongoose";
+import { connectToDatabase } from "./mongodb.service";
 
 export class UserService {
   private static instance: UserService;
@@ -57,7 +58,11 @@ export class UserService {
     last: string,
     host: string
   ): Promise<void> {
+    // Ensure database connection
+    await connectToDatabase();
+
     // Find or create user
+    console.log("Authenticating user:", email);
     let user = await User.findOne({ email });
     if (!user) {
       // Get default sources with popular tag

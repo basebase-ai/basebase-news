@@ -522,6 +522,7 @@ ${textContent.substring(0, this.MAX_TOKENS)}
           item: [
             // field names are all lowercase because we normalize tags
             ["media:content", "mediaContent", { keepArray: true }],
+            ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
             ["pubdate", "pubDate"],
             ["isodate", "isoDate"],
           ],
@@ -588,6 +589,20 @@ ${textContent.substring(0, this.MAX_TOKENS)}
             item.mediaContent[0].$.url
           ) {
             imageUrl = item.mediaContent[0].$.url;
+          }
+        }
+
+        // Try to find an image from mediaThumbnail
+        if (
+          !imageUrl &&
+          item.mediaThumbnail &&
+          Array.isArray(item.mediaThumbnail)
+        ) {
+          for (const thumbnail of item.mediaThumbnail) {
+            if (thumbnail && thumbnail.$ && thumbnail.$.url) {
+              imageUrl = thumbnail.$.url;
+              break;
+            }
           }
         }
 

@@ -266,7 +266,7 @@ export default function SourceBox({
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden h-[250px] flex flex-col">
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${denseMode ? 'h-[250px]' : 'h-[400px]'} flex flex-col`}>
         <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">
             <div {...dragHandleAttributes} {...dragHandleListeners} className="cursor-grab active:cursor-grabbing p-2">
@@ -408,21 +408,37 @@ export default function SourceBox({
                     <div 
                       className={`flex items-start justify-between gap-4 ${headline.status === 'READ' ? 'opacity-50' : ''}`}
                     >
-                      <div className="flex-1 min-w-0">
-                        {denseMode ? (
-                          <p className="text-sm text-gray-800 dark:text-gray-100 truncate">
-                            <span className="font-medium">{headline.fullHeadline}</span>
-                            {headline.summary && (
-                              <span className="text-gray-500 dark:text-gray-400">
-                                {' - '}{headline.summary}
-                              </span>
-                            )}
-                          </p>
-                        ) : (
-                          <h3 className={`font-medium text-base text-gray-800 dark:text-gray-100`}>
-                            {headline.fullHeadline}
-                          </h3>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {!denseMode && headline.imageUrl && (
+                          <img 
+                            src={headline.imageUrl} 
+                            alt=""
+                            className="w-16 h-16 object-cover rounded shrink-0"
+                          />
                         )}
+                        <div className="flex-1 min-w-0">
+                          {denseMode ? (
+                            <p className="text-sm text-gray-800 dark:text-gray-100 truncate">
+                              <span className="font-medium">{headline.fullHeadline}</span>
+                              {headline.summary && (
+                                <span className="text-gray-500 dark:text-gray-400">
+                                  {' - '}{headline.summary}
+                                </span>
+                              )}
+                            </p>
+                          ) : (
+                            <>
+                              <h3 className={`font-medium text-base text-gray-800 dark:text-gray-100 leading-tight mb-1`}>
+                                {headline.fullHeadline}
+                              </h3>
+                              {headline.summary && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                                  {headline.summary}
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -470,7 +486,12 @@ export default function SourceBox({
         >
           <div className="font-semibold mb-1">{hoveredStory.fullHeadline}</div>
           {hoveredStory.summary && (
-            <div className="text-gray-300 text-xs">{hoveredStory.summary}</div>
+            <div className="text-gray-300 text-xs">
+              {hoveredStory.summary.length > 150 
+                ? hoveredStory.summary.substring(0, 150) + '...'
+                : hoveredStory.summary
+              }
+            </div>
           )}
         </div>
       )}
