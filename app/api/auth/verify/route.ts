@@ -1,29 +1,33 @@
 import { NextResponse } from "next/server";
 import { userService } from "@/services/user.service";
-import { User } from "@/models/user.model";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const code = searchParams.get("code");
     const token = searchParams.get("token");
 
-    if (!token) {
-      throw new Error("Invalid token");
-    }
+    let jwtToken: string;
 
-    const { userId } = userService.verifyToken(token);
-    const user = await User.findById(userId);
-
-    if (!user) {
-      throw new Error("User not found");
+    if (code) {
+      // New short code flow
+      jwtToken = await userService.verifyCode(code);
+    } else if (token) {
+      // Legacy JWT token flow (for backward compatibility)
+      const { userId } = userService.verifyToken(token);
+      if (!userId) {
+        throw new Error("Invalid token");
+      }
+      jwtToken = token;
+    } else {
+      throw new Error("Invalid verification link");
     }
 
     // Set JWT cookie
     const response = NextResponse.redirect(new URL("/", request.url));
-    response.cookies.set("auth", token, {
+    response.cookies.set("auth", jwtToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -32,9 +36,9 @@ export async function GET(request: Request) {
     });
     return response;
   } catch (error) {
-    console.error("Token verification error:", error);
+    console.error("Verification error:", error);
     return NextResponse.json(
-      { error: "Invalid or expired sign-in link" },
+      { error: "Invalid or expired verification link" },
       { status: 400 }
     );
   }

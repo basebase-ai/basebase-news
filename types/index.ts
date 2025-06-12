@@ -2,6 +2,7 @@ export interface User {
   _id: string;
   first: string;
   last: string;
+  phone?: string;
   imageUrl?: string;
   email: string;
   isAdmin: boolean;

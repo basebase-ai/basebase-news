@@ -8,11 +8,25 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("Request body:", body);
 
-    const { email, first, last } = body;
-    if (!email || !first || !last) {
-      console.error("Missing required fields:", { email, first, last });
+    const { email, first, last, phone } = body;
+    if (!first || !last) {
+      console.error("Missing required fields:", { first, last });
       return NextResponse.json(
-        { status: "error", message: "Missing required fields" },
+        {
+          status: "error",
+          message: "Missing required fields: first and last name",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!phone && !email) {
+      console.error("Missing contact method:", { phone, email });
+      return NextResponse.json(
+        {
+          status: "error",
+          message: "Please provide either a phone number or email address",
+        },
         { status: 400 }
       );
     }
@@ -22,7 +36,7 @@ export async function POST(request: Request) {
     console.log("Host:", host);
 
     try {
-      await userService.authenticateUser(email, first, last, host);
+      await userService.authenticateUser(email, first, last, host, phone);
       console.log("Authentication successful");
       return NextResponse.json({ status: "ok", message: "Sign-in email sent" });
     } catch (error) {

@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faEnvelopeOpen, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faEnvelopeOpen, faSpinner, faPhone, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 
 export default function SignInModal() {
   const { isSignInModalOpen, setSignInModalOpen } = useAppState();
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [showEmailOption, setShowEmailOption] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,14 +22,36 @@ export default function SignInModal() {
 
     try {
       console.log('Submitting sign-in form...');
+      
+      const payload: any = {
+        first: formData.get('firstName'),
+        last: formData.get('lastName'),
+      };
+
+      // Add phone or email based on what's provided
+      const phone = formData.get('phone') as string;
+      const email = formData.get('email') as string;
+      
+      if (phone && phone.trim()) {
+        payload.phone = phone;
+        // If phone is provided, email becomes optional but still included if provided
+        if (email && email.trim()) {
+          payload.email = email;
+        } else {
+          // Generate a placeholder email for phone-only signups
+          payload.email = `phone_${phone.replace(/\D/g, '')}@temp.placeholder`;
+        }
+      } else if (email && email.trim()) {
+        payload.email = email;
+      } else {
+        setError('Please provide either a phone number or email address.');
+        return;
+      }
+
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.get('email'),
-          first: formData.get('firstName'),
-          last: formData.get('lastName'),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -53,7 +76,7 @@ export default function SignInModal() {
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md relative">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            {showConfirmation ? 'Check your email' : 'Sign In'}
+            {showConfirmation ? 'Check your messages' : 'Sign In'}
           </h3>
           <button
             onClick={() => {
@@ -86,12 +109,13 @@ export default function SignInModal() {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email
+                <FontAwesomeIcon icon={faPhone} className="mr-2 text-primary" />
+                Phone Number
               </label>
               <input
-                type="email"
-                name="email"
-                required
+                type="tel"
+                name="phone"
+                placeholder="(555) 123-4567"
                 disabled={isLoading}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
               />
@@ -122,6 +146,36 @@ export default function SignInModal() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
               />
             </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowEmailOption(!showEmailOption)}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 flex items-center"
+              >
+                <FontAwesomeIcon 
+                  icon={faChevronDown} 
+                  className={`mr-2 transition-transform ${showEmailOption ? 'rotate-180' : ''}`} 
+                />
+                Or sign in with email instead
+              </button>
+            </div>
+
+            {showEmailOption && (
+              <div className="animate-in slide-in-from-top-2 duration-200">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <FontAwesomeIcon icon={faEnvelopeOpen} className="mr-2 text-gray-500" />
+                  Email (optional)
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="your@email.com"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+                />
+              </div>
+            )}
 
             <button
               type="submit"

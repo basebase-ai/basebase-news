@@ -4,6 +4,7 @@ export interface IUser extends Document {
   email: string;
   first: string;
   last: string;
+  phone?: string;
   imageUrl?: string;
   sourceIds: Types.ObjectId[];
   isAdmin: boolean;
@@ -17,6 +18,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   first: { type: String, required: true },
   last: { type: String, required: true },
+  phone: { type: String, sparse: true, unique: true },
   imageUrl: String,
   sourceIds: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Source" }],

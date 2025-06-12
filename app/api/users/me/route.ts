@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
           email: user.email,
           first: user.first,
           last: user.last,
+          phone: user.phone,
           imageUrl: user.imageUrl,
           isAdmin: user.isAdmin,
           sourceIds: user.sourceIds.map((id) => id.toString()),

@@ -44,6 +44,7 @@ export async function PUT(request: Request) {
         email: user.email,
         first: user.first,
         last: user.last,
+        phone: user.phone,
         isAdmin: user.isAdmin,
         sourceIds: user.sourceIds.map((id: mongoose.Types.ObjectId) =>
           id.toString()

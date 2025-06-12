@@ -4,12 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelopeOpen, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelopeOpen, faSpinner, faPhone, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 
 export default function SignInPage() {
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [showEmailOption, setShowEmailOption] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -20,14 +21,35 @@ export default function SignInPage() {
     const formData = new FormData(form);
 
     try {
+      const payload: any = {
+        first: formData.get('firstName'),
+        last: formData.get('lastName'),
+      };
+
+      // Add phone or email based on what's provided
+      const phone = formData.get('phone') as string;
+      const email = formData.get('email') as string;
+      
+      if (phone && phone.trim()) {
+        payload.phone = phone;
+        // If phone is provided, email becomes optional but still included if provided
+        if (email && email.trim()) {
+          payload.email = email;
+        } else {
+          // Generate a placeholder email for phone-only signups
+          payload.email = `phone_${phone.replace(/\D/g, '')}@temp.placeholder`;
+        }
+      } else if (email && email.trim()) {
+        payload.email = email;
+      } else {
+        setError('Please provide either a phone number or email address.');
+        return;
+      }
+
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.get('email'),
-          first: formData.get('firstName'),
-          last: formData.get('lastName'),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -58,7 +80,7 @@ export default function SignInPage() {
             />
           </Link>
           <h1 className="text-3xl font-bold mt-4">
-            {showConfirmation ? 'Check your email' : 'Create your account'}
+            {showConfirmation ? 'Check your messages' : 'Create your account'}
           </h1>
           <p className="text-gray-600 mt-2">
             {showConfirmation ? (
@@ -84,12 +106,13 @@ export default function SignInPage() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  <FontAwesomeIcon icon={faPhone} className="mr-2 text-primary" />
+                  Phone Number
                 </label>
                 <input
-                  type="email"
-                  name="email"
-                  required
+                  type="tel"
+                  name="phone"
+                  placeholder="(555) 123-4567"
                   disabled={isLoading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
@@ -120,6 +143,36 @@ export default function SignInPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailOption(!showEmailOption)}
+                  className="text-sm text-gray-600 hover:text-gray-800 flex items-center"
+                >
+                  <FontAwesomeIcon 
+                    icon={faChevronDown} 
+                    className={`mr-2 transition-transform ${showEmailOption ? 'rotate-180' : ''}`} 
+                  />
+                  Or sign in with email instead
+                </button>
+              </div>
+
+              {showEmailOption && (
+                <div className="animate-in slide-in-from-top-2 duration-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FontAwesomeIcon icon={faEnvelopeOpen} className="mr-2 text-gray-500" />
+                    Email (optional)
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="your@email.com"
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"

@@ -11,10 +11,12 @@ function VerifyComponent() {
     if (!searchParams) {
       return;
     }
+    const code = searchParams.get('code');
     const token = searchParams.get('token');
 
-    if (token) {
-      fetch(`/api/auth/verify?token=${token}`)
+    if (code || token) {
+      const param = code ? `code=${code}` : `token=${token}`;
+      fetch(`/api/auth/verify?${param}`)
         .then(response => {
           if (response.ok) {
             router.push('/');
@@ -28,8 +30,8 @@ function VerifyComponent() {
           router.push('/?error=verification_failed');
         });
     } else {
-        // Handle missing token
-        router.push('/?error=missing_token');
+        // Handle missing verification parameter
+        router.push('/?error=missing_verification');
     }
   }, [searchParams, router]);
 
