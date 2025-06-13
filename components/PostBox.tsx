@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import LinkPreview from './LinkPreview';
 import { useAppState } from '@/lib/state/AppContext';
 import { Source } from '@/types';
+import OverlappingAvatars from './OverlappingAvatars';
+import StoryReactionModal from './StoryReactionModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faStar } from '@fortawesome/free-solid-svg-icons';
 
 interface CommentData {
   _id: string;
@@ -20,43 +22,41 @@ interface CommentData {
   };
 }
 
-interface PostData {
+interface StoryData {
   _id: string;
-  text: string;
-  createdAt: string;
-  storyId?: {
+  fullHeadline: string;
+  articleUrl: string;
+  summary?: string;
+  imageUrl?: string;
+  createdAt?: string;
+  source: {
     _id: string;
-    fullHeadline: string;
-    articleUrl: string;
-    summary?: string;
+    name: string;
+    homepageUrl: string;
     imageUrl?: string;
-    source: {
-      _id: string;
-      name: string;
-      homepageUrl: string;
-      imageUrl?: string;
-    };
   };
-  userId: {
+  starCount: number;
+  starredBy: {
     _id: string;
     first: string;
     last: string;
     email: string;
     imageUrl?: string;
-  };
+  }[];
   comments: CommentData[];
 }
 
 interface PostBoxProps {
-  post: PostData;
+  story: StoryData;
   onCommentAdded?: () => void;
 }
 
-export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
+export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
   const [commentText, setCommentText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showReactionModal, setShowReactionModal] = useState<boolean>(false);
+  const [reactionStory, setReactionStory] = useState<StoryData | null>(null);
   const { currentUser, setCurrentUser, currentSources, setCurrentSources } = useAppState();
-  const story = post.storyId;
 
   const isSourceAdded = (sourceId: string): boolean => {
     return currentUser?.sourceIds.includes(sourceId) || false;
@@ -119,7 +119,7 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          postId: post._id,
+          storyId: story._id,
           text: commentText.trim(),
         }),
       });
@@ -146,77 +146,114 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
     }
   };
 
+  const getRecommendationText = (): string => {
+    if (story.starredBy.length === 0) return '';
+    
+    const names = story.starredBy.slice(0, 3).map(user => user.first);
+    const remainingCount = story.starredBy.length - 3;
+    
+    if (story.starredBy.length === 1) {
+      return `${names[0]} recommended this`;
+    } else if (story.starredBy.length === 2) {
+      return `${names[0]} and ${names[1]} recommended this`;
+    } else if (story.starredBy.length === 3) {
+      return `${names[0]}, ${names[1]} and ${names[2]} recommended this`;
+    } else {
+      return `${names[0]}, ${names[1]}, ${names[2]} and ${remainingCount} other${remainingCount > 1 ? 's' : ''} recommended this`;
+    }
+  };
+
+  const handleStoryClick = (storyId: string) => {
+    setReactionStory(story);
+    
+    // Show reaction modal when user returns to tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setShowReactionModal(true);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  };
+
+  const handleRecommend = async (comment?: string) => {
+    if (!reactionStory) return;
+    
+    try {
+      const response = await fetch('/api/users/me/stories/star', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          storyId: reactionStory._id,
+          comment 
+        }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Could update UI state here if needed
+        console.log('Story recommended successfully');
+      }
+    } catch (error) {
+      console.error('Failed to recommend story:', error);
+    } finally {
+      setShowReactionModal(false);
+      setReactionStory(null);
+    }
+  };
+
   return (
     <article className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3 max-w-[500px]">
-      {/* User info and date */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          {post.userId.imageUrl ? (
-            <img
-              src={post.userId.imageUrl}
-              alt={`${post.userId.first} ${post.userId.last}`}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {post.userId.first.charAt(0)}{post.userId.last.charAt(0)}
-              </span>
-            </div>
-          )}
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {post.userId.first} {post.userId.last}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatDate(post.createdAt)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Post text */}
-      <div className="text-gray-900 dark:text-white whitespace-pre-wrap">
-        {post.text}
-      </div>
-
-      {/* Link preview */}
-      {story && (
-        <div className="space-y-2">
-          <LinkPreview
-            headline={story.fullHeadline}
-            summary={story.summary}
-            imageUrl={story.imageUrl}
-            articleUrl={story.articleUrl}
-            showFullImage={true}
-          />
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center space-x-2">
-              {story.source.imageUrl && (
-                <img src={story.source.imageUrl} alt={story.source.name} className="w-4 h-4 object-contain" />
-              )}
-              <span className="text-xs text-gray-500 dark:text-gray-400">{story.source.name}</span>
-            </div>
-            {!isSourceAdded(story.source._id) && (
-              <button
-                onClick={() => handleAddSource(story.source._id)}
-                className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700"
-              >
-                Add
-              </button>
-            )}
-          </div>
+      {/* Recommendation header */}
+      {story.starredBy.length > 0 && (
+        <div className="flex items-center space-x-3 pb-2 border-b border-gray-100 dark:border-gray-700">
+          <OverlappingAvatars users={story.starredBy} maxDisplay={3} size="sm" showCount={false} />
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            {getRecommendationText()}
+          </p>
         </div>
       )}
+      {/* Story preview */}
+      <div className="space-y-2">
+        <LinkPreview
+          headline={story.fullHeadline}
+          summary={story.summary}
+          imageUrl={story.imageUrl}
+          articleUrl={story.articleUrl}
+          showFullImage={true}
+          createdAt={story.createdAt}
+          storyId={story._id}
+          onStoryClick={handleStoryClick}
+        />
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center space-x-2">
+            {story.source.imageUrl && (
+              <img src={story.source.imageUrl} alt={story.source.name} className="w-4 h-4 object-contain" />
+            )}
+            <span className="text-xs text-gray-500 dark:text-gray-400">{story.source.name}</span>
+          </div>
+          {!isSourceAdded(story.source._id) && (
+            <button
+              onClick={() => handleAddSource(story.source._id)}
+              className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700"
+            >
+              Add
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Comments */}
-      {post.comments && post.comments.length > 0 && (
+      {story.comments && story.comments.length > 0 && (
         <div className="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-3">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-            Comments ({post.comments.length})
+            Comments ({story.comments.length})
           </h4>
           <div className="space-y-2">
-            {post.comments.map((comment) => (
+            {story.comments.map((comment) => (
               <div key={comment._id} className="flex items-start space-x-2">
                 {/* Comment author avatar */}
                 {comment.userId.imageUrl ? (
@@ -279,6 +316,26 @@ export default function PostBox({ post, onCommentAdded }: PostBoxProps) {
           </button>
         </div>
       </div>
+
+      {showReactionModal && reactionStory && (
+        <StoryReactionModal
+          story={{
+            id: reactionStory._id,
+            articleUrl: reactionStory.articleUrl,
+            fullHeadline: reactionStory.fullHeadline,
+            sourceName: reactionStory.source.name,
+            sourceUrl: reactionStory.source.homepageUrl,
+            summary: reactionStory.summary,
+            imageUrl: reactionStory.imageUrl,
+            createdAt: reactionStory.createdAt
+          }}
+          onClose={() => {
+            setShowReactionModal(false);
+            setReactionStory(null);
+          }}
+          onRecommend={handleRecommend}
+        />
+      )}
     </article>
   );
 } 

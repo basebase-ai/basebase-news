@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { Comment } from "@/models/comment.model";
-import { Post } from "@/models/post.model";
+import { Story } from "@/models/story.model";
 import { userService } from "@/services/user.service";
 import { User } from "@/models/user.model";
 import { cookies } from "next/headers";
@@ -15,7 +15,7 @@ export async function GET(): Promise<NextResponse> {
     // Ensure models are registered
     console.log("[Comments API] Ensuring models are registered...");
     console.log("[Comments API] Comment model:", Comment.modelName);
-    console.log("[Comments API] Post model:", Post.modelName);
+    console.log("[Comments API] Story model:", Story.modelName);
     console.log("[Comments API] User model:", User.modelName);
 
     const tokenCookie = cookies().get("auth");
@@ -48,7 +48,7 @@ export async function GET(): Promise<NextResponse> {
     console.log("[Comments API] Querying comments...");
     const comments = await Comment.find({})
       .populate("userId", "first last email imageUrl")
-      .populate("postId", "_id text")
+      .populate("storyId", "fullHeadline articleUrl")
       .sort({ createdAt: -1 })
       .limit(100);
 
@@ -73,7 +73,7 @@ export async function GET(): Promise<NextResponse> {
 }
 
 interface CommentRequestBody {
-  postId: string;
+  storyId: string;
   text: string;
 }
 
@@ -101,36 +101,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const body: CommentRequestBody = await request.json();
-    const { postId, text } = body;
+    const { storyId, text } = body;
 
-    if (!postId || !text?.trim()) {
+    if (!storyId || !text?.trim()) {
       return NextResponse.json(
         {
           error: "Bad request",
-          message: "PostId and text are required fields",
+          message: "StoryId and text are required fields",
         },
         { status: 400 }
       );
     }
 
-    // Verify the post exists
-    const post = await Post.findById(postId);
-    if (!post) {
+    // Verify the story exists
+    const story = await Story.findById(storyId);
+    if (!story) {
       return NextResponse.json(
-        { status: "error", message: "Post not found" },
+        { status: "error", message: "Story not found" },
         { status: 404 }
       );
     }
 
     const newComment = new Comment({
-      postId,
+      storyId,
       userId: user._id,
       text: text.trim(),
     });
 
     await newComment.save();
     await newComment.populate("userId", "first last email imageUrl");
-    await newComment.populate("postId", "_id text");
+    await newComment.populate("storyId", "fullHeadline articleUrl");
 
     return NextResponse.json(
       { status: "ok", comment: newComment },

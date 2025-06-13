@@ -37,7 +37,7 @@ export default function ReaderPage() {
     <div className="min-h-screen dark:bg-gray-900">
       <div className="px-4 sm:px-6 lg:px-8 pt-4 pb-8">
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reader</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Sources</h1>
           <div className="relative flex-1 max-w-2xl sm:ml-8">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />

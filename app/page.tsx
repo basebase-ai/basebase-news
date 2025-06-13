@@ -7,7 +7,7 @@ import { faNewspaper, faUserFriends, faLightbulb, faComments, faStar } from '@fo
 
 export default function LandingPage() {
   const ctaHref = '/auth/signin';
-  const ctaText = 'Start Reading - It\'s Free';
+  const ctaText = 'Start Discovering';
 
   return (
     <div className="min-h-screen bg-white">
@@ -200,7 +200,7 @@ export default function LandingPage() {
               href={ctaHref}
               className="inline-block bg-primary hover:bg-primary-dark text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors"
             >
-              Start Reading Now
+              Start Discovering
             </Link>
           </div>
         </div>

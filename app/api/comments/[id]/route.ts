@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { Comment } from "@/models/comment.model";
-import { Post } from "@/models/post.model";
+import { Story } from "@/models/story.model";
 import { userService } from "@/services/user.service";
 import { User } from "@/models/user.model";
 import { cookies } from "next/headers";
@@ -36,7 +36,7 @@ export async function GET(
     const commentId = params.id;
     const comment = await Comment.findById(commentId)
       .populate("userId", "first last email imageUrl")
-      .populate("postId", "_id text");
+      .populate("storyId", "fullHeadline articleUrl");
 
     if (!comment) {
       return NextResponse.json(
@@ -123,7 +123,7 @@ export async function PUT(
       { new: true, runValidators: true }
     )
       .populate("userId", "first last email imageUrl")
-      .populate("postId", "_id text");
+      .populate("storyId", "fullHeadline articleUrl");
 
     return NextResponse.json({ status: "ok", comment: updatedComment });
   } catch (error) {

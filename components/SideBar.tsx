@@ -8,9 +8,9 @@ import UserMenu from '@/components/UserMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
-const menuItems = [
-  { href: '/reader', icon: 'ri-compass-3-line', text: 'Reader' },
-  { href: '/feed', icon: 'ri-star-line', text: 'Feed' },
+  const menuItems = [
+    { href: '/feed', icon: 'ri-star-line', text: 'Discover' },
+    { href: '/reader', icon: 'ri-compass-3-line', text: 'My Sources' },
   { href: '/friends', icon: 'ri-user-heart-line', text: 'Friends' },
   { href: '/sources', icon: 'ri-list-check-2', text: 'All Sources' },
 ];

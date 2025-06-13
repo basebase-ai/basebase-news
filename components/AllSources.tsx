@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Source, User } from '@/types';
 import { useAppState } from '@/lib/state/AppContext';
 import LoadingSpinner from './LoadingSpinner';
-import Avatar from './Avatar';
+import OverlappingAvatars from './OverlappingAvatars';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faCog, faSearch, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import SourceSettings from './SourceSettings';
@@ -169,33 +169,7 @@ export default function AllSources() {
 
   const renderFriendAvatars = (sourceId: string) => {
     const friendsWithSource = getFriendsWithSource(sourceId);
-    
-    if (friendsWithSource.length === 0) return null;
-
-    const displayedFriends = friendsWithSource.slice(0, 3);
-    const remainingCount = friendsWithSource.length - 3;
-
-    return (
-      <div className="flex items-center">
-        <div className="flex -space-x-2">
-          {displayedFriends.map((friend, index) => (
-            <div 
-              key={friend._id}
-              className="relative ring-2 ring-white dark:ring-gray-700 rounded-full"
-              style={{ zIndex: displayedFriends.length - index }}
-              title={`${friend.first} ${friend.last}`}
-            >
-              <Avatar user={friend} size="sm" />
-            </div>
-          ))}
-        </div>
-        {remainingCount > 0 && (
-          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-            +{remainingCount} more
-          </span>
-        )}
-      </div>
-    );
+    return <OverlappingAvatars users={friendsWithSource} />;
   };
 
   const handleEditSource = (source: Source | null) => {
