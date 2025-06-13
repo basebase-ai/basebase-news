@@ -243,6 +243,11 @@ export default function SourceBox({
   };
 
   const handleMouseEnter = (e: React.MouseEvent, story: Story) => {
+    // Don't show tooltips on mobile devices
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      return;
+    }
+    
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltipPosition({
       x: rect.left + rect.width / 2,

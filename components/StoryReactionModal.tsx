@@ -12,6 +12,13 @@ interface StoryReactionModalProps {
 export default function StoryReactionModal({ story, onClose, onRecommend }: StoryReactionModalProps) {
   const [showComment, setShowComment] = useState<boolean>(false);
   const [comment, setComment] = useState<string>('');
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Animate in after a short delay
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleRecommend = () => {
     if (showComment) {
@@ -21,54 +28,72 @@ export default function StoryReactionModal({ story, onClose, onRecommend }: Stor
     }
   };
 
-  const handleSkip = () => {
-    onClose();
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 200); // Wait for animation to complete
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg mx-auto">
-        <div className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white text-center">
-            Recommend this to friends?
-          </h2>
+    <div 
+      className={`fixed bottom-4 right-4 z-50 transition-all duration-200 ease-in-out ${
+        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+      }`}
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-80 max-w-[calc(100vw-2rem)]">
+        <div className="p-4 space-y-3">
+          <div className="flex items-start justify-between">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              Recommend this story?
+            </h3>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              <FontAwesomeIcon icon={faXmark} className="w-4 h-4" />
+            </button>
+          </div>
           
-          <div className="text-gray-700 dark:text-gray-300 text-center">
+          <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
             {story.fullHeadline}
           </div>
 
           {!showComment ? (
-            <div className="flex justify-center space-x-4 mt-6">
+            <div className="flex space-x-2">
               <button
                 onClick={handleRecommend}
-                className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
               >
-                <FontAwesomeIcon icon={faStar} />
+                <FontAwesomeIcon icon={faStar} className="w-3 h-3" />
                 <span>Recommend</span>
               </button>
               <button
-                onClick={handleSkip}
-                className="flex items-center space-x-2 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                onClick={handleClose}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
-                <FontAwesomeIcon icon={faXmark} />
-                <span>Skip</span>
+                Skip
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Comment (optional)"
-                className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none"
-                maxLength={500}
+                placeholder="Add a comment (optional)"
+                className="w-full h-16 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none"
+                maxLength={200}
               />
-              <div className="flex justify-end">
+              <div className="flex space-x-2">
                 <button
                   onClick={() => onRecommend(comment)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors flex-1"
                 >
-                  Done
+                  Recommend
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

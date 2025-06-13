@@ -247,7 +247,7 @@ ${html}`;
 
           // If metadata description is longer or summary doesn't exist, use the metadata description
           if (metadataDescriptionLength > summaryLength) {
-            story.summary = metadata.description;
+            story.summary = this.decodeHtmlEntities(metadata.description);
           }
         }
 
@@ -286,7 +286,7 @@ ${textContent.substring(0, this.MAX_TOKENS)}
                 articleData.fullText !== "PAYWALL_DETECTED" &&
                 articleData.fullText.length > 100
               ) {
-                story.fullText = articleData.fullText;
+                story.fullText = this.decodeHtmlEntities(articleData.fullText);
                 console.log(
                   `Extracted full text for ${story.articleUrl}:\n${articleData.fullText}`
                 );
