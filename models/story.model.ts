@@ -56,5 +56,37 @@ const storySchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
+// Indexes for optimal search performance
+storySchema.index(
+  {
+    fullHeadline: "text",
+    summary: "text",
+    fullText: "text",
+  },
+  {
+    weights: {
+      fullHeadline: 10,
+      summary: 5,
+      fullText: 1,
+    },
+    name: "story_text_search",
+  }
+);
+
+// Compound index for filtering and sorting (most common query pattern)
+storySchema.index({ archived: 1, createdAt: -1 });
+
+// Compound index for source-based queries with date sorting
+storySchema.index({ sourceId: 1, archived: 1, createdAt: -1 });
+
+// Index for date range queries
+storySchema.index({ createdAt: -1 });
+
+// Index for source filtering
+storySchema.index({ sourceId: 1 });
+
+// Index for finding stories by rank within a source
+storySchema.index({ sourceId: 1, inPageRank: 1 });
+
 export const Story: Model<IStory> =
   mongoose.models.Story || mongoose.model<IStory>("Story", storySchema);

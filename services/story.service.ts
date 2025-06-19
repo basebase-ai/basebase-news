@@ -409,14 +409,10 @@ export class StoryService {
   }> {
     const { sourceId, before, after, page = 1, limit = 20 } = options;
 
-    // Build the search query
+    // Build the search query using MongoDB text search for better performance
     const searchConditions: any = {
       archived: false,
-      $or: [
-        { fullHeadline: { $regex: query, $options: "i" } },
-        { summary: { $regex: query, $options: "i" } },
-        { fullText: { $regex: query, $options: "i" } },
-      ],
+      $text: { $search: query },
     };
 
     // Add source filter if provided
@@ -452,8 +448,8 @@ export class StoryService {
     // Transform the results to include source information
     const storiesWithSource = stories.map((story) => ({
       ...story,
-      source: story.sourceId as ISource,
-    }));
+      source: story.sourceId as unknown as ISource,
+    })) as unknown as Array<IStory & { source: ISource }>;
 
     return {
       stories: storiesWithSource,
