@@ -47,15 +47,59 @@ export class SourceService {
   /**
    * Search for sources by name. If the query is empty, all sources will be returned.
    * @param query The search term to match against the source name.
-   * @returns A list of matching sources.
+   * @returns A list of matching sources, sorted by relevance.
    */
   public async searchSources(query: string | null): Promise<ISource[]> {
     if (!query || query.trim().length === 0) {
       return Source.find().sort({ name: 1 }).lean();
     }
 
-    const searchRegex = new RegExp(query.trim(), "i");
-    return Source.find({ name: searchRegex }).limit(20).lean();
+    const trimmedQuery = query.trim();
+    const searchRegex = new RegExp(trimmedQuery, "i");
+
+    const sources = await Source.aggregate([
+      {
+        $match: { name: searchRegex },
+      },
+      {
+        $addFields: {
+          sortWeight: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $eq: [{ $toLower: "$name" }, { $toLower: trimmedQuery }],
+                  },
+                  then: 1, // Exact match
+                },
+                {
+                  case: {
+                    $regexMatch: {
+                      input: "$name",
+                      regex: `^${trimmedQuery}`,
+                      options: "i",
+                    },
+                  },
+                  then: 2, // Starts with match
+                },
+              ],
+              default: 3, // Contains match
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          sortWeight: 1, // Sort by our new weight field
+          name: 1, // Then alphabetically
+        },
+      },
+      {
+        $limit: 20,
+      },
+    ]);
+
+    return sources;
   }
 }
 

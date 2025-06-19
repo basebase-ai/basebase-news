@@ -155,7 +155,8 @@ async function searchStories(query) {
 ## Query Parameters (all are optional)
 
 - **`query`** (string): The search term to match against story headlines, summaries, and full text content
-- **`sourceId`** (string): Filter results to stories from a specific source (MongoDB ObjectId)
+- **`sourceId`** (string): Filter results to stories from a specific source (MongoDB ObjectId). If provided, this will override `sourceName`.
+- **`sourceName`** (string): Filter results to the best-matching source by name. The search is case-insensitive and prioritizes exact matches. If no source is found, an empty list of stories is returned.
 - **`before`** (string): Filter stories created before this date (ISO 8601 format, e.g., `2024-01-15T10:30:00Z`)
 - **`after`** (string): Filter stories created after this date (ISO 8601 format, e.g., `2024-01-01T00:00:00Z`)
 - **`page`** (number): Page number for pagination (default: 1, minimum: 1)
@@ -195,6 +196,7 @@ async function searchStories(query) {
     "query": "search term",
     "filters": {
       "sourceId": "source_id_or_null",
+      "sourceName": "source_name_or_null",
       "before": "2024-01-15T10:30:00.000Z",
       "after": "2024-01-01T00:00:00.000Z"
     }
@@ -296,6 +298,13 @@ curl -H "Authorization: Bearer <your_token>" \
   "https://newswithfriends.org/api/stories/search?query=artificial%20intelligence&sourceId=507f1f77bcf86cd799439011&after=2024-01-01T00:00:00Z&page=1&limit=25"
 ```
 
+### Search with Source Name
+
+```bash
+curl -H "Authorization: Bearer <your_token>" \
+  "https://newswithfriends.org/api/stories/search?query=politics&sourceName=Guardian"
+```
+
 ## JavaScript/TypeScript Example
 
 ```typescript
@@ -312,6 +321,7 @@ interface SearchResponse {
     query: string;
     filters: {
       sourceId: string | null;
+      sourceName: string | null;
       before: string | null;
       after: string | null;
     };
@@ -340,6 +350,7 @@ async function searchStories(
   query: string,
   options: {
     sourceId?: string;
+    sourceName?: string;
     before?: string;
     after?: string;
     page?: number;
@@ -349,6 +360,7 @@ async function searchStories(
   const params = new URLSearchParams({ query });
 
   if (options.sourceId) params.append("sourceId", options.sourceId);
+  if (options.sourceName) params.append("sourceName", options.sourceName);
   if (options.before) params.append("before", options.before);
   if (options.after) params.append("after", options.after);
   if (options.page) params.append("page", options.page.toString());

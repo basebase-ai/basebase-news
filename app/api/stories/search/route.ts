@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { edgeAuthService } from "@/services/auth.edge.service";
 import { StoryService } from "@/services/story.service";
+import { sourceService } from "@/services/source.service";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -20,11 +21,42 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("query");
-    const sourceId = searchParams.get("sourceId");
+    let sourceId = searchParams.get("sourceId");
+    const sourceName = searchParams.get("sourceName");
     const before = searchParams.get("before");
     const after = searchParams.get("after");
     const page = searchParams.get("page");
     const limit = searchParams.get("limit");
+
+    // If sourceName is provided and sourceId is not, find the source by name.
+    if (sourceName && !sourceId) {
+      const matchingSources = await sourceService.searchSources(sourceName);
+      if (matchingSources.length > 0) {
+        // Use the best match (the first result)
+        sourceId = (matchingSources[0] as any)._id.toString();
+      } else {
+        // If no source matches, return an empty result set immediately.
+        return NextResponse.json({
+          status: "ok",
+          data: {
+            stories: [],
+            pagination: {
+              page: 1,
+              limit: Number(limit) || 20,
+              totalCount: 0,
+              hasMore: false,
+            },
+            query: query ? query.trim() : null,
+            filters: {
+              sourceId: null,
+              sourceName,
+              before: before || null,
+              after: after || null,
+            },
+          },
+        });
+      }
+    }
 
     // Parse and validate optional parameters
     const searchOptions: {
@@ -120,6 +152,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         query: query ? query.trim() : null,
         filters: {
           sourceId: searchOptions.sourceId || null,
+          sourceName: sourceName || null,
           before: searchOptions.before || null,
           after: searchOptions.after || null,
         },
