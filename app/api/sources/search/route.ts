@@ -21,14 +21,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("query");
 
-    // Validate required query parameter
-    if (!query || query.trim().length === 0) {
-      return NextResponse.json(
-        { status: "error", message: "Query parameter is required" },
-        { status: 400 }
-      );
-    }
-
     const sources = await sourceService.searchSources(query);
 
     return NextResponse.json({

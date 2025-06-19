@@ -415,7 +415,7 @@ This endpoint requires the same Bearer token authentication as the Story Search 
 
 ## Query Parameters
 
-- **`query`** (string, required): The search term to match against the source name. The search is case-insensitive and supports partial matches.
+- **`query`** (string, optional): The search term to match against the source name. The search is case-insensitive and supports partial matches.
 
 ## Response Format
 
