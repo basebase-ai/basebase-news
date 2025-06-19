@@ -384,6 +384,85 @@ export class StoryService {
 
     return stories;
   }
+
+  /**
+   * Search stories with text query and optional filters
+   * @param query The search term to match against headline, summary, and fullText
+   * @param options Optional filters and pagination options
+   * @returns Paginated search results with stories and source information
+   */
+  public async searchStories(
+    query: string,
+    options: {
+      sourceId?: string;
+      before?: Date;
+      after?: Date;
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<{
+    stories: Array<IStory & { source: ISource }>;
+    totalCount: number;
+    hasMore: boolean;
+    page: number;
+    limit: number;
+  }> {
+    const { sourceId, before, after, page = 1, limit = 20 } = options;
+
+    // Build the search query
+    const searchConditions: any = {
+      archived: false,
+      $or: [
+        { fullHeadline: { $regex: query, $options: "i" } },
+        { summary: { $regex: query, $options: "i" } },
+        { fullText: { $regex: query, $options: "i" } },
+      ],
+    };
+
+    // Add source filter if provided
+    if (sourceId) {
+      searchConditions.sourceId = new mongoose.Types.ObjectId(sourceId);
+    }
+
+    // Add date filters if provided
+    if (before || after) {
+      searchConditions.createdAt = {};
+      if (before) {
+        searchConditions.createdAt.$lt = before;
+      }
+      if (after) {
+        searchConditions.createdAt.$gt = after;
+      }
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Execute search with pagination
+    const [stories, totalCount] = await Promise.all([
+      Story.find(searchConditions)
+        .populate("sourceId")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Story.countDocuments(searchConditions),
+    ]);
+
+    // Transform the results to include source information
+    const storiesWithSource = stories.map((story) => ({
+      ...story,
+      source: story.sourceId as ISource,
+    }));
+
+    return {
+      stories: storiesWithSource,
+      totalCount,
+      hasMore: skip + stories.length < totalCount,
+      page,
+      limit,
+    };
+  }
 }
 
 export const storyService = new StoryService();
