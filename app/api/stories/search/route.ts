@@ -26,14 +26,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const page = searchParams.get("page");
     const limit = searchParams.get("limit");
 
-    // Validate required query parameter
-    if (!query || query.trim().length === 0) {
-      return NextResponse.json(
-        { status: "error", message: "Query parameter is required" },
-        { status: 400 }
-      );
-    }
-
     // Parse and validate optional parameters
     const searchOptions: {
       sourceId?: string;
@@ -94,7 +86,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Perform the search
     const storyService = new StoryService();
     const searchResults = await storyService.searchStories(
-      query.trim(),
+      query,
       searchOptions
     );
 
@@ -125,7 +117,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           totalCount: searchResults.totalCount,
           hasMore: searchResults.hasMore,
         },
-        query: query.trim(),
+        query: query ? query.trim() : null,
         filters: {
           sourceId: searchOptions.sourceId || null,
           before: searchOptions.before || null,

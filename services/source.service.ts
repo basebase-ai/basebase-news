@@ -43,6 +43,20 @@ export class SourceService {
   public async getSources(): Promise<ISource[]> {
     return Source.find();
   }
+
+  /**
+   * Search for sources by name.
+   * @param query The search term to match against the source name.
+   * @returns A list of matching sources.
+   */
+  public async searchSources(query: string): Promise<ISource[]> {
+    if (!query || query.trim().length === 0) {
+      return [];
+    }
+
+    const searchRegex = new RegExp(query.trim(), "i");
+    return Source.find({ name: searchRegex }).limit(20).lean();
+  }
 }
 
 export const sourceService = new SourceService();

@@ -387,12 +387,12 @@ export class StoryService {
 
   /**
    * Search stories with text query and optional filters
-   * @param query The search term to match against headline, summary, and fullText
+   * @param query The search term to match against headline, summary, and fullText. If null, returns recent stories.
    * @param options Optional filters and pagination options
    * @returns Paginated search results with stories and source information
    */
   public async searchStories(
-    query: string,
+    query: string | null,
     options: {
       sourceId?: string;
       before?: Date;
@@ -409,11 +409,14 @@ export class StoryService {
   }> {
     const { sourceId, before, after, page = 1, limit = 20 } = options;
 
-    // Build the search query using MongoDB text search for better performance
+    // Build the search query
     const searchConditions: any = {
       archived: false,
-      $text: { $search: query },
     };
+
+    if (query && query.trim()) {
+      searchConditions.$text = { $search: query.trim() };
+    }
 
     // Add source filter if provided
     if (sourceId) {

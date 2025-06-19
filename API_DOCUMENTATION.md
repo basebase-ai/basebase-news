@@ -27,7 +27,7 @@ The authentication system uses a passwordless magic link approach. Follow these 
 Send a POST request to initiate the sign-in process:
 
 ```bash
-curl -X POST https://yourapi.com/api/auth/signin \
+curl -X POST https://newswithfriends.org/api/auth/signin \
   -H "Content-Type: application/json" \
   -d '{
     "first": "John",
@@ -60,7 +60,7 @@ curl -X POST https://yourapi.com/api/auth/signin \
 After Step 1, you'll receive a verification message via SMS or email containing a magic link in this format:
 
 ```
-https://yourapi.com/auth/verify?code=ABC123
+https://newswithfriends.org/auth/verify?code=ABC123
 ```
 
 #### Step 3: Get JWT Token
@@ -68,7 +68,7 @@ https://yourapi.com/auth/verify?code=ABC123
 To programmatically obtain the JWT token, extract the verification code from the magic link and make a GET request to the verification endpoint:
 
 ```bash
-curl -X GET "https://yourapi.com/api/auth/verify?code=ABC123" \
+curl -X GET "https://newswithfriends.org/api/auth/verify?code=ABC123" \
   -H "Accept: application/json"
 ```
 
@@ -87,7 +87,7 @@ Use the returned JWT token in the Authorization header for all API requests:
 
 ```bash
 curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  "https://yourapi.com/api/stories/search?query=politics"
+  "https://newswithfriends.org/api/stories/search?query=politics"
 ```
 
 ### Token Details
@@ -152,14 +152,9 @@ async function searchStories(query) {
 }
 ```
 
-## Query Parameters
-
-### Required Parameters
+## Query Parameters (all are optional)
 
 - **`query`** (string): The search term to match against story headlines, summaries, and full text content
-
-### Optional Parameters
-
 - **`sourceId`** (string): Filter results to stories from a specific source (MongoDB ObjectId)
 - **`before`** (string): Filter stories created before this date (ISO 8601 format, e.g., `2024-01-15T10:30:00Z`)
 - **`after`** (string): Filter stories created after this date (ISO 8601 format, e.g., `2024-01-01T00:00:00Z`)
@@ -259,7 +254,14 @@ async function searchStories(query) {
 
 ## Usage Examples
 
-### Basic Search
+### All Recent News Stories
+
+```bash
+curl -H "Authorization: Bearer <your_token>" \
+  "https://newswithfriends.org/api/stories/search"
+```
+
+### Basic Text Search
 
 ```bash
 curl -H "Authorization: Bearer <your_token>" \
@@ -394,3 +396,73 @@ Currently, no rate limiting is implemented, but it's recommended to implement ap
 - Search queries are case-insensitive
 - Empty or whitespace-only queries will return a 400 error
 - Maximum limit per page is 100 stories
+
+# Source Search API Documentation
+
+## Overview
+
+The Source Search API allows authenticated users to search for news sources by name.
+
+## Endpoint
+
+```
+GET /api/sources/search
+```
+
+## Authentication
+
+This endpoint requires the same Bearer token authentication as the Story Search API.
+
+## Query Parameters
+
+- **`query`** (string, required): The search term to match against the source name. The search is case-insensitive and supports partial matches.
+
+## Response Format
+
+### Success Response (200 OK)
+
+```json
+{
+  "status": "ok",
+  "sources": [
+    {
+      "_id": "source_id_here",
+      "name": "The Guardian",
+      "homepageUrl": "https://www.theguardian.com",
+      "imageUrl": "https://example.com/logo.png",
+      "biasScore": -0.21,
+      "tags": ["news", "uk"],
+      "hasPaywall": true
+    }
+  ]
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized
+
+```json
+{
+  "status": "error",
+  "message": "Not authenticated"
+}
+```
+
+#### 400 Bad Request
+
+```json
+{
+  "status": "error",
+  "message": "Query parameter is required"
+}
+```
+
+## Usage Example
+
+```bash
+curl -H "Authorization: Bearer <your_token>" \
+  "https://newswithfriends.org/api/sources/search?query=guardian"
+```
+
+This would return an array of source objects, including "The Guardian" and "SF Bay Guardian" if they exist in the database.
