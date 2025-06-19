@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Story } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import LinkPreview from './LinkPreview';
+import { fetchApi } from '@/lib/api';
 
 interface PostComposerProps {
   story?: Story;
@@ -15,36 +16,45 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
   const [text, setText] = useState<string>('');
   const [isPosting, setIsPosting] = useState<boolean>(false);
 
+  useEffect(() => {
+    console.log('[PostComposer] Rendered with story:', story);
+  }, [story]);
+
   const handlePost = async () => {
-    if (!text.trim()) {
+    console.log('[PostComposer] handlePost called.');
+
+    if (!story || isPosting) {
+      console.log('[PostComposer] Exiting handlePost early.', { hasStory: !!story, isPosting });
       return;
     }
 
+    console.log('[PostComposer] Proceeding with post. Story ID:', story.id);
     setIsPosting(true);
     try {
-      const response = await fetch('/api/posts', {
+      const response = await fetchApi('/api/users/me/stories/star', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
-          ...(story?.id && { storyId: story.id }),
-          text: text.trim(),
+          storyId: story.id,
+          comment: text.trim(),
         }),
-        credentials: 'include',
       });
 
+      console.log('[PostComposer] API response status:', response.status);
+      const responseData = await response.json();
+      console.log('[PostComposer] API response data:', responseData);
+
       if (response.ok) {
+        console.log('[PostComposer] Post successful. Closing modal.');
         onClose();
       } else {
-        const errorData = await response.json();
-        console.error('Failed to create post:', errorData);
-        alert('Failed to create post. Please try again.');
+        console.error('Failed to recommend story:', responseData);
+        alert(`Failed to recommend story: ${responseData.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error creating post:', error);
-      alert('Failed to create post. Please try again.');
+      console.error('Error recommending story:', error);
+      alert('An unexpected error occurred while recommending the story.');
     } finally {
+      console.log('[PostComposer] Setting isPosting to false.');
       setIsPosting(false);
     }
   };
@@ -55,7 +65,7 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {story ? 'Share Story' : 'Create Post'}
+            Recommend Story
           </h2>
           <button
             onClick={onClose}
@@ -75,7 +85,7 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
               id="post-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={story ? "Share your thoughts about this story..." : "What's on your mind?"}
+              placeholder="Add a comment (optional)..."
               className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none"
               maxLength={500}
               disabled={isPosting}
@@ -108,10 +118,10 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
           </button>
           <button
             onClick={handlePost}
-            disabled={!text.trim() || isPosting}
+            disabled={isPosting}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 rounded-md transition-colors disabled:cursor-not-allowed"
           >
-            {isPosting ? 'Posting...' : 'Post'}
+            {isPosting ? 'Recommending...' : 'Recommend'}
           </button>
         </div>
       </div>

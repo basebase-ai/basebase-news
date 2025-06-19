@@ -1,65 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
-import { userService } from "@/services/user.service";
 import { User, IUser } from "@/models/user.model";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { Types } from "mongoose";
-import { cookies } from "next/headers";
+import { edgeAuthService } from "@/services/auth.edge.service";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    await connectToDatabase();
-
-    const tokenCookie = cookies().get("auth");
-    if (!tokenCookie) {
+    const token = edgeAuthService.extractTokenFromRequest(request);
+    if (!token) {
       return NextResponse.json(
-        { status: "error", message: "Not authenticated" },
+        { error: "Unauthorized", message: "Bearer token is missing." },
         { status: 401 }
       );
     }
-    const token = tokenCookie.value;
 
-    try {
-      const { userId } = userService.verifyToken(token);
-      const user = (await User.findById(userId).lean()) as
-        | (IUser & { _id: Types.ObjectId })
-        | null;
-
-      if (!user) {
-        const response = NextResponse.json(
-          { status: "error", message: "User not found" },
-          { status: 404 }
-        );
-        response.cookies.delete("auth");
-        return response;
-      }
-
-      return NextResponse.json({
-        status: "ok",
-        user: {
-          id: user._id.toString(),
-          email: user.email,
-          first: user.first,
-          last: user.last,
-          phone: user.phone,
-          imageUrl: user.imageUrl,
-          isAdmin: user.isAdmin,
-          sourceIds: user.sourceIds.map((id) => id.toString()),
-          denseMode: user.denseMode || false,
-          darkMode: user.darkMode || false,
-        },
-      });
-    } catch (error) {
-      console.error("[/api/users/me] Token verification error:", error);
-      const response = NextResponse.json(
-        { status: "error", message: "Invalid token" },
+    const { userId } = await edgeAuthService.verifyToken(token);
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Bearer token is invalid." },
         { status: 401 }
       );
-      response.cookies.delete("auth");
-      return response;
     }
+
+    await connectToDatabase();
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Not Found", message: "User not found." },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      status: "ok",
+      user: {
+        id: (user._id as Types.ObjectId).toString(),
+        email: user.email,
+        first: user.first,
+        last: user.last,
+        phone: user.phone,
+        imageUrl: user.imageUrl,
+        isAdmin: user.isAdmin,
+        sourceIds: user.sourceIds.map((id) => id.toString()),
+        denseMode: user.denseMode || false,
+        darkMode: user.darkMode || false,
+      },
+    });
   } catch (error) {
+    if (error instanceof Error && error.message.includes("Invalid token")) {
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          message: "Bearer token is invalid or expired.",
+        },
+        { status: 401 }
+      );
+    }
     console.error("[/api/users/me] Server error:", error);
     return NextResponse.json(
       { status: "error", message: "Server error" },

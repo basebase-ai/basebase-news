@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
-import { TextEncoder } from "util";
+import { NextRequest } from "next/server";
 
 export class EdgeAuthService {
   private static instance: EdgeAuthService;
@@ -33,6 +33,29 @@ export class EdgeAuthService {
       return { userId: payload.userId as string };
     } catch (error) {
       throw new Error("Invalid token");
+    }
+  }
+
+  /**
+   * Extracts Bearer token from an Authorization header.
+   */
+  public extractTokenFromRequest(request: NextRequest): string | null {
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return null;
+    }
+    return authHeader.substring(7); // Remove "Bearer " prefix
+  }
+
+  /**
+   * Validates a JWT token.
+   */
+  public async validateToken(token: string): Promise<boolean> {
+    try {
+      await this.verifyToken(token);
+      return true;
+    } catch (error) {
+      return false;
     }
   }
 }

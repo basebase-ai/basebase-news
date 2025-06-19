@@ -1,22 +1,32 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { userService } from "@/services/user.service";
+import { NextRequest, NextResponse } from "next/server";
 import { StoryStatus } from "@/models/story-status.model";
 import mongoose from "mongoose";
+import { edgeAuthService } from "@/services/auth.edge.service";
+import { connectToDatabase } from "@/services/mongodb.service";
 
-export async function POST(request: Request) {
+async function getUserIdFromRequest(
+  request: NextRequest
+): Promise<string | null> {
+  const token = edgeAuthService.extractTokenFromRequest(request);
+  if (!token) return null;
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("auth")?.value;
+    const { userId } = await edgeAuthService.verifyToken(token);
+    return userId;
+  } catch (error) {
+    return null;
+  }
+}
 
-    if (!token) {
+export async function POST(request: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
       return NextResponse.json(
         { status: "error", message: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const { userId } = userService.verifyToken(token);
     const { storyId, comment } = await request.json();
 
     if (!storyId) {
@@ -26,39 +36,81 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find existing story status
-    const existingStatus = await StoryStatus.findOne({
-      userId: new mongoose.Types.ObjectId(userId),
-      storyId: new mongoose.Types.ObjectId(storyId),
-    });
+    await connectToDatabase();
 
-    if (existingStatus) {
-      // Toggle the starred status
-      existingStatus.starred = !existingStatus.starred;
-      if (comment) {
-        existingStatus.comment = comment;
-      }
-      await existingStatus.save();
-      return NextResponse.json({
-        status: "ok",
-        starred: existingStatus.starred,
-      });
-    } else {
-      // Create new story status with starred=true
-      const newStatus = await StoryStatus.create({
+    const update = {
+      $set: {
+        starred: true,
         userId: new mongoose.Types.ObjectId(userId),
         storyId: new mongoose.Types.ObjectId(storyId),
-        status: "READ" as const,
-        starred: true,
-        comment: comment || undefined,
-      });
-      return NextResponse.json({
-        status: "ok",
-        starred: newStatus.starred,
-      });
+      },
+      $setOnInsert: {
+        status: "NONE" as const,
+      },
+    };
+    if (comment) {
+      (update.$set as any).comment = comment;
     }
+
+    const updatedStatus = await StoryStatus.findOneAndUpdate(
+      {
+        userId: new mongoose.Types.ObjectId(userId),
+        storyId: new mongoose.Types.ObjectId(storyId),
+      },
+      update,
+      { upsert: true, new: true }
+    );
+
+    return NextResponse.json({
+      status: "ok",
+      starred: updatedStatus.starred,
+    });
   } catch (error) {
     console.error("Error toggling star:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { status: "error", message: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { status: "error", message: "Not authenticated" },
+        { status: 401 }
+      );
+    }
+
+    const { storyId } = await request.json();
+
+    if (!storyId) {
+      return NextResponse.json(
+        { status: "error", message: "Story ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await connectToDatabase();
+
+    await StoryStatus.findOneAndUpdate(
+      {
+        userId: new mongoose.Types.ObjectId(userId),
+        storyId: new mongoose.Types.ObjectId(storyId),
+      },
+      { $set: { starred: false } }
+    );
+
+    return NextResponse.json({
+      status: "ok",
+      starred: false,
+    });
+  } catch (error) {
+    console.error("Error un-starring:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(

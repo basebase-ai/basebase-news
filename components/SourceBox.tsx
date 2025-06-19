@@ -11,6 +11,7 @@ import { faEllipsisV, faGripVertical, faStar } from '@fortawesome/free-solid-svg
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 import PostComposer from './PostComposer';
 import StoryReactionModal from './StoryReactionModal';
+import { fetchApi } from '@/lib/api';
 
 interface SourceBoxProps {
   source: Source;
@@ -95,7 +96,7 @@ export default function SourceBox({
 
   const loadHeadlines = useCallback(async () => {
     try {
-      const response = await fetch(`/api/sources/${source._id}`);
+      const response = await fetchApi(`/api/sources/${source._id}`);
       if (response.ok) {
         const data = await response.json();
         if (data.source?.stories) {
@@ -124,7 +125,7 @@ export default function SourceBox({
       setIsRefreshing(true);
       setHeadlines([]);
 
-      const response = await fetch(`/api/sources/${source._id}/scrape`, {
+      const response = await fetchApi(`/api/sources/${source._id}/scrape`, {
         method: 'POST',
       });
 
@@ -152,13 +153,9 @@ export default function SourceBox({
       const requestBody = JSON.stringify({ storyId });
       console.log('[SourceBox.markAsRead] Request body:', requestBody);
       
-      const response = await fetch('/api/users/me/readids', {
+      const response = await fetchApi('/api/users/me/readids', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: requestBody,
-        credentials: 'include'
       });
 
       const responseText = await response.text();
@@ -194,9 +191,8 @@ export default function SourceBox({
     e.preventDefault();
     e.stopPropagation();
     try {
-      const response = await fetch(`/api/stories/${story.id}/star`, {
+      const response = await fetchApi(`/api/stories/${story.id}/star`, {
         method: story.starred ? 'DELETE' : 'POST',
-        credentials: 'include'
       });
       if (response.ok) {
         setHeadlines(headlines.map(h => 
@@ -214,13 +210,9 @@ export default function SourceBox({
     
     // Toggle starred status
     try {
-      const response = await fetch('/api/users/me/stories/star', {
+      const response = await fetchApi('/api/users/me/stories/star', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ storyId: story.id }),
-        credentials: 'include'
       });
       if (response.ok) {
         const data = await response.json();
@@ -276,13 +268,9 @@ export default function SourceBox({
     
     // Mark as read
     try {
-      const response = await fetch('/api/users/me/readids', {
+      const response = await fetchApi('/api/users/me/readids', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ storyId: story.id }),
-        credentials: 'include'
       });
       
       if (response.ok) {
@@ -309,16 +297,12 @@ export default function SourceBox({
     if (!reactionStory) return;
     
     try {
-      const response = await fetch('/api/users/me/stories/star', {
+      const response = await fetchApi('/api/users/me/stories/star', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ 
           storyId: reactionStory.id,
           comment 
         }),
-        credentials: 'include'
       });
       
       if (response.ok) {

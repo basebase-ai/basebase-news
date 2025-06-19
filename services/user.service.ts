@@ -257,20 +257,41 @@ export class UserService {
   public async verifyCode(code: string): Promise<string> {
     await connectToDatabase();
 
+    console.log(`[verifyCode] Looking for code: ${code}`);
+    console.log(`[verifyCode] Current time: ${new Date().toISOString()}`);
+
+    // First, let's see if the code exists at all
+    const anyCode = await VerificationCode.findOne({ code });
+    console.log(`[verifyCode] Code exists in DB: ${!!anyCode}`);
+    if (anyCode) {
+      console.log(
+        `[verifyCode] Code expires at: ${anyCode.expiresAt.toISOString()}`
+      );
+      console.log(
+        `[verifyCode] Code is expired: ${anyCode.expiresAt <= new Date()}`
+      );
+    }
+
     const verificationCode = await VerificationCode.findOne({
       code,
       expiresAt: { $gt: new Date() },
     });
 
     if (!verificationCode) {
+      console.log(`[verifyCode] No valid verification code found for: ${code}`);
       throw new Error("Invalid or expired verification code");
     }
+
+    console.log(
+      `[verifyCode] Valid code found, generating token for user: ${verificationCode.userId}`
+    );
 
     // Generate JWT for session
     const token = this.generateToken(verificationCode.userId.toString());
 
     // Clean up used verification code
     await VerificationCode.deleteOne({ _id: verificationCode._id });
+    console.log(`[verifyCode] Verification code deleted successfully`);
 
     return token;
   }

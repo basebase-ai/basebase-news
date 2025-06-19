@@ -5,6 +5,7 @@ import { useAppState } from '@/lib/state/AppContext';
 import type { Source } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { fetchApi } from '@/lib/api';
 
 interface SourceSettingsProps {
   isOpen: boolean;
@@ -41,11 +42,10 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
     };
 
     try {
-      const response = await fetch(
+      const response = await fetchApi(
         editingSource ? `/api/sources/${editingSource._id}` : '/api/sources',
         {
           method: editingSource ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(sourceData),
         }
       );
@@ -70,14 +70,6 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
       setToast({ message: 'An unexpected error occurred.', type: 'error' });
     }
   };
-
-  // Only allow editing existing sources if user is admin, but allow creating new sources for everyone
-  console.log('SourceSettings render check', {
-    isOpen,
-    editingSource: editingSource?.name || 'new source',
-    currentUser: currentUser ? { email: currentUser.email, isAdmin: currentUser.isAdmin } : null,
-    willRender: isOpen && !(editingSource && !currentUser?.isAdmin)
-  });
   
   if (editingSource && !currentUser?.isAdmin) return null;
   if (!isOpen) return null;

@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import PostBox from './PostBox';
-import PostComposer from './PostComposer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faPen } from '@fortawesome/free-solid-svg-icons';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { fetchApi } from '@/lib/api';
 
 interface CommentData {
   _id: string;
@@ -49,7 +49,6 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [showPostComposer, setShowPostComposer] = useState(false);
 
   const fetchStories = async (): Promise<void> => {
     try {
@@ -57,12 +56,7 @@ export default function Feed() {
       setError(null);
       console.log('[Feed] Fetching recommended stories...');
       
-      const response = await fetch('/api/stories/recommended', {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetchApi('/api/stories/recommended');
       const data = await response.json();
       console.log('[Feed] API response:', data);
 
@@ -89,7 +83,6 @@ export default function Feed() {
   }, []);
 
   const handlePostCreated = () => {
-    setShowPostComposer(false);
     fetchStories();
   };
 
@@ -109,13 +102,6 @@ export default function Feed() {
             className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
           />
         </div>
-        <button
-          className="ml-4 shrink-0 w-12 h-12 flex items-center justify-center text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm"
-          onClick={() => setShowPostComposer(true)}
-          title="Create New Post"
-        >
-          <FontAwesomeIcon icon={faPen} className="h-5 w-5" />
-        </button>
       </div>
       {loading ? (
         <LoadingSpinner message="Loading stories..." />
@@ -140,12 +126,6 @@ export default function Feed() {
               <PostBox key={story._id} story={story} onCommentAdded={fetchStories} />
             ))}
         </div>
-      )}
-
-      {showPostComposer && (
-        <PostComposer
-          onClose={handlePostCreated}
-        />
       )}
     </div>
   );

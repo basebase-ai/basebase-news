@@ -12,7 +12,6 @@ export async function GET(request: Request) {
     let jwtToken: string;
 
     if (code) {
-      // New short code flow
       jwtToken = await userService.verifyCode(code);
     } else if (token) {
       // Legacy JWT token flow (for backward compatibility)
@@ -25,21 +24,17 @@ export async function GET(request: Request) {
       throw new Error("Invalid verification link");
     }
 
-    // Set JWT cookie
-    const response = NextResponse.redirect(new URL("/", request.url));
-    response.cookies.set("auth", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+    // Always return JWT token in response body
+    return NextResponse.json({
+      token: jwtToken,
+      message: "Authentication successful",
     });
-    return response;
   } catch (error) {
     console.error("Verification error:", error);
-    return NextResponse.json(
-      { error: "Invalid or expired verification link" },
-      { status: 400 }
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Invalid or expired verification link";
+    return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }

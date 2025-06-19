@@ -4,24 +4,22 @@ import { Story } from "@/models/story.model";
 import { StoryStatus } from "@/models/story-status.model";
 import { Comment } from "@/models/comment.model";
 import { User } from "@/models/user.model";
-import { userService } from "@/services/user.service";
-import { cookies } from "next/headers";
+import { edgeAuthService } from "@/services/auth.edge.service";
 import mongoose from "mongoose";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    await connectToDatabase();
-
-    const tokenCookie = cookies().get("auth");
-    if (!tokenCookie) {
+    const token = edgeAuthService.extractTokenFromRequest(request);
+    if (!token) {
       return NextResponse.json(
         { status: "error", message: "Not authenticated" },
         { status: 401 }
       );
     }
-    const token = tokenCookie.value;
 
-    const { userId } = userService.verifyToken(token);
+    const { userId } = await edgeAuthService.verifyToken(token);
+
+    await connectToDatabase();
     const user = await User.findById(userId);
 
     if (!user) {

@@ -5,6 +5,7 @@ import { useAppState } from '@/lib/state/AppContext';
 import { useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { fetchApi } from '@/lib/api';
 
 export default function ReaderPage() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
@@ -13,7 +14,7 @@ export default function ReaderPage() {
     if (!currentUser) return;
     
     try {
-      const response = await fetch('/api/sources');
+      const response = await fetchApi('/api/sources');
       if (response.ok) {
         const sources = await response.json();
         setCurrentSources(sources);

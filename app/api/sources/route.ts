@@ -2,8 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { Source } from "@/models/source.model";
 import { scraperService } from "@/services/scraper.service";
+import { edgeAuthService } from "@/services/auth.edge.service";
 
-export async function GET(): Promise<NextResponse> {
+async function verifyAuth(request: NextRequest): Promise<boolean> {
+  const token = edgeAuthService.extractTokenFromRequest(request);
+  if (!token) return false;
+  return await edgeAuthService.validateToken(token);
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  // Verify authentication
+  const isAuthenticated = await verifyAuth(request);
+  if (!isAuthenticated) {
+    return NextResponse.json(
+      { error: "Unauthorized", message: "Valid Bearer token required" },
+      { status: 401 }
+    );
+  }
   try {
     await connectToDatabase();
     const sources = await Source.find({}).sort({ name: 1 });
@@ -28,6 +43,15 @@ interface SourceRequestBody {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Verify authentication
+  const isAuthenticated = await verifyAuth(request);
+  if (!isAuthenticated) {
+    return NextResponse.json(
+      { error: "Unauthorized", message: "Valid Bearer token required" },
+      { status: 401 }
+    );
+  }
+
   try {
     console.log("POST /api/sources");
     await connectToDatabase();

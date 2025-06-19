@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction } from 'react';
 import type { User, Source, Story } from '@/types';
+import { fetchApi } from '@/lib/api';
 
 interface AppState {
   currentUser: User | null;
@@ -68,7 +69,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const response = await fetch('/api/connections?status=CONNECTED');
+        const response = await fetchApi('/api/connections?status=CONNECTED');
         if (response.ok) {
           const data = await response.json();
           const friendsArray = data.connections || [];
