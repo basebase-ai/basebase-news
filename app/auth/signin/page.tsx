@@ -17,6 +17,8 @@ export default function SignInPage() {
     setIsLoading(true);
     setError('');
     
+    console.log('[SignIn] Form submission started');
+    
     const form = e.currentTarget;
     const formData = new FormData(form);
 
@@ -30,21 +32,38 @@ export default function SignInPage() {
       const phone = formData.get('phone') as string;
       const email = formData.get('email') as string;
       
+      console.log('[SignIn] Form data extracted:', {
+        firstName: payload.first,
+        lastName: payload.last,
+        phoneProvided: !!phone,
+        emailProvided: !!email,
+        phoneLength: phone?.length || 0,
+        emailLength: email?.length || 0
+      });
+      
       if (phone && phone.trim()) {
         payload.phone = phone;
+        console.log('[SignIn] Using phone authentication:', phone);
         // If phone is provided, email becomes optional but still included if provided
         if (email && email.trim()) {
           payload.email = email;
+          console.log('[SignIn] Also including email:', email);
         } else {
           // Generate a placeholder email for phone-only signups
           payload.email = `phone_${phone.replace(/\D/g, '')}@temp.placeholder`;
+          console.log('[SignIn] Generated placeholder email:', payload.email);
         }
       } else if (email && email.trim()) {
         payload.email = email;
+        console.log('[SignIn] Using email authentication:', email);
       } else {
+        console.error('[SignIn] No valid contact method provided');
         setError('Please provide either a phone number or email address.');
         return;
       }
+
+      console.log('[SignIn] Final payload:', payload);
+      console.log('[SignIn] Making request to /api/auth/signin');
 
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
@@ -52,17 +71,28 @@ export default function SignInPage() {
         body: JSON.stringify(payload),
       });
 
+      console.log('[SignIn] Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       const data = await response.json();
+      console.log('[SignIn] Response data:', data);
 
       if (response.ok) {
+        console.log('[SignIn] Success! Showing confirmation screen');
         setShowConfirmation(true);
       } else {
+        console.error('[SignIn] Server error:', data);
         setError(data.message || 'Something went wrong. Please try again.');
       }
     } catch (error) {
+      console.error('[SignIn] Network/fetch error:', error);
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
+      console.log('[SignIn] Form submission completed');
     }
   };
 
