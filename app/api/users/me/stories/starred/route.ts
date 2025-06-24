@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { storyService } from "@/services/story.service";
 import { userService } from "@/services/user.service";
-import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
     console.log("[GET /api/users/me/stories/starred] Starting request");
-    const cookieStore = cookies();
-    const token = cookieStore.get("auth")?.value;
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.split(" ")[1];
 
     if (!token) {
       console.log("[GET /api/users/me/stories/starred] No token found");

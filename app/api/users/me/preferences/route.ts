@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { userService } from "@/services/user.service";
 import { User } from "@/models/user.model";
 import mongoose from "mongoose";
 
 export async function PUT(request: Request) {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("auth")?.value;
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.split(" ")[1];
 
     if (!token) {
       return NextResponse.json(

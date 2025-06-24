@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { userService } from "@/services/user.service";
 import { ConnectionService } from "@/services/connection.service";
 import mongoose from "mongoose";
@@ -9,8 +8,8 @@ export async function GET(
   { params }: { params: { targetUserId: string } }
 ) {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("auth")?.value;
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.split(" ")[1];
 
     if (!token) {
       return NextResponse.json(
@@ -51,8 +50,8 @@ export async function DELETE(
   { params }: { params: { targetUserId: string } }
 ) {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("auth")?.value;
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.split(" ")[1];
 
     if (!token) {
       return NextResponse.json(

@@ -104,17 +104,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   }
 
   if (!currentUser) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <p className="text-lg text-gray-600 dark:text-gray-400">Please sign in to see your sources.</p>
-        <button 
-          onClick={() => setSignInModalOpen(true)}
-          className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-        >
-          Sign In
-        </button>
-      </div>
-    );
+    return <LoadingSpinner message="Loading sources..." />;
   }
 
   return (
