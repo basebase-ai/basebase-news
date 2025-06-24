@@ -84,7 +84,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
             console.log('[AuthWrapper] User data loaded successfully');
 
             // If user is on an auth page with a valid session, redirect to reader
-            if (isAuthRoute) {
+            if (isAuthRoute || pathname === '/') {
               console.log('[AuthWrapper] Valid user on auth route, redirecting to /reader');
               router.replace('/reader');
             }
@@ -124,7 +124,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
          });
         
          // User is already in context
-        if (isAuthRoute) {
+        if (isAuthRoute || pathname === '/') {
           console.log('[AuthWrapper] Authenticated user on auth route, redirecting to /reader');
           router.replace('/reader');
         }

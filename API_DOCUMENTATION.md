@@ -1,4 +1,4 @@
-# Story Search API Documentation
+# News With Friends API Documentation
 
 ## Overview
 

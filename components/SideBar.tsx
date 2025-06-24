@@ -10,9 +10,9 @@ import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons
 
   const menuItems = [
     { href: '/feed', icon: 'ri-star-line', text: 'Discover' },
-    { href: '/reader', icon: 'ri-compass-3-line', text: 'My Sources' },
+    { href: '/reader', icon: 'ri-compass-3-line', text: 'My News' },
   { href: '/friends', icon: 'ri-user-heart-line', text: 'Friends' },
-  { href: '/sources', icon: 'ri-list-check-2', text: 'All Sources' },
+  { href: '/sources', icon: 'ri-list-check-2', text: 'Sources' },
 ];
 
 interface SideBarProps {
