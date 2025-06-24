@@ -482,8 +482,8 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       const feed = await parser.parseString(xmlText);
       console.log("[RSS Debug] First feed item:", feed.items[0]);
 
-      // Check if feed has an image and update source if different
-      if (feed.image?.url && feed.image.url !== source.imageUrl) {
+      // Check if feed has an image and update source only if imageUrl is null/undefined
+      if (feed.image?.url && !source.imageUrl) {
         await Source.findByIdAndUpdate(sourceId, { imageUrl: feed.image.url });
       }
 

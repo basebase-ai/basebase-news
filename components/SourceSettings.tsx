@@ -32,13 +32,16 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
       rssUrl = `https://${rssUrl}`;
     }
 
+    let imageUrl = (formData.get('imageUrl') as string) || null;
+    if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
+      imageUrl = `https://${imageUrl}`;
+    }
+
     const sourceData = {
       name: formData.get('name') as string,
       homepageUrl: homepageUrl,
       rssUrl: rssUrl,
-      includeSelector: (formData.get('includeSelector') as string) || null,
-      excludeSelector: (formData.get('excludeSelector') as string) || null,
-      biasScore: formData.get('biasScore') ? parseFloat(formData.get('biasScore') as string) : null,
+      imageUrl: imageUrl,
     };
 
     try {
@@ -130,39 +133,12 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Include Selector (optional)
+              Image URL (optional)
             </label>
             <input
               type="text"
-              name="includeSelector"
-              defaultValue={editingSource?.includeSelector}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Exclude Selector (optional)
-            </label>
-            <input
-              type="text"
-              name="excludeSelector"
-              defaultValue={editingSource?.excludeSelector}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Bias Score (optional)
-            </label>
-            <input
-              type="number"
-              name="biasScore"
-              min="-10"
-              max="10"
-              step="0.1"
-              defaultValue={editingSource?.biasScore}
+              name="imageUrl"
+              defaultValue={editingSource?.imageUrl}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
