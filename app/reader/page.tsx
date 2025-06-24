@@ -1,6 +1,7 @@
 'use client';
 
 import SourceGrid from '@/components/SourceGrid';
+import SearchResults from '@/components/SearchResults';
 import { useAppState } from '@/lib/state/AppContext';
 import { useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -61,7 +62,11 @@ export default function ReaderPage() {
             )}
           </div>
         </div>
-        <SourceGrid friendsListOpen={false} />
+        {searchTerm.trim() ? (
+          <SearchResults searchTerm={searchTerm} />
+        ) : (
+          <SourceGrid friendsListOpen={false} />
+        )}
       </div>
     </div>
   );

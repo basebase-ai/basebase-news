@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
     if (!token || !(await edgeAuthService.validateToken(token))) {
       return NextResponse.json(
-        { error: "Unauthorized", message: "A valid Bearer token is required." },
+        { error: "A valid Bearer token is required." },
         { status: 401 }
       );
     }

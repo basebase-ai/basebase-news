@@ -9,10 +9,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Check authentication
     const token = edgeAuthService.extractTokenFromRequest(request);
     if (!token) {
-      return NextResponse.json(
-        { status: "error", message: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { userId } = await edgeAuthService.verifyToken(token);
@@ -35,26 +32,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // Use the best match (the first result)
         sourceId = (matchingSources[0] as any)._id.toString();
       } else {
-        // If no source matches, return an empty result set immediately.
-        return NextResponse.json({
-          status: "ok",
-          data: {
-            stories: [],
-            pagination: {
-              page: 1,
-              limit: Number(limit) || 20,
-              totalCount: 0,
-              hasMore: false,
-            },
-            query: query ? query.trim() : null,
-            filters: {
-              sourceId: null,
-              sourceName,
-              before: before || null,
-              after: after || null,
-            },
-          },
-        });
+        // If no source matches, return an empty array immediately.
+        return NextResponse.json([]);
       }
     }
 
@@ -75,7 +54,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const beforeDate = new Date(before);
       if (isNaN(beforeDate.getTime())) {
         return NextResponse.json(
-          { status: "error", message: "Invalid 'before' date format" },
+          { error: "Invalid 'before' date format" },
           { status: 400 }
         );
       }
@@ -86,7 +65,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const afterDate = new Date(after);
       if (isNaN(afterDate.getTime())) {
         return NextResponse.json(
-          { status: "error", message: "Invalid 'after' date format" },
+          { error: "Invalid 'after' date format" },
           { status: 400 }
         );
       }
@@ -97,7 +76,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const pageNum = parseInt(page, 10);
       if (isNaN(pageNum) || pageNum < 1) {
         return NextResponse.json(
-          { status: "error", message: "Page must be a positive integer" },
+          { error: "Page must be a positive integer" },
           { status: 400 }
         );
       }
@@ -108,7 +87,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const limitNum = parseInt(limit, 10);
       if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
         return NextResponse.json(
-          { status: "error", message: "Limit must be between 1 and 100" },
+          { error: "Limit must be between 1 and 100" },
           { status: 400 }
         );
       }
@@ -117,52 +96,35 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Perform the search
     const storyService = new StoryService();
+
+    // Override limit to 5 for this API
+    const searchOptionsWithLimit = {
+      ...searchOptions,
+      limit: 20,
+    };
+
     const searchResults = await storyService.searchStories(
       query,
-      searchOptions
+      searchOptionsWithLimit
     );
 
-    // Transform results to match API specification
+    // Transform results to match expected API format - just return the stories array
     const stories = searchResults.stories.map((story) => ({
       id: (story._id as any).toString(),
-      url: story.articleUrl,
       headline: story.fullHeadline,
-      summary: story.summary,
-      createdAt: story.createdAt,
+      summary: story.summary || "",
+      url: story.articleUrl,
+      imageUrl: story.imageUrl || null,
       source: {
-        id: (story.source._id as any).toString(),
         name: story.source.name,
-        homepage: story.source.homepageUrl,
         imageUrl: story.source.imageUrl,
-        biasScore: story.source.biasScore,
-        tags: story.source.tags || [],
       },
+      createdAt: story.createdAt,
     }));
 
-    return NextResponse.json({
-      status: "ok",
-      data: {
-        stories,
-        pagination: {
-          page: searchResults.page,
-          limit: searchResults.limit,
-          totalCount: searchResults.totalCount,
-          hasMore: searchResults.hasMore,
-        },
-        query: query ? query.trim() : null,
-        filters: {
-          sourceId: searchOptions.sourceId || null,
-          sourceName: sourceName || null,
-          before: searchOptions.before || null,
-          after: searchOptions.after || null,
-        },
-      },
-    });
+    return NextResponse.json(stories);
   } catch (error) {
     console.error("[Story Search API] Error:", error);
-    return NextResponse.json(
-      { status: "error", message: "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
