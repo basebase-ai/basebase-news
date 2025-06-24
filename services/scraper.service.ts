@@ -9,6 +9,7 @@ import { previewService } from "./preview.service";
 import Parser from "rss-parser";
 import mongoose from "mongoose";
 import { Story } from "../models/story.model";
+import * as he from "he";
 
 export class ScraperService {
   // private readonly client: ScrapingBeeClient;
@@ -134,7 +135,7 @@ ${html}`;
       // make the articleUrl absolute
       stories.forEach((story: any) => {
         story.articleUrl = this.makeUrlAbsolute(story.articleUrl, baseUrl);
-        story.fullHeadline = this.decodeHtmlEntities(story.fullHeadline);
+        story.fullHeadline = he.decode(story.fullHeadline);
       });
       return stories;
     } catch (error) {
@@ -176,38 +177,7 @@ ${html}`;
 
   private decodeHtmlEntities(text: string): string {
     if (!text) return "";
-
-    // Handle numeric entities (decimal and hex)
-    text = text.replace(/&#(\d+);/g, (_, dec: string): string => {
-      const charCode: number = parseInt(dec, 10);
-      return String.fromCharCode(charCode);
-    });
-
-    text = text.replace(/&#x([0-9a-f]+);/gi, (_, hex: string): string => {
-      const charCode: number = parseInt(hex, 16);
-      return String.fromCharCode(charCode);
-    });
-
-    // Handle named entities only
-    const namedEntities: Record<string, string> = {
-      "&amp;": "&",
-      "&lt;": "<",
-      "&gt;": ">",
-      "&quot;": '"',
-      "&apos;": "'",
-      "&nbsp;": " ",
-      "&ndash;": "–",
-      "&mdash;": "—",
-      "&hellip;": "…",
-      "&trade;": "™",
-      "&copy;": "©",
-      "&reg;": "®",
-    };
-
-    // Replace named entities
-    return text.replace(/&[a-zA-Z][a-zA-Z0-9]*;/g, (match: string): string => {
-      return namedEntities[match] || match;
-    });
+    return he.decode(text);
   }
 
   private async rssExists(url: string): Promise<boolean> {
@@ -247,7 +217,7 @@ ${html}`;
 
           // If metadata description is longer or summary doesn't exist, use the metadata description
           if (metadataDescriptionLength > summaryLength) {
-            story.summary = this.decodeHtmlEntities(metadata.description);
+            story.summary = he.decode(metadata.description);
           }
         }
 
@@ -286,7 +256,7 @@ ${textContent.substring(0, this.MAX_TOKENS)}
                 articleData.fullText !== "PAYWALL_DETECTED" &&
                 articleData.fullText.length > 100
               ) {
-                story.fullText = this.decodeHtmlEntities(articleData.fullText);
+                story.fullText = he.decode(articleData.fullText);
                 console.log(
                   `Extracted full text for ${story.articleUrl}:\n${articleData.fullText}`
                 );
@@ -587,16 +557,16 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         // Get full content if available
 
         return {
-          fullHeadline: this.decodeHtmlEntities(item.title || ""),
+          fullHeadline: he.decode(item.title || ""),
           articleUrl: item.link || "",
-          summary: this.decodeHtmlEntities(
+          summary: he.decode(
             item.contentSnippet ||
               item.content ||
               (typeof item.description === "string" ? item.description : "") ||
               (hasAudioEnclosure ? "Audio recording" : "") ||
               (hasVideoEnclosure ? "Video recording" : "")
           ),
-          fullText: this.decodeHtmlEntities(item.content || ""),
+          fullText: he.decode(item.content || ""),
           section: Section.NEWS, // Default to NEWS, can be updated by AI later
           type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
           inPageRank: index + 1,

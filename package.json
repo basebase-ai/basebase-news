@@ -48,6 +48,7 @@
     "clsx": "^2.1.1",
     "cookie": "^1.0.2",
     "date-fns": "^4.1.0",
+    "he": "^1.2.0",
     "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.21",
@@ -70,6 +71,7 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
+    "@types/he": "^1.2.3",
     "@types/twilio": "^3.19.2",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
