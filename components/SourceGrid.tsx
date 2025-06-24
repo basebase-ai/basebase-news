@@ -20,6 +20,7 @@ import { SortableSourceBox } from './SourceBox';
 import SourceSettings from './SourceSettings';
 import LoadingSpinner from './LoadingSpinner';
 import { userService } from '@/services/user.service';
+import { fetchApi } from '@/lib/api';
 
 interface SourceGridProps {
   friendsListOpen: boolean;
@@ -44,7 +45,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
       setCurrentUser({ ...currentUser, sourceIds: newSourceIds });
 
       try {
-        const response = await fetch('/api/users/me/sources', {
+        const response = await fetchApi('/api/users/me/sources', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sourceIds: newSourceIds }),
@@ -67,7 +68,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
 
     try {
       const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
-      const response = await fetch('/api/users/me/sources', {
+      const response = await fetchApi('/api/users/me/sources', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

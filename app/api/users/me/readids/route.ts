@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { userService } from "@/services/user.service";
 import { storyService } from "@/services/story.service";
 
 export async function POST(request: Request) {
   console.log("[API/readids] Starting POST request");
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("auth")?.value;
+    const authHeader = request.headers.get("Authorization");
+    const token = authHeader?.split(" ")[1];
 
     if (!token) {
-      console.log("[API/readids] No auth token found");
+      console.log("[API/readids] No auth token found in Authorization header");
       return NextResponse.json(
         { status: "error", message: "Not authenticated" },
         { status: 401 }

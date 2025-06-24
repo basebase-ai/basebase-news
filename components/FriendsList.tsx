@@ -8,6 +8,7 @@ import LoadingSpinner from './LoadingSpinner';
 import FriendSourcesModal from './FriendSourcesModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faUserPlus, faSearch, faEye } from '@fortawesome/free-solid-svg-icons';
+import { fetchApi } from '@/lib/api';
 
 interface Connection extends User {
   // Can be extended with connection-specific details if needed
@@ -28,8 +29,8 @@ export default function FriendsList() {
     try {
       setLoading(true);
       const [requestsRes, suggestionsRes] = await Promise.all([
-        fetch('/api/connections?status=REQUESTED'),
-        fetch('/api/connections?status=SUGGESTED'),
+        fetchApi('/api/connections?status=REQUESTED'),
+        fetchApi('/api/connections?status=SUGGESTED'),
       ]);
 
       if (requestsRes.ok) {
@@ -53,7 +54,7 @@ export default function FriendsList() {
 
   const handleAddFriend = async (targetUserId: string) => {
     try {
-      const response = await fetch('/api/connections', {
+      const response = await fetchApi('/api/connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId }),
@@ -62,7 +63,7 @@ export default function FriendsList() {
         // Refresh all data to reflect the new connection status
         fetchData();
         // Also refresh friends in central state
-        const friendsRes = await fetch('/api/connections?status=CONNECTED');
+        const friendsRes = await fetchApi('/api/connections?status=CONNECTED');
         if (friendsRes.ok) {
           const data = await friendsRes.json();
           setFriends(data.connections || []);

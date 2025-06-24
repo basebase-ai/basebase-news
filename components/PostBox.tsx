@@ -8,6 +8,7 @@ import OverlappingAvatars from './OverlappingAvatars';
 import StoryReactionModal from './StoryReactionModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane, faStar } from '@fortawesome/free-solid-svg-icons';
+import { fetchApi } from '@/lib/api';
 
 interface CommentData {
   _id: string;
@@ -70,7 +71,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
         ? currentUser.sourceIds
         : [sourceId, ...currentUser.sourceIds];
 
-      const response = await fetch('/api/users/me/sources', {
+      const response = await fetchApi('/api/users/me/sources', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceIds: updatedSourceIds }),
@@ -80,7 +81,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
         const { user } = await response.json();
         setCurrentUser(user);
         
-        const sourceResponse = await fetch(`/api/sources/${sourceId}`);
+        const sourceResponse = await fetchApi(`/api/sources/${sourceId}`);
         if (sourceResponse.ok) {
           const { source } = await sourceResponse.json();
           if (source && !currentSources?.some(s => s._id === source._id)) {
@@ -113,7 +114,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/comments', {
+      const response = await fetchApi('/api/comments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +182,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
     if (!reactionStory) return;
     
     try {
-      const response = await fetch('/api/users/me/stories/star', {
+      const response = await fetchApi('/api/users/me/stories/star', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +191,6 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
           storyId: reactionStory._id,
           comment 
         }),
-        credentials: 'include'
       });
       
       if (response.ok) {

@@ -55,10 +55,12 @@ export async function fetchApi(
   });
 
   if (response.status === 401) {
-    // If unauthorized, remove the token and reload to trigger sign-in.
-    console.error("[fetchApi] 401 Unauthorized - clearing token");
-    tokenService.removeToken();
-    console.log("[fetchApi] Token removed from storage");
+    // If unauthorized, the token may be invalid. The user asked not to clear it.
+    console.error(
+      "[fetchApi] 401 Unauthorized - not clearing token as per user request"
+    );
+    // tokenService.removeToken();
+    // console.log("[fetchApi] Token removed from storage");
     // if (typeof window !== "undefined") {
     //   window.location.href = "/auth/signin";
     // }

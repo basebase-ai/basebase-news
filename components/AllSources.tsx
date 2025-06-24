@@ -8,6 +8,7 @@ import OverlappingAvatars from './OverlappingAvatars';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faCog, faSearch, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import SourceSettings from './SourceSettings';
+import { fetchApi } from '@/lib/api';
 
 interface SourceStory {
   id: string;
@@ -38,7 +39,7 @@ export default function AllSources() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('/api/sources');
+        const response = await fetchApi('/api/sources');
         if (response.ok) {
           const data = await response.json();
           const sourcesArray = Array.isArray(data) ? data : [];
@@ -61,7 +62,7 @@ export default function AllSources() {
     
     setLoadingStories(prev => new Set(prev).add(sourceId));
     try {
-      const response = await fetch(`/api/sources/${sourceId}`);
+      const response = await fetchApi(`/api/sources/${sourceId}`);
       if (response.ok) {
         const data = await response.json();
         const stories = data.source?.stories?.slice(0, 3) || [];
@@ -99,7 +100,7 @@ export default function AllSources() {
         ? currentUser.sourceIds
         : [sourceId, ...currentUser.sourceIds];
 
-      const response = await fetch('/api/users/me/sources', {
+      const response = await fetchApi('/api/users/me/sources', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceIds: updatedSourceIds }),
@@ -109,7 +110,7 @@ export default function AllSources() {
         const { user } = await response.json();
         setCurrentUser(user);
         
-        const sourceResponse = await fetch(`/api/sources/${sourceId}`);
+        const sourceResponse = await fetchApi(`/api/sources/${sourceId}`);
         if (sourceResponse.ok) {
           const { source } = await sourceResponse.json();
           if (source && !currentSources?.some(s => s._id === source._id)) {
@@ -130,7 +131,7 @@ export default function AllSources() {
     try {
       const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
 
-      const response = await fetch('/api/users/me/sources', {
+      const response = await fetchApi('/api/users/me/sources', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceIds: updatedSourceIds }),
