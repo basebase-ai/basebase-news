@@ -6,6 +6,7 @@ import { useAppState } from '@/lib/state/AppContext';
 import LoadingSpinner from './LoadingSpinner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faChevronRight, faChevronDown, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { formatTimeAgo } from '@/lib/utils';
 
 interface SourceStory {
   id: string;
@@ -172,21 +173,7 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
     source.homepageUrl.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
 
-    if (diffDays > 0) {
-      return `${diffDays}d ago`;
-    } else if (diffHours > 0) {
-      return `${diffHours}h ago`;
-    } else {
-      return 'Just now';
-    }
-  };
 
   if (!isOpen) return null;
 

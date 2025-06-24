@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
+import { formatTimeAgo } from '@/lib/utils';
 import LoadingSpinner from './LoadingSpinner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
@@ -77,18 +78,7 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
     window.open(story.url, '_blank');
   };
 
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return '';
-    }
-  };
+
 
   if (loading) {
     return (
@@ -181,7 +171,7 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
                         )}
                         <span>{story.source.name}</span>
                       </div>
-                      <span>{formatDate(story.createdAt)}</span>
+                      <span>{formatTimeAgo(story.createdAt)}</span>
                     </div>
                     
                     <FontAwesomeIcon 
