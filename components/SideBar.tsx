@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
-import UserMenu from '@/components/UserMenu';
+import { fetchApi } from '@/lib/api';
+import Avatar from '@/components/Avatar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faChevronRight, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
   const menuItems = [
     { href: '/feed', icon: 'ri-star-line', text: 'Discover' },
@@ -22,7 +24,58 @@ interface SideBarProps {
 
 export default function SideBar({ isOpen, onClose }: SideBarProps) {
   const pathname = usePathname();
-  const { sidebarMinimized, setSidebarMinimized } = useAppState();
+  const { sidebarMinimized, setSidebarMinimized, currentUser, setCurrentUser, setDarkMode, setDenseMode, setSignInModalOpen } = useAppState();
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownVisible(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setCurrentUser(null);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const updateUserPreferences = async (preferences: { denseMode?: boolean; darkMode?: boolean }) => {
+    try {
+      console.log('Updating preferences:', preferences);
+      const response = await fetchApi('/api/users/me/preferences', {
+        method: 'PUT',
+        body: JSON.stringify(preferences),
+      });
+
+      if (response.ok) {
+        const { user } = await response.json();
+        console.log('Updated user:', user);
+        setCurrentUser(user);
+        if (preferences.denseMode !== undefined) setDenseMode(preferences.denseMode);
+        if (preferences.darkMode !== undefined) setDarkMode(preferences.darkMode);
+      } else {
+        console.error('Failed to update preferences:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to update preferences:', error);
+    }
+  };
 
   return (
     <>
@@ -64,8 +117,87 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
           </ul>
         </nav>
         <div className="relative">
-          <div className={`${sidebarMinimized ? 'p-2 flex justify-center' : 'p-4'} border-t border-gray-700`}>
-            <UserMenu sidebarMinimized={sidebarMinimized} />
+          <div className="border-t border-gray-700">
+            {!currentUser ? (
+              <button
+                onClick={() => setSignInModalOpen(true)}
+                className={`w-full flex items-center ${sidebarMinimized ? 'justify-center px-4' : 'px-4'} py-3 hover:bg-gray-700 transition-colors duration-200 text-gray-300`}
+                title={sidebarMinimized ? 'Sign In' : undefined}
+              >
+                <FontAwesomeIcon icon={faGear} className={`${sidebarMinimized ? '' : 'mr-3'} text-[1.1em]`} />
+                {!sidebarMinimized && <span>Sign In</span>}
+              </button>
+            ) : (
+              <button
+                onClick={() => setDropdownVisible(!dropdownVisible)}
+                className={`w-full flex items-center ${sidebarMinimized ? 'justify-center px-4' : 'px-4'} py-3 hover:bg-gray-700 transition-colors duration-200`}
+                title={sidebarMinimized ? 'Settings' : undefined}
+              >
+                <FontAwesomeIcon icon={faGear} className={`text-gray-300 ${sidebarMinimized ? '' : 'mr-3'} text-[1.1em]`} />
+                {!sidebarMinimized && <span className="text-gray-300">Settings</span>}
+              </button>
+            )}
+
+            {currentUser && (
+              <div className={`${sidebarMinimized ? 'px-4 py-2 flex justify-center' : 'px-4 py-3'}`}>
+                <div className={`${sidebarMinimized ? 'flex flex-col items-center space-y-1' : 'flex items-center space-x-3 w-full'}`}>
+                  <Avatar user={currentUser} size="md" />
+                  {!sidebarMinimized && (
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">
+                        {currentUser.first} {currentUser.last}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {dropdownVisible && currentUser && (
+              <div
+                ref={dropdownRef}
+                className={`absolute ${sidebarMinimized ? 'left-14 bottom-0' : 'right-0 bottom-full mb-2'} w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700`}
+              >
+                <div className="py-1">
+                  <div className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    {currentUser.first} {currentUser.last}
+                  </div>
+
+                  <div className="px-4 py-2 flex items-center justify-between">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Dense Mode</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={currentUser.denseMode || false}
+                        onChange={(e) => updateUserPreferences({ denseMode: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+
+                  <div className="px-4 py-2 flex items-center justify-between">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Dark Mode</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={currentUser.darkMode || false}
+                        onChange={(e) => updateUserPreferences({ darkMode: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />Sign out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <button
             onClick={() => setSidebarMinimized(!sidebarMinimized)}

@@ -6,7 +6,7 @@ import { useAppState } from '@/lib/state/AppContext';
 import LoadingSpinner from './LoadingSpinner';
 import OverlappingAvatars from './OverlappingAvatars';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faCog, faSearch, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faCog, faSearch, faChevronRight, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
 import SourceSettings from './SourceSettings';
 import { fetchApi } from '@/lib/api';
 import { formatTimeAgo } from '@/lib/utils';
@@ -190,6 +190,10 @@ export default function AllSources() {
     setSourceListVersion(v => v + 1);
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
+
   const filteredSources = sources.filter(source => 
     source.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     source.homepageUrl.toLowerCase().includes(searchTerm.toLowerCase())
@@ -212,6 +216,15 @@ export default function AllSources() {
             placeholder="Search sources..."
             className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
           />
+          {searchTerm && (
+            <button
+              onClick={handleClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              aria-label="Clear search"
+            >
+              <FontAwesomeIcon icon={faXmark} className="h-5 w-5" />
+            </button>
+          )}
         </div>
         <button
           className="ml-4 shrink-0 w-12 h-12 flex items-center justify-center text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm"
