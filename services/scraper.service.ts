@@ -175,11 +175,6 @@ ${html}`;
     );
   }
 
-  private decodeHtmlEntities(text: string): string {
-    if (!text) return "";
-    return he.decode(text);
-  }
-
   private async rssExists(url: string): Promise<boolean> {
     try {
       const response: AxiosResponse<string> = await axios.get(url, {
