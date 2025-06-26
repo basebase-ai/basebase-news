@@ -33,7 +33,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <SideBar isOpen={isSidebarOpen} onClose={handleCloseSidebar} />
       <GlobalNavigationBar onToggleSidebar={handleToggleSidebar} />
-      <main className={`pt-16 lg:pt-4 ${mainPadding} transition-all duration-300 ease-in-out`}>
+      <main className={`pt-20 lg:pt-4 ${mainPadding} transition-all duration-300 ease-in-out`}>
         {children}
       </main>
 
