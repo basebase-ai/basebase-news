@@ -11,10 +11,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
   const menuItems = [
-    { href: '/feed', icon: 'ri-star-line', text: 'Discover' },
     { href: '/reader', icon: 'ri-compass-3-line', text: 'My News' },
-  { href: '/friends', icon: 'ri-user-heart-line', text: 'Friends' },
-  { href: '/sources', icon: 'ri-list-check-2', text: 'Sources' },
+    { href: '/feed', icon: 'ri-star-line', text: 'Discover' },
+    { href: '/friends', icon: 'ri-user-heart-line', text: 'Friends' },
+    { href: '/sources', icon: 'ri-list-check-2', text: 'Sources' },
 ];
 
 interface SideBarProps {

@@ -5,13 +5,15 @@ import SearchResults from '@/components/SearchResults';
 import { useAppState } from '@/lib/state/AppContext';
 import { useEffect, useCallback, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark, faSearch, faSync } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faSearch, faSync, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { fetchApi } from '@/lib/api';
+import AddSourceModal from '@/components/AddSourceModal';
 
 export default function ReaderPage() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm, setUpdatedSourceIds } = useAppState();
   const [refreshing, setRefreshing] = useState(false);
   const [lastCheck, setLastCheck] = useState<string>(new Date().toISOString());
+  const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
 
   // Polling for new stories
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function ReaderPage() {
               <input
                 type="text"
                 placeholder="Search articles..."
-                className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
+                className="w-full h-12 px-6 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -113,6 +115,13 @@ export default function ReaderPage() {
                 </button>
               )}
             </div>
+            <button
+              onClick={() => setAddSourceModalOpen(true)}
+              className="shrink-0 w-12 h-12 flex items-center justify-center text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm"
+              title="Add Source"
+            >
+              <FontAwesomeIcon icon={faPlus} className="h-5 w-5" />
+            </button>
           </div>
         </div>
         {searchTerm.trim() ? (
@@ -121,6 +130,7 @@ export default function ReaderPage() {
           <SourceGrid friendsListOpen={false} />
         )}
       </div>
+      <AddSourceModal isOpen={addSourceModalOpen} onClose={() => setAddSourceModalOpen(false)} />
     </div>
   );
 } 
