@@ -451,8 +451,8 @@ ${textContent.substring(0, this.MAX_TOKENS)}
             // field names are all lowercase because we normalize tags
             ["media:content", "mediaContent", { keepArray: true }],
             ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
-            ["pubdate", "pubDate"],
-            ["isodate", "isoDate"],
+            // ["pubdate", "pubDate"], // Let rss-parser handle dates automatically
+            // ["isodate", "isoDate"],
           ],
         },
         xml2js: {
@@ -482,99 +482,115 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         await Source.findByIdAndUpdate(sourceId, { imageUrl: feed.image.url });
       }
 
-      const stories: IStory[] = feed.items.map((item: any, index: number) => {
-        // START MAPPING
-        console.log(`[RSS Debug] item:`, item);
-        const hasAudioEnclosure: boolean =
-          (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
-        const hasVideoEnclosure: boolean =
-          (item.enclosure && item.enclosure.type === "video/mp4") ?? false;
+      const stories: IStory[] = feed.items.reduce(
+        (acc: IStory[], item: any, index: number) => {
+          try {
+            // START MAPPING
+            console.log(`[RSS Debug] item:`, item);
+            const hasAudioEnclosure: boolean =
+              (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
+            const hasVideoEnclosure: boolean =
+              (item.enclosure && item.enclosure.type === "video/mp4") ?? false;
 
-        // Extract image URL from media:content if available
-        let imageUrl: string | null = null;
+            // Extract image URL from media:content if available
+            let imageUrl: string | null = null;
 
-        // Try to find an image from mediaContent
-        if (item.mediaContent && Array.isArray(item.mediaContent)) {
-          // Look for media with an image type or medium
-          for (const media of item.mediaContent) {
+            // Try to find an image from mediaContent
+            if (item.mediaContent && Array.isArray(item.mediaContent)) {
+              // Look for media with an image type or medium
+              for (const media of item.mediaContent) {
+                if (
+                  media &&
+                  media.$ &&
+                  (media.$.medium === "image" ||
+                    (media.$.type && media.$.type.startsWith("image/"))) &&
+                  media.$.url
+                ) {
+                  imageUrl = media.$.url;
+                  break;
+                }
+              }
+
+              // If no image type found but we have media with urls, use the first one
+              if (
+                !imageUrl &&
+                item.mediaContent.length > 0 &&
+                item.mediaContent[0].$ &&
+                item.mediaContent[0].$.url
+              ) {
+                imageUrl = item.mediaContent[0].$.url;
+              }
+            }
+
+            // Try to find an image from mediaThumbnail
             if (
-              media &&
-              media.$ &&
-              (media.$.medium === "image" ||
-                (media.$.type && media.$.type.startsWith("image/"))) &&
-              media.$.url
+              !imageUrl &&
+              item.mediaThumbnail &&
+              Array.isArray(item.mediaThumbnail)
             ) {
-              imageUrl = media.$.url;
-              break;
+              for (const thumbnail of item.mediaThumbnail) {
+                if (thumbnail && thumbnail.$ && thumbnail.$.url) {
+                  imageUrl = thumbnail.$.url;
+                  break;
+                }
+              }
             }
-          }
 
-          // If no image type found but we have media with urls, use the first one
-          if (
-            !imageUrl &&
-            item.mediaContent.length > 0 &&
-            item.mediaContent[0].$ &&
-            item.mediaContent[0].$.url
-          ) {
-            imageUrl = item.mediaContent[0].$.url;
-          }
-        }
-
-        // Try to find an image from mediaThumbnail
-        if (
-          !imageUrl &&
-          item.mediaThumbnail &&
-          Array.isArray(item.mediaThumbnail)
-        ) {
-          for (const thumbnail of item.mediaThumbnail) {
-            if (thumbnail && thumbnail.$ && thumbnail.$.url) {
-              imageUrl = thumbnail.$.url;
-              break;
+            // Fall back to enclosure if it's an image
+            if (
+              !imageUrl &&
+              item.enclosure &&
+              item.enclosure.type &&
+              item.enclosure.type.startsWith("image/") &&
+              item.enclosure.url
+            ) {
+              imageUrl = item.enclosure.url;
             }
+
+            // Get publish date from RSS feed if available
+
+            // console.log(`[RSS Debug] Raw pubDate from RSS:`, item.rawPubDate);
+
+            // Get full content if available
+
+            const newStory = {
+              fullHeadline: he.decode(item.title || ""),
+              articleUrl: item.link || "",
+              summary: he.decode(
+                item.contentSnippet ||
+                  item.content ||
+                  (typeof item.description === "string"
+                    ? item.description
+                    : "") ||
+                  (hasAudioEnclosure ? "Audio recording" : "") ||
+                  (hasVideoEnclosure ? "Video recording" : "")
+              ),
+              fullText: he.decode(item.content || ""),
+              section: Section.NEWS, // Default to NEWS, can be updated by AI later
+              type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
+              inPageRank: index + 1,
+              sourceId: new mongoose.Types.ObjectId(sourceId),
+              imageUrl,
+              createdAt: item.isoDate // isoDate is most reliable
+                ? new Date(item.isoDate)
+                : item.pubDate
+                  ? new Date(item.pubDate)
+                  : new Date(),
+            } as IStory;
+
+            acc.push(newStory);
+            // END MAPPING
+          } catch (error) {
+            console.error(
+              `[Scraper] Failed to parse an article from source ${source.name} (${sourceId}). Error:`,
+              error
+            );
+            console.error("[Scraper] Offending item:", item);
           }
-        }
-
-        // Fall back to enclosure if it's an image
-        if (
-          !imageUrl &&
-          item.enclosure &&
-          item.enclosure.type &&
-          item.enclosure.type.startsWith("image/") &&
-          item.enclosure.url
-        ) {
-          imageUrl = item.enclosure.url;
-        }
-
-        // Get publish date from RSS feed if available
-
-        console.log(`[RSS Debug] Raw pubDate from RSS:`, item.rawPubDate);
-
-        // Get full content if available
-
-        return {
-          fullHeadline: he.decode(item.title || ""),
-          articleUrl: item.link || "",
-          summary: he.decode(
-            item.contentSnippet ||
-              item.content ||
-              (typeof item.description === "string" ? item.description : "") ||
-              (hasAudioEnclosure ? "Audio recording" : "") ||
-              (hasVideoEnclosure ? "Video recording" : "")
-          ),
-          fullText: he.decode(item.content || ""),
-          section: Section.NEWS, // Default to NEWS, can be updated by AI later
-          type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
-          inPageRank: index + 1,
-          sourceId: new mongoose.Types.ObjectId(sourceId),
-          imageUrl,
-          createdAt: item.pubDate
-            ? new Date(item.pubDate)
-            : item.isoDate
-              ? new Date(item.isoDate)
-              : new Date(),
-        } as IStory;
-        // END MAPPING
-      });
+          return acc;
+        },
+        []
+      );
 
       return stories;
     } catch (error) {
