@@ -251,7 +251,13 @@ export class UserService {
   }
 
   public verifyToken(token: string): { userId: string } {
-    return jwt.verify(token, this.JWT_SECRET) as { userId: string };
+    try {
+      const decoded = jwt.verify(token, this.JWT_SECRET) as { userId: string };
+      return decoded;
+    } catch (error) {
+      console.error("Failed to verify token:", error);
+      throw error;
+    }
   }
 
   public async verifyCode(code: string): Promise<string> {
@@ -294,6 +300,11 @@ export class UserService {
     console.log(`[verifyCode] Verification code deleted successfully`);
 
     return token;
+  }
+
+  public async findById(id: string): Promise<IUser | null> {
+    await connectToDatabase();
+    return User.findById(id).lean();
   }
 }
 

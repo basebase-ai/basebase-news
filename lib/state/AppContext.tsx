@@ -16,6 +16,7 @@ interface AppState {
   isSignInModalOpen: boolean;
   toast: { message: string; type: 'success' | 'error' } | null;
   sidebarMinimized: boolean;
+  updatedSourceIds: string[];
 }
 
 interface AppContextType extends AppState {
@@ -29,6 +30,7 @@ interface AppContextType extends AppState {
   setSignInModalOpen: (isOpen: boolean) => void;
   setToast: (toast: { message: string; type: 'success' | 'error' } | null) => void;
   setSidebarMinimized: (minimized: boolean) => void;
+  setUpdatedSourceIds: Dispatch<SetStateAction<string[]>>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -46,6 +48,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     isSignInModalOpen: false,
     toast: null,
     sidebarMinimized: false,
+    updatedSourceIds: [],
   });
 
   // Initialize state from user preferences
@@ -138,6 +141,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, sidebarMinimized: minimized }));
   }, []);
 
+  const setUpdatedSourceIds = useCallback((ids: SetStateAction<string[]>) => {
+    setState(prev => ({ ...prev, updatedSourceIds: typeof ids === 'function' ? ids(prev.updatedSourceIds) : ids }));
+  }, []);
+
   const value = useMemo(() => ({
     ...state,
     setCurrentUser,
@@ -150,7 +157,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSignInModalOpen,
     setToast,
     setSidebarMinimized,
-  }), [state, setCurrentUser, setCurrentSources, setFriends, setDenseMode, setDarkMode, setSearchTerm, setSourceHeadlines, setSignInModalOpen, setToast, setSidebarMinimized]);
+    setUpdatedSourceIds,
+  }), [state, setCurrentUser, setCurrentSources, setFriends, setDenseMode, setDarkMode, setSearchTerm, setSourceHeadlines, setSignInModalOpen, setToast, setSidebarMinimized, setUpdatedSourceIds]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
