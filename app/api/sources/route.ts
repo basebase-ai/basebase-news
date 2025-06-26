@@ -41,10 +41,7 @@ interface SourceRequestBody {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Verify authentication
   try {
-    const { isAdmin } = await verifyAuth(request);
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    await verifyAuth(request);
   } catch (error) {
     return NextResponse.json(
       { error: "Unauthorized", message: "A valid Bearer token is required" },
