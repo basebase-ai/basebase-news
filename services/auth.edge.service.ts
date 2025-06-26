@@ -19,8 +19,11 @@ export class EdgeAuthService {
     return EdgeAuthService.instance;
   }
 
-  public async generateToken(userId: string): Promise<string> {
-    const jwt = await new SignJWT({ userId })
+  public async generateToken(
+    userId: string,
+    isAdmin: boolean
+  ): Promise<string> {
+    const jwt = await new SignJWT({ userId, isAdmin })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime("365d")
       .sign(this.JWT_SECRET);
@@ -33,6 +36,20 @@ export class EdgeAuthService {
       return { userId: payload.userId as string };
     } catch (error) {
       throw new Error("Invalid token");
+    }
+  }
+
+  public async decodeToken(
+    token: string
+  ): Promise<{ userId: string; isAdmin: boolean } | null> {
+    try {
+      const { payload } = await jwtVerify(token, this.JWT_SECRET);
+      return {
+        userId: payload.userId as string,
+        isAdmin: payload.isAdmin as boolean,
+      };
+    } catch (error) {
+      return null;
     }
   }
 

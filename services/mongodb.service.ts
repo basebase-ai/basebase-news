@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
-let isConnected = false;
+// Create a single connection promise
+let connectionPromise: Promise<void> | null = null;
 
-export const connectToDatabase = async (): Promise<void> => {
-  if (isConnected) {
-    console.log("[MongoDB] Using existing connection");
+const connect = async (): Promise<void> => {
+  if (mongoose.connection.readyState >= 1) {
     return;
   }
 
@@ -14,26 +14,33 @@ export const connectToDatabase = async (): Promise<void> => {
       throw new Error("MONGODB_URI environment variable is not set");
     }
 
-    console.log(
-      "[MongoDB] Connection string (sanitized):",
-      uri.replace(/(mongodb\+srv:\/\/)([^:]+):([^@]+)@/, "$1****:****@")
-    );
+    console.log("[MongoDB] Initializing new connection...");
 
-    await mongoose.connect(uri);
-
+    // Set up event listeners *before* connecting
     mongoose.connection.on("error", (error: Error) => {
       console.error("[MongoDB] Connection error:", error);
     });
 
     mongoose.connection.on("disconnected", () => {
       console.log("[MongoDB] Disconnected");
-      isConnected = false;
     });
 
-    isConnected = true;
-    console.log("[MongoDB] Connected successfully");
+    mongoose.connection.on("connected", () => {
+      console.log("[MongoDB] Connected successfully.");
+    });
+
+    await mongoose.connect(uri);
   } catch (error) {
-    console.error("[MongoDB] Connection error:", error);
-    throw error;
+    console.error("[MongoDB] Initial connection error:", error);
+    // Exit the process if the initial connection fails, as the app is likely unusable
+    process.exit(1);
   }
+};
+
+export const connectToDatabase = async (): Promise<void> => {
+  if (!connectionPromise) {
+    connectionPromise = connect();
+  }
+  await connectionPromise;
+  console.log("[MongoDB] Using existing connection or awaiting new one.");
 };

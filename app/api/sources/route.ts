@@ -2,23 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/services/mongodb.service";
 import { Source } from "@/models/source.model";
 import { scraperService } from "@/services/scraper.service";
-import { edgeAuthService } from "@/services/auth.edge.service";
-
-async function verifyAuth(request: NextRequest): Promise<boolean> {
-  const token = edgeAuthService.extractTokenFromRequest(request);
-  if (!token) return false;
-  return await edgeAuthService.validateToken(token);
-}
+import { verifyAuth } from "@/services/auth.service";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   // Verify authentication
-  const isAuthenticated = await verifyAuth(request);
-  if (!isAuthenticated) {
+  try {
+    await verifyAuth(request);
+  } catch (error) {
     return NextResponse.json(
-      { error: "Unauthorized", message: "Valid Bearer token required" },
+      { error: "Unauthorized", message: "A valid Bearer token is required" },
       { status: 401 }
     );
   }
+
   try {
     await connectToDatabase();
     const sources = await Source.find({}).sort({ name: 1 });
@@ -44,10 +40,14 @@ interface SourceRequestBody {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // Verify authentication
-  const isAuthenticated = await verifyAuth(request);
-  if (!isAuthenticated) {
+  try {
+    const { isAdmin } = await verifyAuth(request);
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } catch (error) {
     return NextResponse.json(
-      { error: "Unauthorized", message: "Valid Bearer token required" },
+      { error: "Unauthorized", message: "A valid Bearer token is required" },
       { status: 401 }
     );
   }

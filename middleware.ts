@@ -9,6 +9,8 @@ const PUBLIC_API_ROUTES = [
   "/api/preview",
 ];
 
+const ADMIN_API_ROUTES = ["/api/admin/rescrape"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -17,6 +19,14 @@ export async function middleware(request: NextRequest) {
     // Allow public API routes
     if (PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route))) {
       return NextResponse.next();
+    }
+
+    // Check for server-to-server cron secret for admin routes
+    if (ADMIN_API_ROUTES.some((route) => pathname.startsWith(route))) {
+      const authHeader = request.headers.get("authorization");
+      if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.next();
+      }
     }
 
     // For all other API routes, validate the Bearer token

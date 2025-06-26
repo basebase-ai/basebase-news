@@ -6,6 +6,9 @@ import { Comment } from "@/models/comment.model";
 import { User } from "@/models/user.model";
 import { edgeAuthService } from "@/services/auth.edge.service";
 import mongoose from "mongoose";
+import { verifyAuth } from "@/services/auth.service";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {

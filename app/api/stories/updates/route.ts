@@ -3,6 +3,9 @@ import { edgeAuthService } from "@/services/auth.edge.service";
 import { Story } from "@/models/story.model";
 import { userService } from "@/services/user.service";
 import { connectToDatabase } from "@/services/mongodb.service";
+import { verifyAuth } from "@/services/auth.service";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {

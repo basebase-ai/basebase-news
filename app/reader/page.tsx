@@ -64,7 +64,7 @@ export default function ReaderPage() {
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
-      const response = await fetchApi('/api/admin/rescrape');
+      const response = await fetchApi('/api/admin/refresh-all', { method: 'POST' });
       if (!response.ok) {
         throw new Error('Failed to start refresh');
       }

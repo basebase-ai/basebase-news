@@ -244,8 +244,8 @@ export class UserService {
     }
   }
 
-  public generateToken(userId: string): string {
-    return jwt.sign({ userId }, this.JWT_SECRET, {
+  public generateToken(userId: string, isAdmin: boolean): string {
+    return jwt.sign({ userId, isAdmin }, this.JWT_SECRET, {
       expiresIn: "365d",
     });
   }
@@ -292,8 +292,17 @@ export class UserService {
       `[verifyCode] Valid code found, generating token for user: ${verificationCode.userId}`
     );
 
-    // Generate JWT for session
-    const token = this.generateToken(verificationCode.userId.toString());
+    // Find the user to get their admin status
+    const user = await User.findById(verificationCode.userId);
+    if (!user) {
+      throw new Error("User not found for this verification code.");
+    }
+
+    // Generate token with isAdmin status
+    const token = this.generateToken(
+      verificationCode.userId.toString(),
+      user.isAdmin
+    );
 
     // Clean up used verification code
     await VerificationCode.deleteOne({ _id: verificationCode._id });

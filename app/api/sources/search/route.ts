@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/services/mongodb.service";
 import { edgeAuthService } from "@/services/auth.edge.service";
 import { sourceService } from "@/services/source.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
