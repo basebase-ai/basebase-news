@@ -10,19 +10,15 @@ export async function GET(request: NextRequest) {
     `Bearer ${process.env.CRON_SECRET}`;
 
   if (isCron) {
-    try {
-      await scraperService.scrapeAllSources();
-      return NextResponse.json({
-        status: "ok",
-        message: "Complete rescrape initiated by cron",
-      });
-    } catch (error) {
-      console.error("Error in complete rescrape:", error);
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 }
-      );
-    }
+    // Start the scrape without awaiting - let it run in background
+    scraperService.scrapeAllSources().catch((error) => {
+      console.error("[rescrape] Error during background scrape (cron):", error);
+    });
+
+    return NextResponse.json({
+      status: "ok",
+      message: "Complete rescrape initiated by cron",
+    });
   }
 
   const token = edgeAuthService.extractTokenFromRequest(request);
@@ -30,17 +26,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    await scraperService.scrapeAllSources();
-    return NextResponse.json({
-      status: "ok",
-      message: "Complete rescrape initiated by user",
-    });
-  } catch (error) {
-    console.error("Error in complete rescrape:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
+  // Start the scrape without awaiting - let it run in background
+  scraperService.scrapeAllSources().catch((error) => {
+    console.error("[rescrape] Error during background scrape (user):", error);
+  });
+
+  return NextResponse.json({
+    status: "ok",
+    message: "Complete rescrape initiated by user",
+  });
 }

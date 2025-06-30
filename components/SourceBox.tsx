@@ -18,6 +18,7 @@ interface SourceBoxProps {
   denseMode: boolean;
   onRemove: (sourceId: string) => void;
   onOpenSettings: (source: Source) => void;
+  onSourceUpdate?: (source: Source) => void;
   searchTerm?: string;
 }
 
@@ -78,6 +79,7 @@ export default function SourceBox({
   denseMode,
   onRemove, 
   onOpenSettings,
+  onSourceUpdate,
   searchTerm,
   dragHandleAttributes,
   dragHandleListeners
@@ -108,13 +110,17 @@ export default function SourceBox({
           });
           setHeadlines(sortedStories);
         }
+        // Update source metadata if callback provided and source data has changed
+        if (onSourceUpdate && data.source && data.source.lastScrapedAt !== source.lastScrapedAt) {
+          onSourceUpdate(data.source);
+        }
       }
     } catch (error) {
       console.error(`Error fetching stories for source ${source._id}:`, error);
     } finally {
       setIsLoading(false);
     }
-  }, [source._id]);
+  }, [source._id, source.lastScrapedAt, onSourceUpdate]);
 
   useEffect(() => {
     loadHeadlines();
@@ -125,14 +131,22 @@ export default function SourceBox({
       setIsRefreshing(true);
       setHeadlines([]);
 
+      // The scrape endpoint now confirms the scrape is done
       const response = await fetchApi(`/api/sources/${source._id}/scrape`, {
         method: 'POST',
       });
 
       if (response.ok) {
+        // The API returns the updated source, so we can use it
+        const { source: updatedSource } = await response.json();
+        if (onSourceUpdate && updatedSource) {
+          onSourceUpdate(updatedSource);
+        }
         // Reload the headlines for this source
         await loadHeadlines();
       } else {
+        // If scrape fails, still reload headlines to show existing ones
+        await loadHeadlines();
         throw new Error('Failed to refresh source');
       }
     } catch (error) {

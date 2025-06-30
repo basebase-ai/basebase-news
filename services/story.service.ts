@@ -34,9 +34,6 @@ export class StoryService {
   ): Promise<IStory> {
     const objectId = new mongoose.Types.ObjectId(sourceId);
 
-    console.log(`[Story Debug] Adding/updating story: "${story.fullHeadline}"`);
-    console.log(`[Story Debug] Story createdAt from RSS:`, story.createdAt);
-
     const existingStory = await Story.findOne({
       articleUrl: story.articleUrl,
       sourceId: objectId,
@@ -45,19 +42,21 @@ export class StoryService {
     let result: IStory;
 
     if (existingStory) {
-      console.log(`[Story Debug] Updating existing story: ${story.articleUrl}`);
-      console.log(
-        `[Story Debug] Existing story createdAt:`,
-        existingStory.createdAt
-      );
       const updatedStory = await Story.findByIdAndUpdate(
         existingStory._id,
         {
-          ...story,
-          sourceId: objectId,
-          inPageRank: rank !== undefined ? rank : null,
-          archived: false,
-          updatedAt: new Date(),
+          $set: {
+            fullHeadline: story.fullHeadline,
+            summary: story.summary,
+            fullText: story.fullText,
+            section: story.section,
+            type: story.type,
+            imageUrl: story.imageUrl,
+            authorNames: story.authorNames,
+            inPageRank: rank !== undefined ? rank : null,
+            archived: false,
+            updatedAt: new Date(),
+          },
         },
         { new: true } // Return the updated document
       );
@@ -65,13 +64,8 @@ export class StoryService {
       if (!updatedStory) {
         throw new Error(`Failed to update story: ${existingStory._id}`);
       }
-      console.log(
-        `[Story Debug] Updated story createdAt:`,
-        updatedStory.createdAt
-      );
       result = updatedStory;
     } else {
-      console.log(`[Story Debug] Creating new story: ${story.articleUrl}`);
       const storyToCreate = {
         ...story,
         sourceId: objectId,
@@ -80,12 +74,7 @@ export class StoryService {
         createdAt: story.createdAt || new Date(),
         updatedAt: new Date(),
       };
-      console.log(
-        `[Story Debug] About to save with createdAt:`,
-        storyToCreate.createdAt
-      );
       result = await Story.create(storyToCreate);
-      console.log(`[Story Debug] Saved story createdAt:`, result.createdAt);
     }
 
     return result;

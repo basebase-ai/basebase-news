@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -27,7 +27,7 @@ interface SourceGridProps {
 }
 
 export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
-  const { currentUser, currentSources, searchTerm, setCurrentUser, denseMode, setSignInModalOpen } = useAppState();
+  const { currentUser, currentSources, setCurrentSources, searchTerm, setCurrentUser, denseMode, setSignInModalOpen } = useAppState();
   const [error, setError] = useState<string | null>(null);
   const [sourceSettingsOpen, setSourceSettingsOpen] = useState<boolean>(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
@@ -99,6 +99,12 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
     setEditingSource(null);
   };
 
+  const handleSourceUpdate = useCallback((updatedSource: Source) => {
+    setCurrentSources(prev => 
+      prev.map(s => s._id === updatedSource._id ? updatedSource : s)
+    );
+  }, [setCurrentSources]);
+
   if (error) {
     return <div className="text-red-500 text-center">{error}</div>;
   }
@@ -131,6 +137,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
                   denseMode={denseMode}
                   onRemove={handleRemoveSource}
                   onOpenSettings={handleEditSource}
+                  onSourceUpdate={handleSourceUpdate}
                   searchTerm={searchTerm}
                 />
               );

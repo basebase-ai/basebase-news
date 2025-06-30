@@ -404,12 +404,10 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       console.log(`Saved ${savedStories.length} stories for ${source.name}`);
       return savedStories;
     } catch (error) {
-      console.error(`Error collecting from source ${source.name}:`, error);
-      if (error instanceof Error) {
-        console.error("Error name:", error.name);
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
-      }
+      console.error(
+        `Error collecting from source ${source.name}:`,
+        (error as Error).message
+      );
 
       return [];
     }
@@ -473,9 +471,7 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         }
       );
       const xmlText: string = rssResponse.data;
-      console.log("[RSS Debug] Raw XML snippet:", xmlText.substring(0, 500));
       const feed = await parser.parseString(xmlText);
-      console.log("[RSS Debug] First feed item:", feed.items[0]);
 
       // Check if feed has an image and update source only if imageUrl is null/undefined
       if (feed.image?.url && !source.imageUrl) {
@@ -486,7 +482,6 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         (acc: IStory[], item: any, index: number) => {
           try {
             // START MAPPING
-            console.log(`[RSS Debug] item:`, item);
             const hasAudioEnclosure: boolean =
               (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
             const hasVideoEnclosure: boolean =
@@ -548,8 +543,6 @@ ${textContent.substring(0, this.MAX_TOKENS)}
             }
 
             // Get publish date from RSS feed if available
-
-            // console.log(`[RSS Debug] Raw pubDate from RSS:`, item.rawPubDate);
 
             // Get full content if available
 

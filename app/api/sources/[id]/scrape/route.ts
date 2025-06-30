@@ -19,14 +19,14 @@ export async function POST(
       );
     }
 
-    // Process scraping asynchronously
-    scraperService.scrapeSource(source).catch((error) => {
-      console.error(`Error scraping source ${source.name}:`, error);
-    });
+    // Await the scrape and get the updated source
+    await scraperService.scrapeSource(source);
+    const updatedSource = await Source.findById(sourceId);
 
     return NextResponse.json({
       status: "ok",
-      message: "Source queued for scraping",
+      message: "Source scraped successfully",
+      source: updatedSource,
     });
   } catch (error) {
     console.error("Error in scrape endpoint:", error);
