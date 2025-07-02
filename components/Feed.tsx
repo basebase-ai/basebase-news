@@ -5,7 +5,9 @@ import LoadingSpinner from './LoadingSpinner';
 import PostBox from './PostBox';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
-import { fetchApi } from '@/lib/api';
+import { storyService } from '@/services/story.service';
+import { sourceService } from '@/services/source.service';
+import { IStory } from '@/services/story.service';
 
 interface CommentData {
   _id: string;
@@ -56,20 +58,53 @@ export default function Feed() {
       setError(null);
       console.log('[Feed] Fetching recommended stories...');
       
-      const response = await fetchApi('/api/stories/recommended');
-      const data = await response.json();
-      console.log('[Feed] API response:', data);
+      const result = await storyService.searchStories(null, {
+        limit: 50,
+        page: 1,
+      });
+      console.log('[Feed] API response:', result);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch stories');
-      }
+      // Transform stories to match the UI's expected format
+      const transformedStories = await Promise.all(result.stories.map(async story => {
+        const metadata = JSON.parse(story.metadata || '{}');
+        let source = {
+          _id: story.newsSource || '',
+          name: '', // Default value
+          homepageUrl: '',
+          imageUrl: undefined,
+        };
 
-      if (data.status === 'ok' && Array.isArray(data.stories)) {
-        console.log('[Feed] Setting stories:', data.stories.length);
-        setStories(data.stories);
-      } else {
-        throw new Error('Invalid response format');
-      }
+        // Fetch source details if we have a source ID
+        if (story.newsSource) {
+          try {
+            const sourceDetails = await sourceService.getSource(story.newsSource);
+            source = {
+              _id: sourceDetails.id || '',
+              name: sourceDetails.name,
+              homepageUrl: sourceDetails.homepageUrl || '',
+              imageUrl: undefined,
+            };
+          } catch (error) {
+            console.error(`Failed to fetch source details for ${story.newsSource}:`, error);
+          }
+        }
+
+        return {
+          _id: story.id || '',
+          fullHeadline: metadata.fullHeadline || story.headline,
+          articleUrl: story.url || '',
+          summary: story.summary,
+          imageUrl: story.imageUrl,
+          createdAt: metadata.createdAt,
+          source,
+          starCount: 0, // We'll need to implement star functionality in BaseBase
+          starredBy: [], // We'll need to implement star functionality in BaseBase
+          comments: [], // We'll need to implement comments in BaseBase
+        };
+      }));
+
+      console.log('[Feed] Setting stories:', transformedStories.length);
+      setStories(transformedStories);
     } catch (err) {
       console.error('[Feed] Error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');

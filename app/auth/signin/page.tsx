@@ -4,13 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelopeOpen, faSpinner, faPhone, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faPhone } from '@fortawesome/free-solid-svg-icons';
 
 export default function SignInPage() {
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [showEmailOption, setShowEmailOption] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,73 +22,41 @@ export default function SignInPage() {
     const formData = new FormData(form);
 
     try {
-      const payload: any = {
-        first: formData.get('firstName'),
-        last: formData.get('lastName'),
-      };
-
-      // Add phone or email based on what's provided
       const phone = formData.get('phone') as string;
-      const email = formData.get('email') as string;
+      const firstName = formData.get('firstName') as string;
+      const lastName = formData.get('lastName') as string;
       
-      console.log('[SignIn] Form data extracted:', {
-        firstName: payload.first,
-        lastName: payload.last,
-        phoneProvided: !!phone,
-        emailProvided: !!email,
-        phoneLength: phone?.length || 0,
-        emailLength: email?.length || 0
-      });
-      
-      if (phone && phone.trim()) {
-        payload.phone = phone;
-        console.log('[SignIn] Using phone authentication:', phone);
-        // If phone is provided, email becomes optional but still included if provided
-        if (email && email.trim()) {
-          payload.email = email;
-          console.log('[SignIn] Also including email:', email);
-        } else {
-          // Generate a placeholder email for phone-only signups
-          payload.email = `phone_${phone.replace(/\D/g, '')}@temp.placeholder`;
-          console.log('[SignIn] Generated placeholder email:', payload.email);
-        }
-      } else if (email && email.trim()) {
-        payload.email = email;
-        console.log('[SignIn] Using email authentication:', email);
-      } else {
-        console.error('[SignIn] No valid contact method provided');
-        setError('Please provide either a phone number or email address.');
+      if (!phone || !phone.trim()) {
+        setError('Please provide a phone number.');
         return;
       }
 
-      console.log('[SignIn] Final payload:', payload);
-      console.log('[SignIn] Making request to /api/auth/signin');
+      const name = `${firstName} ${lastName}`.trim();
+      if (!name) {
+        setError('Please provide your name.');
+        return;
+      }
 
+      console.log('[SignIn] Requesting code for:', { phone, name });
+      
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      console.log('[SignIn] Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
+        body: JSON.stringify({ phone, name }),
       });
 
       const data = await response.json();
-      console.log('[SignIn] Response data:', data);
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         console.log('[SignIn] Success! Showing confirmation screen');
         setShowConfirmation(true);
       } else {
-        console.error('[SignIn] Server error:', data);
-        setError(data.message || 'Something went wrong. Please try again.');
+        console.error('[SignIn] Failed:', data.error);
+        setError(data.error || 'Failed to send verification code. Please try again.');
       }
     } catch (error) {
-      console.error('[SignIn] Network/fetch error:', error);
-      setError('Network error. Please check your connection and try again.');
+      console.error('[SignIn] Error:', error);
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
       console.log('[SignIn] Form submission completed');
@@ -114,7 +81,7 @@ export default function SignInPage() {
           </h1>
           <p className="text-gray-600 mt-2">
             {showConfirmation ? (
-              "We've sent you a magic link to sign in."
+              "We've sent you a verification code."
             ) : (
               <>
                 Or{' '}
@@ -143,6 +110,7 @@ export default function SignInPage() {
                   type="tel"
                   name="phone"
                   placeholder="(555) 123-4567"
+                  required
                   disabled={isLoading}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
@@ -173,36 +141,6 @@ export default function SignInPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
-
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEmailOption(!showEmailOption)}
-                  className="text-sm text-gray-600 hover:text-gray-800 flex items-center"
-                >
-                  <FontAwesomeIcon 
-                    icon={faChevronDown} 
-                    className={`mr-2 transition-transform ${showEmailOption ? 'rotate-180' : ''}`} 
-                  />
-                  Or sign in with email instead
-                </button>
-              </div>
-
-              {showEmailOption && (
-                <div className="animate-in slide-in-from-top-2 duration-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <FontAwesomeIcon icon={faEnvelopeOpen} className="mr-2 text-gray-500" />
-                    Email (optional)
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="your@email.com"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
-                </div>
-              )}
 
               <button
                 type="submit"

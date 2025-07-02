@@ -29,7 +29,7 @@ A modern news headline aggregation web application that brings the world's headl
 ### Prerequisites
 
 - Node.js (v16+)
-- MongoDB database
+- BaseBase backend API for storage
 - API keys for ScrapingBee and Anthropic Claude (optional, for advanced features)
 
 ### Installation
@@ -65,7 +65,6 @@ A modern news headline aggregation web application that brings the world's headl
 
 See `.env.example` for all required environment variables. The essential ones are:
 
-- `MONGODB_URI`: Connection string for your MongoDB database
 - `JWT_SECRET`: Secret key for JWT token generation
 - `SMTP_*`: Email configuration for sending login links
 - `SCRAPING_BEE_API_KEY`: API key for web scraping (optional)

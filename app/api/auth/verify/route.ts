@@ -1,40 +1,34 @@
-import { NextResponse } from "next/server";
-import { userService } from "@/services/user.service";
+import { NextRequest, NextResponse } from "next/server";
+import { basebaseService } from "@/services/basebase.service";
 
-export const dynamic = "force-dynamic";
-
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = req.nextUrl.searchParams;
+    const phone = searchParams.get("phone");
     const code = searchParams.get("code");
-    const token = searchParams.get("token");
 
-    let jwtToken: string;
-
-    if (code) {
-      jwtToken = await userService.verifyCode(code);
-    } else if (token) {
-      // Legacy JWT token flow (for backward compatibility)
-      const { userId } = userService.verifyToken(token);
-      if (!userId) {
-        throw new Error("Invalid token");
-      }
-      jwtToken = token;
-    } else {
-      throw new Error("Invalid verification link");
+    if (!phone || !code) {
+      return NextResponse.json(
+        { error: "Phone and code are required" },
+        { status: 400 }
+      );
     }
 
-    // Always return JWT token in response body
-    return NextResponse.json({
-      token: jwtToken,
-      message: "Authentication successful",
-    });
+    const token = await basebaseService.verifyCode(phone, code);
+
+    if (token) {
+      return NextResponse.json({ token });
+    } else {
+      return NextResponse.json(
+        { error: "Verification failed" },
+        { status: 401 }
+      );
+    }
   } catch (error) {
-    console.error("Verification error:", error);
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Invalid or expired verification link";
-    return NextResponse.json({ error: errorMessage }, { status: 400 });
+    console.error("[/api/auth/verify] Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

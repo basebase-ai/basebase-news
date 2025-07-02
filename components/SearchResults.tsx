@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchApi } from '@/lib/api';
 import { formatTimeAgo } from '@/lib/utils';
 import LoadingSpinner from './LoadingSpinner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
+import { storyService, IStory } from '@/services/story.service';
+import { sourceService } from '@/services/source.service';
 
 interface SearchStory {
   id: string;
@@ -40,15 +41,35 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
       setError(null);
 
       try {
-        const response = await fetchApi(`/api/stories/search?query=${encodeURIComponent(searchTerm)}`);
+        const searchResults = await storyService.searchStories(searchTerm);
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to search stories');
-        }
+        // Transform stories to match UI format
+        const transformedStories = await Promise.all(searchResults.stories.map(async (story: IStory) => {
+          let sourceName = '';
+          try {
+            if (story.newsSource) {
+              const source = await sourceService.getSource(story.newsSource);
+              sourceName = source.name;
+            }
+          } catch (err) {
+            console.error('Failed to fetch source:', err);
+          }
 
-        const searchResults = await response.json();
-        setStories(Array.isArray(searchResults) ? searchResults : []);
+          return {
+            id: story.id || '',
+            headline: story.headline,
+            summary: story.summary || '',
+            url: story.url || story.articleUrl || '',
+            imageUrl: story.imageUrl,
+            source: {
+              name: sourceName,
+              imageUrl: undefined // BaseBase doesn't support source images yet
+            },
+            createdAt: story.createdAt?.toISOString() || new Date().toISOString()
+          };
+        }));
+
+        setStories(transformedStories);
       } catch (err) {
         console.error('Search error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred while searching');
@@ -64,21 +85,10 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
   }, [searchTerm]);
 
   const handleStoryClick = async (story: SearchStory) => {
-    // Mark as read when clicked
-    try {
-      await fetchApi('/api/users/me/readids', {
-        method: 'POST',
-        body: JSON.stringify({ storyId: story.id }),
-      });
-    } catch (error) {
-      console.error('Failed to mark story as read:', error);
-    }
-    
-    // Open in new tab
+    // TODO: Implement read tracking in BaseBase
+    // For now, just open the URL
     window.open(story.url, '_blank');
   };
-
-
 
   if (loading) {
     return (

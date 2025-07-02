@@ -1,47 +1,174 @@
-import { ISource, Source } from "../models/source.model";
-import mongoose from "mongoose";
+import { gql } from "graphql-request";
+import { basebaseService } from "./basebase.service";
+
+// Define the Source interface based on BaseBase's NewsSource type
+export interface ISource {
+  id?: string;
+  creator?: string;
+  name: string;
+  homepageUrl?: string;
+  rssUrl?: string;
+  lastScrapedAt?: string;
+  metadata?: string; // Stringified JSON containing our additional fields
+  // These fields are stored in metadata
+  includeSelector?: string;
+  excludeSelector?: string;
+  tags?: string[];
+  biasScore?: number;
+  hasPaywall?: boolean;
+}
+
+// GraphQL response types
+interface GetAllNewsSourcesResponse {
+  data: {
+    getAllNewsSources: ISource[];
+  };
+}
+
+interface GetNewsSourceResponse {
+  data: {
+    getNewsSource: ISource;
+  };
+}
+
+interface CreateNewsSourceResponse {
+  data: {
+    createNewsSource: ISource;
+  };
+}
+
+interface UpdateNewsSourceResponse {
+  data: {
+    updateNewsSource: ISource;
+  };
+}
+
+// GraphQL Queries and Mutations
+const CREATE_SOURCE = gql`
+  mutation CreateNewsSource($input: CreateNewsSourceInput!) {
+    createNewsSource(input: $input) {
+      id
+      name
+      creator
+      homepageUrl
+      rssUrl
+      lastScrapedAt
+    }
+  }
+`;
+
+const UPDATE_SOURCE = gql`
+  mutation UpdateNewsSource($id: ID!, $input: UpdateNewsSourceInput!) {
+    updateNewsSource(id: $id, input: $input) {
+      id
+      name
+      creator
+      homepageUrl
+      rssUrl
+      lastScrapedAt
+    }
+  }
+`;
+
+const GET_SOURCE = gql`
+  query GetNewsSource($id: ID!) {
+    getNewsSource(id: $id) {
+      id
+      name
+      creator
+      homepageUrl
+      rssUrl
+      lastScrapedAt
+    }
+  }
+`;
+
+const GET_ALL_SOURCES = gql`
+  query GetAllNewsSources {
+    getAllNewsSources {
+      id
+      name
+      creator
+      homepageUrl
+      rssUrl
+      lastScrapedAt
+    }
+  }
+`;
 
 export class SourceService {
+  constructor() {}
+
   private trimSourceFields(source: ISource): Partial<ISource> {
     // Remove trailing slashes from URLs
     const homepageUrl = source.homepageUrl?.trim().replace(/\/+$/, "");
     const rssUrl = source.rssUrl?.trim().replace(/\/+$/, "");
-    const imageUrl = source.imageUrl?.trim();
+
+    // Store additional metadata in a structured format that we'll save in BaseBase
+    const metadata = {
+      includeSelector: source.includeSelector?.trim(),
+      excludeSelector: source.excludeSelector?.trim(),
+      tags: source.tags?.map((tag: string) => tag.trim()),
+      biasScore: source.biasScore,
+      hasPaywall: source.hasPaywall,
+    };
 
     return {
       name: source.name?.trim(),
       homepageUrl,
       rssUrl,
-      includeSelector: source.includeSelector?.trim(),
-      excludeSelector: source.excludeSelector?.trim(),
-      tags: source.tags?.map((tag) => tag.trim()),
-      imageUrl,
-      biasScore: source.biasScore,
-      hasPaywall: source.hasPaywall,
+      metadata: JSON.stringify(metadata),
     };
   }
 
   public async addSource(source: ISource): Promise<void> {
     const trimmedSource = this.trimSourceFields(source);
-    const exists = await Source.exists({ name: trimmedSource.name });
-    if (exists) {
+
+    // Check if source with same name exists
+    const existingSources =
+      await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
+    if (
+      existingSources.data.getAllNewsSources.some(
+        (s: ISource) => s.name === trimmedSource.name
+      )
+    ) {
       throw new Error(`Source ${trimmedSource.name} already exists`);
     }
-    await Source.create(trimmedSource);
+
+    await basebaseService.graphql<CreateNewsSourceResponse>(CREATE_SOURCE, {
+      input: trimmedSource,
+    });
   }
 
   public async updateSource(sourceId: string, source: ISource): Promise<void> {
     const trimmedSource = this.trimSourceFields(source);
-    const updated = await Source.findByIdAndUpdate(sourceId, trimmedSource, {
-      new: true,
-    });
-    if (!updated) {
+
+    try {
+      await basebaseService.graphql<UpdateNewsSourceResponse>(UPDATE_SOURCE, {
+        id: sourceId,
+        input: trimmedSource,
+      });
+    } catch (error) {
       throw new Error(`Source with id ${sourceId} not found`);
     }
   }
 
+  public async getSource(id: string): Promise<ISource> {
+    try {
+      const response = await basebaseService.graphql<GetNewsSourceResponse>(
+        GET_SOURCE,
+        { id }
+      );
+      return response.data.getNewsSource;
+    } catch (error) {
+      throw new Error(`Source with id ${id} not found`);
+    }
+  }
+
   public async getSources(): Promise<ISource[]> {
-    return Source.find();
+    const response =
+      await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
+    return response.data.getAllNewsSources;
   }
 
   /**
@@ -51,55 +178,38 @@ export class SourceService {
    */
   public async searchSources(query: string | null): Promise<ISource[]> {
     if (!query || query.trim().length === 0) {
-      return Source.find().sort({ name: 1 }).lean();
+      return this.getSources();
     }
 
-    const trimmedQuery = query.trim();
-    const searchRegex = new RegExp(trimmedQuery, "i");
+    const trimmedQuery = query.trim().toLowerCase();
 
-    const sources = await Source.aggregate([
-      {
-        $match: { name: searchRegex },
-      },
-      {
-        $addFields: {
-          sortWeight: {
-            $switch: {
-              branches: [
-                {
-                  case: {
-                    $eq: [{ $toLower: "$name" }, { $toLower: trimmedQuery }],
-                  },
-                  then: 1, // Exact match
-                },
-                {
-                  case: {
-                    $regexMatch: {
-                      input: "$name",
-                      regex: `^${trimmedQuery}`,
-                      options: "i",
-                    },
-                  },
-                  then: 2, // Starts with match
-                },
-              ],
-              default: 3, // Contains match
-            },
-          },
-        },
-      },
-      {
-        $sort: {
-          sortWeight: 1, // Sort by our new weight field
-          name: 1, // Then alphabetically
-        },
-      },
-      {
-        $limit: 20,
-      },
-    ]);
+    // Get all sources and filter/sort in memory since BaseBase doesn't support text search yet
+    const response =
+      await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
+    const sources = response.data.getAllNewsSources;
 
-    return sources;
+    return sources
+      .filter((source: ISource) =>
+        source.name.toLowerCase().includes(trimmedQuery)
+      )
+      .sort((a: ISource, b: ISource) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+
+        // Exact match gets highest priority
+        if (aName === trimmedQuery && bName !== trimmedQuery) return -1;
+        if (bName === trimmedQuery && aName !== trimmedQuery) return 1;
+
+        // Starts with gets second priority
+        if (aName.startsWith(trimmedQuery) && !bName.startsWith(trimmedQuery))
+          return -1;
+        if (bName.startsWith(trimmedQuery) && !aName.startsWith(trimmedQuery))
+          return 1;
+
+        // Default to alphabetical order
+        return aName.localeCompare(bName);
+      })
+      .slice(0, 20); // Limit to 20 results
   }
 }
 

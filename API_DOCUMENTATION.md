@@ -155,7 +155,7 @@ async function searchStories(query) {
 ## Query Parameters (all are optional)
 
 - **`query`** (string): The search term to match against story headlines, summaries, and full text content
-- **`sourceId`** (string): Filter results to stories from a specific source (MongoDB ObjectId). If provided, this will override `sourceName`.
+- **`sourceId`** (string): Filter results to stories from a specific source. If provided, this will override `sourceName`.
 - **`sourceName`** (string): Filter results to the best-matching source by name. The search is case-insensitive and prioritizes exact matches. If no source is found, an empty list of stories is returned.
 - **`before`** (string): Filter stories created before this date (ISO 8601 format, e.g., `2024-01-15T10:30:00Z`)
 - **`after`** (string): Filter stories created after this date (ISO 8601 format, e.g., `2024-01-01T00:00:00Z`)
@@ -404,7 +404,7 @@ Currently, no rate limiting is implemented, but it's recommended to implement ap
 ## Notes
 
 - All dates should be in ISO 8601 format
-- The `sourceId` parameter should be a valid MongoDB ObjectId
+- The `sourceId` parameter should be a valid
 - Search queries are case-insensitive
 - Empty or whitespace-only queries will return a 400 error
 - Maximum limit per page is 100 stories

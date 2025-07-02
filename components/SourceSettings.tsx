@@ -5,7 +5,7 @@ import { useAppState } from '@/lib/state/AppContext';
 import type { Source } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { fetchApi } from '@/lib/api';
+import { sourceService, ISource } from '@/services/source.service';
 
 interface SourceSettingsProps {
   isOpen: boolean;
@@ -27,50 +27,67 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
       homepageUrl = `https://${homepageUrl}`;
     }
 
-    let rssUrl = (formData.get('rssUrl') as string) || null;
+    let rssUrl = (formData.get('rssUrl') as string) || undefined;
     if (rssUrl && !/^https?:\/\//i.test(rssUrl)) {
       rssUrl = `https://${rssUrl}`;
     }
 
-    let imageUrl = (formData.get('imageUrl') as string) || null;
+    let imageUrl = (formData.get('imageUrl') as string) || undefined;
     if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
       imageUrl = `https://${imageUrl}`;
     }
 
-    const sourceData = {
+    const sourceData: ISource = {
       name: formData.get('name') as string,
       homepageUrl: homepageUrl,
       rssUrl: rssUrl,
-      imageUrl: imageUrl,
+      metadata: JSON.stringify({ imageUrl })
     };
 
     try {
-      const response = await fetchApi(
-        editingSource ? `/api/sources/${editingSource._id}` : '/api/sources',
-        {
-          method: editingSource ? 'PUT' : 'POST',
-          body: JSON.stringify(sourceData),
-        }
-      );
-
-      if (response.ok) {
-        const { source: updatedSource } = await response.json();
-        setCurrentSources((prev: Source[]) => 
-          editingSource 
-            ? prev.map((s: Source) => s._id === editingSource._id ? updatedSource : s)
-            : [...prev, updatedSource]
-        );
-        setToast({ message: 'Source saved successfully!', type: 'success' });
+      if (editingSource) {
+        await sourceService.updateSource(editingSource._id, sourceData);
+        const updatedSource = await sourceService.getSource(editingSource._id);
         
-        onSourceSave();
-        onClose();
+        // Transform source to match UI format
+        const transformedSource = {
+          _id: updatedSource.id || '',
+          name: updatedSource.name,
+          homepageUrl: updatedSource.homepageUrl || '',
+          rssUrl: updatedSource.rssUrl,
+          imageUrl: imageUrl,
+          lastScrapedAt: updatedSource.lastScrapedAt
+        };
+
+        setCurrentSources((prev: Source[]) => 
+          prev.map((s: Source) => s._id === editingSource._id ? transformedSource : s)
+        );
       } else {
-        const { message } = await response.json();
-        setToast({ message: `Failed to save source: ${message}`, type: 'error' });
+        await sourceService.addSource(sourceData);
+        const sources = await sourceService.getSources();
+        const newSource = sources.find(s => s.name === sourceData.name);
+        
+        if (newSource) {
+          // Transform source to match UI format
+          const transformedSource = {
+            _id: newSource.id || '',
+            name: newSource.name,
+            homepageUrl: newSource.homepageUrl || '',
+            rssUrl: newSource.rssUrl,
+            imageUrl: imageUrl,
+            lastScrapedAt: newSource.lastScrapedAt
+          };
+
+          setCurrentSources((prev: Source[]) => [...prev, transformedSource]);
+        }
       }
+
+      setToast({ message: 'Source saved successfully!', type: 'success' });
+      onSourceSave();
+      onClose();
     } catch (error) {
       console.error('Failed to save source:', error);
-      setToast({ message: 'An unexpected error occurred.', type: 'error' });
+      setToast({ message: error instanceof Error ? error.message : 'An unexpected error occurred.', type: 'error' });
     }
   };
   

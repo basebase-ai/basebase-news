@@ -1,385 +1,222 @@
-import { Story, IStory } from "../models/story.model";
-import { StoryStatus, IStoryStatus } from "../models/story-status.model";
-import mongoose, { PipelineStage, Types } from "mongoose";
-import { ISource } from "../models/source.model";
-import { scraperService } from "./scraper.service";
-import { connectToDatabase } from "./mongodb.service";
-import { User, IUser } from "../models/user.model";
-import { ConnectionService } from "./connection.service";
-import { Source } from "../models/source.model";
-import type { IConnection } from "../models/connection.model";
+import { gql } from "graphql-request";
+import { basebaseService } from "./basebase.service";
 
-interface StoryDocument extends IStory, mongoose.Document {}
-
-interface SourceWithStories extends ISource {
-  stories: IStory[];
+// Define interfaces based on BaseBase types
+export interface IStory {
+  id?: string;
+  creator?: string;
+  headline: string;
+  summary?: string;
+  url?: string;
+  articleUrl?: string; // Legacy field, maps to url
+  imageUrl?: string;
+  newsSource?: string;
+  // Additional fields we'll store in metadata
+  fullHeadline?: string;
+  fullText?: string;
+  section?: string;
+  type?: string;
+  authorNames?: string[];
+  inPageRank?: number | null;
+  archived?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  metadata?: string;
 }
 
+interface IStoryStatus {
+  userId: string;
+  storyId: string;
+  status: "READ" | "UNREAD";
+  starred: boolean;
+}
+
+// GraphQL response types
+interface GetAllNewsStoriesResponse {
+  data: {
+    getAllNewsStorys: IStory[];
+  };
+}
+
+interface CreateNewsStoryResponse {
+  data: {
+    createNewsStory: IStory;
+  };
+}
+
+interface UpdateNewsStoryResponse {
+  data: {
+    updateNewsStory: IStory;
+  };
+}
+
+// GraphQL Queries and Mutations
+const CREATE_STORY = gql`
+  mutation CreateNewsStory($input: CreateNewsStoryInput!) {
+    createNewsStory(input: $input) {
+      id
+      creator
+      headline
+      summary
+      url
+      imageUrl
+      newsSource
+    }
+  }
+`;
+
+const UPDATE_STORY = gql`
+  mutation UpdateNewsStory($id: ID!, $input: UpdateNewsStoryInput!) {
+    updateNewsStory(id: $id, input: $input) {
+      id
+      creator
+      headline
+      summary
+      url
+      imageUrl
+      newsSource
+    }
+  }
+`;
+
+const GET_STORY = gql`
+  query GetNewsStory($id: ID!) {
+    getNewsStory(id: $id) {
+      id
+      creator
+      headline
+      summary
+      url
+      imageUrl
+      newsSource
+    }
+  }
+`;
+
+const GET_ALL_STORIES = gql`
+  query GetAllNewsStories {
+    getAllNewsStorys {
+      id
+      creator
+      headline
+      summary
+      url
+      imageUrl
+      newsSource
+    }
+  }
+`;
+
 export class StoryService {
-  constructor() {
-    connectToDatabase();
+  constructor() {}
+
+  private prepareStoryData(story: IStory, sourceId: string): any {
+    const metadata = {
+      fullHeadline: story.fullHeadline,
+      fullText: story.fullText,
+      section: story.section,
+      type: story.type,
+      authorNames: story.authorNames,
+      inPageRank: story.inPageRank,
+      archived: story.archived || false,
+      createdAt: story.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    return {
+      headline: story.headline || story.fullHeadline,
+      summary: story.summary,
+      url: story.url || story.articleUrl,
+      imageUrl: story.imageUrl,
+      newsSource: sourceId,
+      metadata: JSON.stringify(metadata),
+    };
   }
 
-  /**
-   * Adds or updates a single story in the database
-   * @param sourceId The ID of the source
-   * @param story The story to add or update
-   * @param rank The rank of the story on the page (optional)
-   * @returns The created or updated story
-   */
   public async addStory(
     sourceId: string,
     story: IStory,
     rank?: number
   ): Promise<IStory> {
-    const objectId = new mongoose.Types.ObjectId(sourceId);
-
-    const existingStory = await Story.findOne({
-      articleUrl: story.articleUrl,
-      sourceId: objectId,
-    });
-
-    let result: IStory;
+    // First check if story already exists by URL
+    const allStories =
+      await basebaseService.graphql<GetAllNewsStoriesResponse>(GET_ALL_STORIES);
+    const existingStory = allStories.data.getAllNewsStorys.find(
+      (s) =>
+        s.url === (story.url || story.articleUrl) && s.newsSource === sourceId
+    );
 
     if (existingStory) {
-      const updatedStory = await Story.findByIdAndUpdate(
-        existingStory._id,
+      // Update existing story
+      const storyData = this.prepareStoryData(story, sourceId);
+      if (rank !== undefined) {
+        storyData.metadata = JSON.stringify({
+          ...JSON.parse(storyData.metadata),
+          inPageRank: rank,
+        });
+      }
+
+      const result = await basebaseService.graphql<UpdateNewsStoryResponse>(
+        UPDATE_STORY,
         {
-          $set: {
-            fullHeadline: story.fullHeadline,
-            summary: story.summary,
-            fullText: story.fullText,
-            section: story.section,
-            type: story.type,
-            imageUrl: story.imageUrl,
-            authorNames: story.authorNames,
-            inPageRank: rank !== undefined ? rank : null,
-            archived: false,
-            updatedAt: new Date(),
-          },
-        },
-        { new: true } // Return the updated document
+          id: existingStory.id,
+          input: storyData,
+        }
       );
 
-      if (!updatedStory) {
-        throw new Error(`Failed to update story: ${existingStory._id}`);
-      }
-      result = updatedStory;
+      return result.data.updateNewsStory;
     } else {
-      const storyToCreate = {
-        ...story,
-        sourceId: objectId,
-        inPageRank: rank !== undefined ? rank : null,
-        archived: false,
-        createdAt: story.createdAt || new Date(),
-        updatedAt: new Date(),
-      };
-      result = await Story.create(storyToCreate);
-    }
+      // Create new story
+      const storyData = this.prepareStoryData(story, sourceId);
+      if (rank !== undefined) {
+        storyData.metadata = JSON.stringify({
+          ...JSON.parse(storyData.metadata),
+          inPageRank: rank,
+        });
+      }
 
-    return result;
+      const result = await basebaseService.graphql<CreateNewsStoryResponse>(
+        CREATE_STORY,
+        {
+          input: storyData,
+        }
+      );
+
+      return result.data.createNewsStory;
+    }
   }
 
   public async getStories(
     sourceId: string,
     userId?: string
   ): Promise<IStory[]> {
-    console.log(
-      `[StoryService.getStories] Called with sourceId: ${sourceId}, userId: ${userId}`
-    );
-
     const MAX_STORIES = 25;
-    const objectId = new mongoose.Types.ObjectId(sourceId);
 
-    // Get ranked stories first
-    const rankedStories = await Story.find({
-      sourceId: objectId,
-      archived: false,
-      inPageRank: { $ne: null },
-    }).sort({ inPageRank: 1 });
-
-    // Calculate how many unranked stories we can add
-    const remainingSpots = MAX_STORIES - rankedStories.length;
-
-    // If we have spots remaining, get unranked stories sorted by date
-    let unrankedStories: StoryDocument[] = [];
-    if (remainingSpots > 0) {
-      unrankedStories = await Story.find({
-        sourceId: objectId,
-        archived: false,
-        inPageRank: null,
-      })
-        .sort({ updatedAt: -1 })
-        .limit(remainingSpots);
-    }
-
-    // Combine both sets of stories
-    const allStories = [...rankedStories, ...unrankedStories];
-    console.log(
-      `[StoryService.getStories] Found ${allStories.length} total stories`
+    // Get all stories for this source
+    const response =
+      await basebaseService.graphql<GetAllNewsStoriesResponse>(GET_ALL_STORIES);
+    let stories = response.data.getAllNewsStorys.filter(
+      (story) =>
+        story.newsSource === sourceId &&
+        !JSON.parse(story.metadata || "{}").archived
     );
 
-    // If userId is provided, add status field to each story
-    if (userId) {
-      console.log(
-        `[StoryService.getStories] Looking up status for userId: ${userId}`
+    // Sort by inPageRank if available, then by date
+    stories.sort((a, b) => {
+      const metaA = JSON.parse(a.metadata || "{}");
+      const metaB = JSON.parse(b.metadata || "{}");
+      const rankA = metaA.inPageRank ?? Number.MAX_SAFE_INTEGER;
+      const rankB = metaB.inPageRank ?? Number.MAX_SAFE_INTEGER;
+      if (rankA !== rankB) return rankA - rankB;
+      return (
+        new Date(metaB.createdAt).getTime() -
+        new Date(metaA.createdAt).getTime()
       );
-      const storyIds = allStories.map((story) => story._id);
-      console.log(
-        `[StoryService.getStories] Story IDs to check:`,
-        storyIds.slice(0, 3)
-      );
+    });
 
-      // First, let's see what collections exist
-      const collections = await mongoose.connection.db
-        ?.listCollections()
-        .toArray();
-      console.log(
-        `[StoryService.getStories] Available collections:`,
-        collections?.map((c) => c.name)
-      );
-
-      // Check what's in the old HeadlineStatus collection if it exists
-      if (collections?.some((c) => c.name === "headlinestatuses")) {
-        const oldData = await mongoose.connection.db
-          ?.collection("headlinestatuses")
-          .find({ userId: new mongoose.Types.ObjectId(userId) })
-          .limit(3)
-          .toArray();
-        console.log(
-          `[StoryService.getStories] Old headlinestatuses data:`,
-          oldData
-        );
-      }
-
-      // Check what's in the new StoryStatus collection
-      if (collections?.some((c) => c.name === "storystatuses")) {
-        const newData = await mongoose.connection.db
-          ?.collection("storystatuses")
-          .find({ userId: new mongoose.Types.ObjectId(userId) })
-          .limit(3)
-          .toArray();
-        console.log(
-          `[StoryService.getStories] New storystatuses data:`,
-          newData
-        );
-      }
-
-      // Check if there are any StoryStatus records for this user
-      const allUserStatuses = await StoryStatus.find({
-        userId: new mongoose.Types.ObjectId(userId),
-      });
-      console.log(
-        `[StoryService.getStories] All status records for user ${userId}:`,
-        allUserStatuses.length
-      );
-
-      // If we have no records in StoryStatus but old collection exists, try querying the old collection directly
-      if (
-        allUserStatuses.length === 0 &&
-        collections?.some((c) => c.name === "headlinestatuses")
-      ) {
-        console.log(
-          `[StoryService.getStories] No records in StoryStatus, checking old collection...`
-        );
-        const oldRecords = await mongoose.connection.db
-          ?.collection("headlinestatuses")
-          .find({
-            userId: new mongoose.Types.ObjectId(userId),
-            headlineId: { $in: storyIds },
-          })
-          .toArray();
-        console.log(
-          `[StoryService.getStories] Found ${oldRecords?.length} records in old collection:`,
-          oldRecords?.slice(0, 2)
-        );
-      }
-
-      const storyStatuses = await StoryStatus.find({
-        userId: new mongoose.Types.ObjectId(userId),
-        storyId: { $in: storyIds },
-      });
-
-      console.log(
-        `[StoryService.getStories] Found ${storyStatuses.length} story statuses:`,
-        storyStatuses
-      );
-
-      const statusMap = new Map(
-        storyStatuses.map((status) => [
-          status.storyId.toString(),
-          { status: status.status, starred: status.starred },
-        ])
-      );
-
-      console.log(
-        `[StoryService.getStories] Status map:`,
-        Array.from(statusMap.entries())
-      );
-
-      const storiesWithStatus = allStories.map((story) => {
-        const storyStatus = statusMap.get(
-          (story._id as mongoose.Types.ObjectId).toString()
-        );
-        return {
-          ...story.toObject(),
-          status: storyStatus?.status || null,
-          starred: storyStatus?.starred || false,
-        };
-      });
-
-      console.log(
-        `[StoryService.getStories] First few stories with status:`,
-        storiesWithStatus.slice(0, 3).map((s) => ({
-          id: s._id,
-          status: s.status,
-          headline: s.fullHeadline?.substring(0, 50),
-        }))
-      );
-
-      return storiesWithStatus;
-    }
-
-    console.log(
-      `[StoryService.getStories] No userId provided, returning stories without status`
-    );
-    return allStories;
+    return stories.slice(0, MAX_STORIES);
   }
 
-  public async addReadId(userId: string, storyId: string): Promise<void> {
-    console.log(
-      `[UserService.addReadId] Called for userId: ${userId}, storyId: ${storyId}`
-    );
-
-    const user = await User.findById(userId);
-    if (!user) {
-      console.log(`[UserService.addReadId] User not found: ${userId}`);
-      throw new Error("User not found");
-    }
-
-    // Create or update StoryStatus record
-    const result = await StoryStatus.findOneAndUpdate(
-      {
-        userId: new Types.ObjectId(userId),
-        storyId: new Types.ObjectId(storyId),
-      },
-      {
-        userId: new Types.ObjectId(userId),
-        storyId: new Types.ObjectId(storyId),
-        status: "READ" as const,
-      },
-      { upsert: true, new: true }
-    );
-
-    console.log(`[UserService.addReadId] StoryStatus upsert result:`, result);
-  }
-
-  public async addStar(userId: string, storyId: string): Promise<void> {
-    console.log(
-      `[StoryService.addStar] Called for userId: ${userId}, storyId: ${storyId}`
-    );
-
-    const user = await User.findById(userId);
-    if (!user) {
-      console.log(`[StoryService.addStar] User not found: ${userId}`);
-      throw new Error("User not found");
-    }
-
-    await StoryStatus.findOneAndUpdate(
-      {
-        userId: new Types.ObjectId(userId),
-        storyId: new Types.ObjectId(storyId),
-      },
-      {
-        userId: new Types.ObjectId(userId),
-        storyId: new Types.ObjectId(storyId),
-        status: "READ" as const,
-        starred: true,
-      },
-      { upsert: true, new: true }
-    );
-  }
-
-  public async removeStar(userId: string, storyId: string): Promise<void> {
-    console.log(
-      `[StoryService.removeStar] Called for userId: ${userId}, storyId: ${storyId}`
-    );
-
-    const user = await User.findById(userId);
-    if (!user) {
-      console.log(`[StoryService.removeStar] User not found: ${userId}`);
-      throw new Error("User not found");
-    }
-
-    await StoryStatus.findOneAndUpdate(
-      {
-        userId: new Types.ObjectId(userId),
-        storyId: new Types.ObjectId(storyId),
-      },
-      {
-        starred: false,
-      },
-      { new: true }
-    );
-  }
-
-  public async getStarredStories(userId: string) {
-    const userObjectId = new Types.ObjectId(userId);
-    const connectedUserIds =
-      await ConnectionService.getConnections(userObjectId);
-
-    const storyStatuses = await StoryStatus.find({
-      userId: { $in: connectedUserIds },
-      starred: true,
-    })
-      .populate({
-        path: "storyId",
-        select: "fullHeadline articleUrl createdAt sourceId",
-      })
-      .populate({
-        path: "userId",
-        select: "_id first last imageUrl email",
-      })
-      .sort({ createdAt: -1 })
-      .limit(50);
-
-    const stories = await Promise.all(
-      storyStatuses.map(async (status) => {
-        const story = status.storyId as unknown as IStory;
-        const user = status.userId as unknown as IUser;
-        const source = await Source.findById(story.sourceId)
-          .select("name")
-          .lean();
-
-        return {
-          story: {
-            id: (story._id as Types.ObjectId).toString(),
-            fullHeadline: story.fullHeadline,
-            articleUrl: story.articleUrl,
-            createdAt: story.createdAt || new Date(),
-            sourceId: story.sourceId.toString(),
-            sourceName: source?.name || "Unknown Source",
-          },
-          user: {
-            _id: (user._id as Types.ObjectId).toString(),
-            first: user.first,
-            last: user.last,
-            imageUrl: user.imageUrl,
-            email: user.email,
-          },
-        };
-      })
-    );
-
-    return stories;
-  }
-
-  /**
-   * Search stories with text query and optional filters
-   * @param query The search term to match against headline, summary, and fullText. If null, returns recent stories.
-   * @param options Optional filters and pagination options
-   * @returns Paginated search results with stories and source information
-   */
   public async searchStories(
     query: string | null,
     options: {
@@ -390,7 +227,7 @@ export class StoryService {
       limit?: number;
     } = {}
   ): Promise<{
-    stories: Array<IStory & { source: ISource }>;
+    stories: IStory[];
     totalCount: number;
     hasMore: boolean;
     page: number;
@@ -398,55 +235,57 @@ export class StoryService {
   }> {
     const { sourceId, before, after, page = 1, limit = 20 } = options;
 
-    // Build the search query
-    const searchConditions: any = {
-      archived: false,
-    };
+    // Get all stories and filter in memory since BaseBase doesn't support text search yet
+    const response =
+      await basebaseService.graphql<GetAllNewsStoriesResponse>(GET_ALL_STORIES);
+    let stories = response.data.getAllNewsStorys;
 
-    if (query && query.trim()) {
-      searchConditions.$text = { $search: query.trim() };
-    }
-
-    // Add source filter if provided
+    // Apply filters
     if (sourceId) {
-      searchConditions.sourceId = new mongoose.Types.ObjectId(sourceId);
+      stories = stories.filter((story) => story.newsSource === sourceId);
     }
 
-    // Add date filters if provided
-    if (before || after) {
-      searchConditions.createdAt = {};
-      if (before) {
-        searchConditions.createdAt.$lt = before;
-      }
-      if (after) {
-        searchConditions.createdAt.$gt = after;
-      }
+    if (before) {
+      stories = stories.filter((story) => {
+        const metadata = JSON.parse(story.metadata || "{}");
+        return new Date(metadata.createdAt) < before;
+      });
     }
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
+    if (after) {
+      stories = stories.filter((story) => {
+        const metadata = JSON.parse(story.metadata || "{}");
+        return new Date(metadata.createdAt) > after;
+      });
+    }
 
-    // Execute search with pagination
-    const [stories, totalCount] = await Promise.all([
-      Story.find(searchConditions)
-        .populate("sourceId")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Story.countDocuments(searchConditions),
-    ]);
+    if (query) {
+      const searchTerms = query.toLowerCase().split(" ");
+      stories = stories.filter((story) => {
+        const searchText = `${story.headline} ${story.summary}`.toLowerCase();
+        return searchTerms.every((term) => searchText.includes(term));
+      });
+    }
 
-    // Transform the results to include source information
-    const storiesWithSource = stories.map((story) => ({
-      ...story,
-      source: story.sourceId as unknown as ISource,
-    })) as unknown as Array<IStory & { source: ISource }>;
+    // Sort by date
+    stories.sort((a, b) => {
+      const metaA = JSON.parse(a.metadata || "{}");
+      const metaB = JSON.parse(b.metadata || "{}");
+      return (
+        new Date(metaB.createdAt).getTime() -
+        new Date(metaA.createdAt).getTime()
+      );
+    });
+
+    const totalCount = stories.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedStories = stories.slice(startIndex, endIndex);
 
     return {
-      stories: storiesWithSource,
+      stories: paginatedStories,
       totalCount,
-      hasMore: skip + stories.length < totalCount,
+      hasMore: endIndex < totalCount,
       page,
       limit,
     };

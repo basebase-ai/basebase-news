@@ -6,48 +6,30 @@ import { useAppState } from '@/lib/state/AppContext';
 import { useEffect, useCallback, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faSearch, faSync, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { fetchApi } from '@/lib/api';
 import AddSourceModal from '@/components/AddSourceModal';
+import { sourceService } from '@/services/source.service';
+import { ISource } from '@/services/source.service';
 
 export default function ReaderPage() {
-  const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm, setUpdatedSourceIds } = useAppState();
+  const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
   const [refreshing, setRefreshing] = useState(false);
-  const [lastCheck, setLastCheck] = useState<string>(new Date().toISOString());
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
-
-  // Polling for new stories
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const checkForUpdates = async () => {
-      try {
-        const response = await fetchApi(`/api/stories/updates?since=${lastCheck}`);
-        if (response.ok) {
-          const { updatedSourceIds } = await response.json();
-          if (updatedSourceIds && updatedSourceIds.length > 0) {
-            setUpdatedSourceIds(prev => [...new Set([...prev, ...updatedSourceIds])]);
-          }
-          setLastCheck(new Date().toISOString());
-        }
-      } catch (error) {
-        console.error('Failed to check for story updates:', error);
-      }
-    };
-
-    const intervalId = setInterval(checkForUpdates, 30000); // Poll every 30 seconds
-
-    return () => clearInterval(intervalId);
-  }, [currentUser, lastCheck, setUpdatedSourceIds]);
 
   const loadSources = useCallback(async () => {
     if (!currentUser) return;
     
     try {
-      const response = await fetchApi('/api/sources');
-      if (response.ok) {
-        const sources = await response.json();
-        setCurrentSources(sources);
-      }
+      const sources = await sourceService.getSources();
+      // Transform sources to match the UI's expected format
+      const transformedSources = sources.map(source => ({
+        _id: source.id || '',
+        name: source.name,
+        homepageUrl: source.homepageUrl || '',
+        imageUrl: undefined,
+        lastScrapedAt: source.lastScrapedAt,
+        metadata: source.metadata ? JSON.parse(source.metadata) : {},
+      }));
+      setCurrentSources(transformedSources);
     } catch (error) {
       console.error('Failed to fetch sources:', error);
     }
@@ -66,15 +48,11 @@ export default function ReaderPage() {
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
-      const response = await fetchApi('/api/admin/refresh-all', { method: 'POST' });
-      if (!response.ok) {
-        throw new Error('Failed to start refresh');
-      }
-      // Optionally, show a toast message here to inform the user
-      // that the refresh is happening in the background.
+      // TODO: Implement refresh functionality in BaseBase
+      // For now, just reload sources
+      await loadSources();
     } catch (err) {
       console.error(err);
-      // Handle error, maybe show a toast
     } finally {
       setRefreshing(false);
     }

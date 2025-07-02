@@ -1,60 +1,31 @@
-import { NextResponse } from "next/server";
-import { userService } from "@/services/user.service";
-import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+import { basebaseService } from "@/services/basebase.service";
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    console.log("Received sign-in request");
-    const body = await request.json();
-    console.log("Request body:", body);
+    const { phone, name } = await req.json();
 
-    const { email, first, last, phone } = body;
-    if (!first || !last) {
-      console.error("Missing required fields:", { first, last });
+    if (!phone || !name) {
       return NextResponse.json(
-        {
-          status: "error",
-          message: "Missing required fields: first and last name",
-        },
+        { error: "Phone and name are required" },
         { status: 400 }
       );
     }
 
-    if (!phone && !email) {
-      console.error("Missing contact method:", { phone, email });
+    const success = await basebaseService.requestCode(phone, name);
+
+    if (success) {
+      return NextResponse.json({ success: true });
+    } else {
       return NextResponse.json(
-        {
-          status: "error",
-          message: "Please provide either a phone number or email address",
-        },
-        { status: 400 }
+        { error: "Failed to send verification code" },
+        { status: 500 }
       );
-    }
-
-    const headersList = headers();
-    const host = headersList.get("host") || "";
-    console.log("Host:", host);
-
-    try {
-      await userService.authenticateUser(email, first, last, host, phone);
-      console.log("Authentication successful");
-      return NextResponse.json({ status: "ok", message: "Sign-in email sent" });
-    } catch (error) {
-      console.error("Authentication error details:", {
-        error,
-        message: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      throw error;
     }
   } catch (error) {
-    console.error("Sign-in error:", error);
+    console.error("[/api/auth/signin] Error:", error);
     return NextResponse.json(
-      {
-        status: "error",
-        message:
-          error instanceof Error ? error.message : "Failed to process sign-in",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

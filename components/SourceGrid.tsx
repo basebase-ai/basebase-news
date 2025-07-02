@@ -19,8 +19,17 @@ import { Story, Source } from '@/types';
 import { SortableSourceBox } from './SourceBox';
 import SourceSettings from './SourceSettings';
 import LoadingSpinner from './LoadingSpinner';
-import { userService } from '@/services/user.service';
-import { fetchApi } from '@/lib/api';
+import { basebaseService } from '@/services/basebase.service';
+import { gql } from 'graphql-request';
+
+const UPDATE_USER_SOURCES = gql`
+  mutation UpdateUserSources($id: ID!, $data: JSON!) {
+    updateDocument(collection: "users", id: $id, data: $data) {
+      id
+      data
+    }
+  }
+`;
 
 interface SourceGridProps {
   friendsListOpen: boolean;
@@ -45,16 +54,11 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
       setCurrentUser({ ...currentUser, sourceIds: newSourceIds });
 
       try {
-        const response = await fetchApi('/api/users/me/sources', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourceIds: newSourceIds }),
+        // Update source order in BaseBase
+        await basebaseService.graphql(UPDATE_USER_SOURCES, {
+          id: currentUser._id,
+          data: { sourceIds: newSourceIds }
         });
-
-        if (!response.ok) {
-          // Revert on failure
-          setCurrentUser({ ...currentUser, sourceIds: currentUser.sourceIds });
-        }
       } catch (error) {
         console.error('Failed to save source order:', error);
         // Revert on error
@@ -68,22 +72,16 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
 
     try {
       const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
-      const response = await fetchApi('/api/users/me/sources', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sourceIds: updatedSourceIds,
-        }),
+      await basebaseService.graphql(UPDATE_USER_SOURCES, {
+        id: currentUser._id,
+        data: { sourceIds: updatedSourceIds }
       });
-
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
-      } else {
-        throw new Error('Failed to update user sources');
-      }
+      
+      // Update local state
+      setCurrentUser({
+        ...currentUser,
+        sourceIds: updatedSourceIds
+      });
     } catch (error) {
       console.error('Failed to remove source:', error);
     }

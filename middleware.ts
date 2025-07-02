@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { edgeAuthService } from "./services/auth.edge.service";
+import { GraphQLClient } from "graphql-request";
+
+const BASEBASE_ENDPOINT = "https://app.basebase.us/graphql";
 
 const PUBLIC_API_ROUTES = [
   "/api/auth/signin",
@@ -10,6 +12,31 @@ const PUBLIC_API_ROUTES = [
 ];
 
 const ADMIN_API_ROUTES = ["/api/admin/rescrape"];
+
+// Function to validate token with BaseBase
+async function validateToken(token: string): Promise<boolean> {
+  try {
+    const client = new GraphQLClient(BASEBASE_ENDPOINT, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // Make a simple query to validate the token
+    await client.request(`
+      query ValidateToken {
+        me {
+          id
+        }
+      }
+    `);
+
+    return true;
+  } catch (error) {
+    console.error("Token validation error:", error);
+    return false;
+  }
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,9 +57,12 @@ export async function middleware(request: NextRequest) {
     }
 
     // For all other API routes, validate the Bearer token
-    const token = edgeAuthService.extractTokenFromRequest(request);
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : null;
 
-    if (!token || !(await edgeAuthService.validateToken(token))) {
+    if (!token || !(await validateToken(token))) {
       return NextResponse.json(
         { error: "A valid Bearer token is required." },
         { status: 401 }

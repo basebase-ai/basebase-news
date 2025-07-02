@@ -14,8 +14,6 @@ export default function VerifyPage() {
 
   useEffect(() => {
     console.log('[Verify] useEffect triggered');
-    console.log('[Verify] searchParams:', searchParams);
-    console.log('[Verify] hasVerified.current:', hasVerified.current);
     
     if (!searchParams || hasVerified.current) {
       console.log('[Verify] Skipping verification - no searchParams or already verified');
@@ -23,7 +21,7 @@ export default function VerifyPage() {
     }
 
     const verifyToken = async () => {
-      console.log('[Verify] Starting token verification');
+      console.log('[Verify] Starting verification');
       
       // Prevent double execution
       if (hasVerified.current) {
@@ -32,52 +30,29 @@ export default function VerifyPage() {
       }
       hasVerified.current = true;
       
+      const phone = searchParams.get('phone');
       const code = searchParams.get('code');
-      const token = searchParams.get('token');
       
       console.log('[Verify] URL parameters:', {
-        code: code ? `${code.substring(0, 10)}...` : null,
-        token: token ? `${token.substring(0, 10)}...` : null,
-        hasCode: !!code,
-        hasToken: !!token
+        phone: phone ? `${phone.substring(0, 3)}...` : null,
+        code: code ? `${code.substring(0, 2)}...` : null,
+        hasPhone: !!phone,
+        hasCode: !!code
       });
 
-      if (!code && !token) {
-        console.error('[Verify] No verification code or token found');
-        setError('No verification code or token found in the link.');
+      if (!phone || !code) {
+        console.error('[Verify] Missing phone or code');
+        setError('Invalid verification link. Please request a new code.');
         return;
       }
 
       try {
-        const url = `/api/auth/verify?${code ? `code=${code}` : `token=${token}`}`;
-        console.log('[Verify] Making request to:', url.replace(/([?&](code|token)=)[^&]*/, '$1***'));
-        
-        const response = await fetch(url, {
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        console.log('[Verify] Response received:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok,
-          headers: Object.fromEntries(response.headers.entries())
-        });
-        
+        console.log('[Verify] Verifying code');
+        const response = await fetch(`/api/auth/verify?phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}`);
         const data = await response.json();
-        console.log('[Verify] Response data:', {
-          hasToken: !!data.token,
-          tokenLength: data.token?.length || 0,
-          message: data.message,
-          error: data.error
-        });
-
-        if (!response.ok) {
-          console.error('[Verify] API response not ok:', data);
-          throw new Error(data.error || 'Failed to verify.');
-        }
-
-        if (data.token) {
-          console.log('[Verify] Token received, storing in localStorage');
+        
+        if (response.ok && data.token) {
+          console.log('[Verify] Token received, storing');
           tokenService.setToken(data.token);
           
           // Verify token was actually stored
@@ -92,8 +67,8 @@ export default function VerifyPage() {
           console.log('[Verify] Redirecting to /reader');
           router.push('/reader');
         } else {
-          console.error('[Verify] No token in response data');
-          throw new Error('No token received from server.');
+          console.error('[Verify] Verification failed:', data.error);
+          throw new Error(data.error || 'Verification failed. Please try again.');
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';

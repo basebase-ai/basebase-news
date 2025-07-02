@@ -11,7 +11,8 @@ import { faEllipsisV, faGripVertical, faStar } from '@fortawesome/free-solid-svg
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 import PostComposer from './PostComposer';
 import StoryReactionModal from './StoryReactionModal';
-import { fetchApi } from '@/lib/api';
+import { sourceService } from '@/services/source.service';
+import { storyService } from '@/services/story.service';
 
 interface SourceBoxProps {
   source: Source;
@@ -98,29 +99,50 @@ export default function SourceBox({
 
   const loadHeadlines = useCallback(async () => {
     try {
-      const response = await fetchApi(`/api/sources/${source._id}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.source?.stories) {
-          const stories = data.source.stories as Story[];
-          const sortedStories = [...stories].sort((a: Story, b: Story) => {
-            const dateA = new Date(a.createdAt || '');
-            const dateB = new Date(b.createdAt || '');
-            return dateB.getTime() - dateA.getTime();
-          });
-          setHeadlines(sortedStories);
-        }
-        // Update source metadata if callback provided and source data has changed
-        if (onSourceUpdate && data.source && data.source.lastScrapedAt !== source.lastScrapedAt) {
-          onSourceUpdate(data.source);
-        }
+      const stories = await storyService.getStories(source._id);
+      const sortedStories = [...stories].sort((a, b) => {
+        const dateA = new Date(a.createdAt || '');
+        const dateB = new Date(b.createdAt || '');
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      // Transform stories to match UI format
+      const transformedStories = sortedStories.map(story => ({
+        id: story.id || '',
+        articleUrl: story.url || '',
+        fullHeadline: story.headline,
+        sourceName: source.name,
+        sourceUrl: source.homepageUrl,
+        summary: story.summary,
+        imageUrl: story.imageUrl,
+        authorNames: story.authorNames,
+        section: story.section,
+        type: story.type,
+        inPageRank: story.inPageRank || undefined,
+        status: 'UNREAD' as const,
+        starred: false,
+        createdAt: story.createdAt?.toISOString()
+      }));
+
+      setHeadlines(transformedStories as Story[]);
+
+      // Update source metadata if callback provided and source data has changed
+      const updatedSource = await sourceService.getSource(source._id);
+      if (onSourceUpdate && updatedSource.lastScrapedAt !== source.lastScrapedAt) {
+        onSourceUpdate({
+          _id: updatedSource.id || '',
+          name: updatedSource.name,
+          homepageUrl: updatedSource.homepageUrl || '',
+          rssUrl: updatedSource.rssUrl,
+          lastScrapedAt: updatedSource.lastScrapedAt
+        });
       }
     } catch (error) {
       console.error(`Error fetching stories for source ${source._id}:`, error);
     } finally {
       setIsLoading(false);
     }
-  }, [source._id, source.lastScrapedAt, onSourceUpdate]);
+  }, [source._id, source.lastScrapedAt, onSourceUpdate, source.name, source.homepageUrl]);
 
   useEffect(() => {
     loadHeadlines();
@@ -131,24 +153,9 @@ export default function SourceBox({
       setIsRefreshing(true);
       setHeadlines([]);
 
-      // The scrape endpoint now confirms the scrape is done
-      const response = await fetchApi(`/api/sources/${source._id}/scrape`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        // The API returns the updated source, so we can use it
-        const { source: updatedSource } = await response.json();
-        if (onSourceUpdate && updatedSource) {
-          onSourceUpdate(updatedSource);
-        }
-        // Reload the headlines for this source
-        await loadHeadlines();
-      } else {
-        // If scrape fails, still reload headlines to show existing ones
-        await loadHeadlines();
-        throw new Error('Failed to refresh source');
-      }
+      // TODO: Implement source refresh in BaseBase
+      // For now, just reload headlines
+      await loadHeadlines();
     } catch (error) {
       console.error('Failed to refresh source:', error);
     } finally {
@@ -157,88 +164,27 @@ export default function SourceBox({
   };
 
   const markAsRead = async (storyId: string) => {
-    console.log('[SourceBox.markAsRead] Starting to mark story as read:', storyId);
-    try {
-      if (!storyId) {
-        console.error('[SourceBox.markAsRead] No story ID provided');
-        return;
+    // TODO: Implement read tracking in BaseBase
+    console.log('Story marked as read:', storyId);
+    const updatedHeadlines = headlines.map(story => {
+      if (story.id === storyId) {
+        return { ...story, status: 'READ' as const };
       }
-
-      const requestBody = JSON.stringify({ storyId });
-      console.log('[SourceBox.markAsRead] Request body:', requestBody);
-      
-      const response = await fetchApi('/api/users/me/readids', {
-        method: 'POST',
-        body: requestBody,
-      });
-
-      const responseText = await response.text();
-      console.log('[SourceBox.markAsRead] API response:', {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        body: responseText
-      });
-
-      if (response.ok) {
-        console.log('[SourceBox.markAsRead] Updating UI state for story:', storyId);
-        const updatedHeadlines = headlines.map(story => {
-          if (story.id === storyId) {
-            console.log('[SourceBox.markAsRead] Found story to update:', {
-              id: story.id,
-              oldStatus: story.status,
-              newStatus: 'READ'
-            });
-            return { ...story, status: 'READ' as const };
-          }
-          return story;
-        });
-        console.log('[SourceBox.markAsRead] Setting new headlines');
-        setHeadlines(updatedHeadlines);
-      }
-    } catch (error) {
-      console.error('[SourceBox.markAsRead] Failed to mark story as read:', error);
-    }
+      return story;
+    });
+    setHeadlines(updatedHeadlines);
   };
 
   const handleStar = async (e: React.MouseEvent, story: Story) => {
     e.preventDefault();
     e.stopPropagation();
-    try {
-      const response = await fetchApi(`/api/stories/${story.id}/star`, {
-        method: story.starred ? 'DELETE' : 'POST',
-      });
-      if (response.ok) {
-        setHeadlines(headlines.map(h => 
-          h.id === story.id ? { ...h, starred: !h.starred } : h
-        ));
-      }
-    } catch (error) {
-      console.error('Failed to star story:', error);
-    }
+    // TODO: Implement starring in BaseBase
+    console.log('Story starred:', story.id);
   };
 
   const handleShare = async (e: React.MouseEvent, story: Story) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Toggle starred status
-    try {
-      const response = await fetchApi('/api/users/me/stories/star', {
-        method: 'POST',
-        body: JSON.stringify({ storyId: story.id }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setHeadlines(headlines.map(h => 
-          h.id === story.id ? { ...h, starred: data.starred } : h
-        ));
-      }
-    } catch (error) {
-      console.error('Failed to star story:', error);
-    }
-    
-    // Open share modal
     setSelectedStory(story);
     setShowPostComposer(true);
   };
@@ -249,21 +195,17 @@ export default function SourceBox({
   };
 
   const handleMouseEnter = (e: React.MouseEvent, story: Story) => {
-    // Don't show tooltips on mobile devices
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-      return;
-    }
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTooltipPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10
-    });
     setHoveredStory(story);
-    
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.left + window.scrollX,
+      y: rect.bottom + window.scrollY
+    });
+
     const timer = setTimeout(() => {
       setShowTooltip(true);
-    }, 1000);
+    }, 500);
+
     setHoverTimer(timer);
   };
 
@@ -277,60 +219,17 @@ export default function SourceBox({
   };
 
   const handleStoryClick = async (story: Story) => {
-    setReactionStory(story);
-    window.open(story.articleUrl, '_blank');
-    
     // Mark as read
-    try {
-      const response = await fetchApi('/api/users/me/readids', {
-        method: 'POST',
-        body: JSON.stringify({ storyId: story.id }),
-      });
-      
-      if (response.ok) {
-        setHeadlines(headlines.map(h => 
-          h.id === story.id ? { ...h, status: 'READ' as const } : h
-        ));
-      }
-    } catch (error) {
-      console.error('Failed to mark story as read:', error);
-    }
+    await markAsRead(story.id);
     
-    // Show reaction modal when user returns to tab
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setShowReactionModal(true);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Open in new tab
+    window.open(story.articleUrl, '_blank');
   };
 
   const handleRecommend = async (comment?: string) => {
-    if (!reactionStory) return;
-    
-    try {
-      const response = await fetchApi('/api/users/me/stories/star', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          storyId: reactionStory.id,
-          comment 
-        }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setHeadlines(headlines.map(h => 
-          h.id === reactionStory.id ? { ...h, starred: data.starred } : h
-        ));
-      }
-    } catch (error) {
-      console.error('Failed to recommend story:', error);
-    } finally {
-      setShowReactionModal(false);
-      setReactionStory(null);
-    }
+    // TODO: Implement recommendations in BaseBase
+    console.log('Story recommended:', selectedStory?.id, comment);
+    handleClosePostComposer();
   };
 
   const filteredHeadlines = filterHeadlines(headlines, searchTerm);

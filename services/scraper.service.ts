@@ -1,15 +1,35 @@
 // import { ScrapingBeeClient } from "scrapingbee";
 import * as cheerio from "cheerio";
 import axios, { AxiosResponse } from "axios";
-import { ISource, Source } from "../models/source.model";
-import { IStory, NewsTopic, Section } from "../models/story.model";
 import { langChainService } from "./langchain.service";
-import { storyService } from "./story.service";
+import { ISource, sourceService } from "./source.service";
+import { storyService, IStory } from "./story.service";
 import { previewService } from "./preview.service";
 import Parser from "rss-parser";
-import mongoose from "mongoose";
-import { Story } from "../models/story.model";
 import * as he from "he";
+import { gql } from "graphql-request";
+
+// Define enums that were previously imported from models
+enum Section {
+  NEWS = "NEWS",
+  OPINION = "OPINION",
+  SPORTS = "SPORTS",
+  BUSINESS = "BUSINESS",
+  TECHNOLOGY = "TECHNOLOGY",
+  ENTERTAINMENT = "ENTERTAINMENT",
+  LIFESTYLE = "LIFESTYLE",
+}
+
+enum NewsTopic {
+  US_POLITICS = "US_POLITICS",
+  WORLD = "WORLD",
+  ECONOMY = "ECONOMY",
+  TECHNOLOGY = "TECHNOLOGY",
+  HEALTH = "HEALTH",
+  SCIENCE = "SCIENCE",
+  SPORTS = "SPORTS",
+  ENTERTAINMENT = "ENTERTAINMENT",
+}
 
 export class ScraperService {
   // private readonly client: ScrapingBeeClient;
@@ -132,12 +152,17 @@ ${html}`;
         stories.map((h: any) => h.fullHeadline).join("\n")
       );
 
-      // make the articleUrl absolute
-      stories.forEach((story: any) => {
-        story.articleUrl = this.makeUrlAbsolute(story.articleUrl, baseUrl);
-        story.fullHeadline = he.decode(story.fullHeadline);
-      });
-      return stories;
+      // make the articleUrl absolute and convert to IStory format
+      return stories.map((story: any) => ({
+        headline: he.decode(story.fullHeadline),
+        url: this.makeUrlAbsolute(story.articleUrl, baseUrl),
+        summary: story.summary,
+        metadata: JSON.stringify({
+          section: story.section,
+          type: story.type,
+          fullHeadline: he.decode(story.fullHeadline),
+        }),
+      }));
     } catch (error) {
       console.error("Error parsing stories:", error);
       console.error("Raw response:", response);
@@ -193,11 +218,12 @@ ${html}`;
   private async scrapeStoryDetailsPage(story: IStory): Promise<IStory> {
     try {
       // Only fetch metadata if the URL is valid
-      if (story.articleUrl) {
-        const metadata = await previewService.getPageMetadata(story.articleUrl);
+      if (story.url) {
+        const metadata = await previewService.getPageMetadata(story.url);
 
         // Set lastScrapedAt to current time
-        story.lastScrapedAt = new Date();
+        const storyMetadata = JSON.parse(story.metadata || "{}");
+        storyMetadata.lastScrapedAt = new Date().toISOString();
 
         // Add image URL if found
         if (metadata.imageUrl) {
@@ -206,11 +232,9 @@ ${html}`;
 
         // Use description from article page if it's longer than the existing summary
         if (metadata.description) {
-          // First capture existing summary length
           const summaryLength = story.summary ? story.summary.length : 0;
           const metadataDescriptionLength = metadata.description.length;
 
-          // If metadata description is longer or summary doesn't exist, use the metadata description
           if (metadataDescriptionLength > summaryLength) {
             story.summary = he.decode(metadata.description);
           }
@@ -218,12 +242,10 @@ ${html}`;
 
         // Try to fetch the full article text
         try {
-          // Fetch full HTML content
-          const response = await this.retryableRequest(story.articleUrl);
-          // use cheerio to extract the text content
+          const response = await this.retryableRequest(story.url);
           const $ = cheerio.load(response.data);
           const textContent = $("body").text();
-          // Ask AI to extract the full text of the article and metadata as JSON
+
           const prompt = `
 Extract the following information from this news article as a valid JSON object:
 1. fullText: The complete article text content, excluding navigation, ads, related articles, comments, and other non-article content
@@ -240,47 +262,37 @@ ${textContent.substring(0, this.MAX_TOKENS)}
           const aiResponse = await this.langChainService.askAi(prompt);
 
           try {
-            // Parse the JSON response
             const articleData = this.cleanJsonResponse(aiResponse);
 
-            // Handle null response from cleanJsonResponse
             if (articleData) {
-              // Check if full text was successfully extracted
               if (
                 articleData.fullText &&
                 articleData.fullText !== "PAYWALL_DETECTED" &&
                 articleData.fullText.length > 100
               ) {
-                story.fullText = he.decode(articleData.fullText);
-                console.log(
-                  `Extracted full text for ${story.articleUrl}:\n${articleData.fullText}`
-                );
+                storyMetadata.fullText = he.decode(articleData.fullText);
               }
 
-              // Add author names if available
               if (
                 articleData.authorNames &&
                 Array.isArray(articleData.authorNames)
               ) {
-                story.authorNames = articleData.authorNames;
+                storyMetadata.authorNames = articleData.authorNames;
               } else if (
                 articleData.authorName &&
                 typeof articleData.authorName === "string"
               ) {
-                // Handle case where LLM returns a single authorName instead of array
-                story.authorNames = [articleData.authorName];
+                storyMetadata.authorNames = [articleData.authorName];
               }
-            } else {
-              console.log(
-                `Failed to extract structured data for ${story.articleUrl}`
-              );
+
+              story.metadata = JSON.stringify(storyMetadata);
             }
           } catch (jsonError) {
             console.error(`Error parsing JSON response: ${jsonError}`);
           }
         } catch (extractError) {
           console.error(
-            `Error extracting article data for ${story.articleUrl}:`,
+            `Error extracting article data for ${story.url}:`,
             extractError
           );
         }
@@ -288,31 +300,34 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         return story;
       }
     } catch (error) {
-      console.error(`Error fetching metadata for ${story.articleUrl}:`, error);
+      console.error(`Error fetching metadata for ${story.url}:`, error);
     }
 
-    // Always return the original story if no update was made or if there was an error
     return story;
   }
 
   public async scrapeAllSources(): Promise<void> {
     try {
-      // Get all sources
-      const sources = await Source.find();
+      // Get all sources from BaseBase
+      const sources = await sourceService.getSources();
+
+      // const sources = response.getAllNewsSources.map((source) => ({
+      //   ...source,
+      //   ...JSON.parse(source.metadata || "{}"),
+      // }));
+
       console.log(`Found ${sources.length} sources to collect from`);
 
       // Scrape each source one at a time
       for (const source of sources) {
-        await this.scrapeSource(source);
+        if (source.id) {
+          // Type guard for source.id
+          await this.scrapeSource(source);
+        }
       }
       console.log("Completed collecting from all sources");
     } catch (error) {
       console.error("Error in collectAll:", error);
-      if (error instanceof Error) {
-        console.error("Error name:", error.name);
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
-      }
       throw error;
     }
   }
@@ -322,8 +337,16 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       console.log(
         `Starting collection for source: ${source.name} (${source.homepageUrl})`
       );
-      // do this first to avoid race condition
-      await Source.findByIdAndUpdate(source.id, { lastScrapedAt: new Date() });
+
+      if (!source.id) {
+        throw new Error("Source ID is required");
+      }
+
+      // Update lastScrapedAt in source metadata
+      await sourceService.updateSource(source.id, {
+        ...source,
+        lastScrapedAt: new Date().toISOString(),
+      });
 
       let stories: IStory[] = [];
       if (source.rssUrl) {
@@ -333,71 +356,41 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         console.log(`Scraping webpage for ${source.name}`);
         stories = await this.scrapeHomepage(source.id);
       } else {
-        // next see if there is an RSS feed at the default location: /feed
         const rssUrl = source.homepageUrl + "/feed";
         if (await this.rssExists(rssUrl)) {
           console.log(`Found RSS feed at ${rssUrl}`);
-          // save the RSS URL to the source
-          await Source.findByIdAndUpdate(source.id, { rssUrl });
+          // Update source with RSS URL
+          await sourceService.updateSource(source.id, {
+            ...source,
+            rssUrl: rssUrl,
+          });
           stories = await this.readRss(source.id);
-        } else {
-          console.log(`No RSS feed found at ${rssUrl}`);
-          // if no RSS feed is found, scrape the homepage
-          // commented out because it's expensive and no one is using it ATM
-          // stories = await this.scrapeHomepage(source.id);
         }
       }
-
-      // Reset inPageRank for existing stories in this source
-      await Story.updateMany(
-        {
-          sourceId: new mongoose.Types.ObjectId(source.id),
-          inPageRank: { $ne: null },
-        },
-        { inPageRank: null }
-      );
 
       // Process and save each story individually
       const savedStories: IStory[] = [];
       for (let index = 0; index < stories.length; index++) {
-        const story: IStory = stories[index];
+        const story = stories[index];
         try {
-          // Check if the story already exists in the database
-          const existingStory = await Story.findOne({
-            articleUrl: story.articleUrl,
-          });
-
           let enhancedStory = story;
 
-          // Only scrape details if:
-          // 1. No paywall exists for this source
-          // 2. AND either:
-          //    a. This is a new story, OR
-          //    b. It's an existing story but for some reasonwe haven't scraped its details yet
-          // if (
-          //   !source.hasPaywall &&
-          //   (!existingStory || !existingStory.lastScrapedAt)
-          // ) {
-          //   console.log(`Scraping story: ${story.articleUrl}`);
-          //   enhancedStory = await this.scrapeStoryDetailsPage(story);
-          // } else {
-          //   console.log(`Story already exists: ${story.articleUrl}`);
-          // }
+          // Only scrape details if no paywall exists
+          if (!source.hasPaywall) {
+            console.log(`Scraping story: ${story.url}`);
+            enhancedStory = await this.scrapeStoryDetailsPage(story);
+          }
 
-          // Save the story immediately to the database
+          // Save the story using our story service
           const savedStory = await storyService.addStory(
             source.id,
             enhancedStory,
             index + 1
           );
           savedStories.push(savedStory);
-          console.log(`Saved story: ${savedStory.fullHeadline}`);
+          console.log(`Saved story: ${savedStory.headline}`);
         } catch (storyError) {
-          console.error(
-            `Error processing story ${story.articleUrl}:`,
-            storyError
-          );
-          // Continue with the next story even if one fails
+          console.error(`Error processing story ${story.url}:`, storyError);
         }
       }
 
@@ -408,22 +401,28 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         `Error collecting from source ${source.name}:`,
         (error as Error).message
       );
-
       return [];
     }
   }
 
   public async scrapeHomepage(sourceId: string): Promise<IStory[]> {
-    const source = await Source.findById(sourceId);
+    // Get source from BaseBase
+    const source = await sourceService.getSource(sourceId);
+    const sourceMetadata = JSON.parse(source.metadata || "{}");
+    const fullSource = { ...source, ...sourceMetadata };
+
     if (!source) {
       throw new Error(`Unknown source: ${sourceId}`);
     }
-    try {
-      const response = await this.retryableRequest(source.homepageUrl);
 
+    try {
+      const response = await this.retryableRequest(source.homepageUrl || "");
       const html: string = response.data;
-      const cleanedHtml: string = this.cleanHtml(html, source);
-      const stories = await this.parseStories(cleanedHtml, source.homepageUrl);
+      const cleanedHtml: string = this.cleanHtml(html, fullSource);
+      const stories = await this.parseStories(
+        cleanedHtml,
+        source.homepageUrl || ""
+      );
 
       return stories;
     } catch (error) {
@@ -433,24 +432,23 @@ ${textContent.substring(0, this.MAX_TOKENS)}
   }
 
   public async readRss(sourceId: string): Promise<IStory[]> {
-    const source = await Source.findById(sourceId);
-    if (!source) {
-      throw new Error(`Unknown source: ${sourceId}`);
-    }
-    if (!source.rssUrl) {
-      throw new Error(`No RSS URL configured for source: ${source.name}`);
+    // Get source from BaseBase
+    const source = await sourceService.getSource(sourceId);
+    const sourceMetadata = JSON.parse(source.metadata || "{}");
+    const fullSource = { ...source, ...sourceMetadata };
+
+    if (!source || !source.rssUrl) {
+      throw new Error(
+        `No RSS URL configured for source: ${source?.name || sourceId}`
+      );
     }
 
     try {
-      // Configure the parser to capture media:content tags
       const parser = new Parser({
         customFields: {
           item: [
-            // field names are all lowercase because we normalize tags
             ["media:content", "mediaContent", { keepArray: true }],
             ["media:thumbnail", "mediaThumbnail", { keepArray: true }],
-            // ["pubdate", "pubDate"], // Let rss-parser handle dates automatically
-            // ["isodate", "isoDate"],
           ],
         },
         xml2js: {
@@ -460,132 +458,110 @@ ${textContent.substring(0, this.MAX_TOKENS)}
         },
       });
 
-      const rssResponse: AxiosResponse<string> = await axios.get(
-        source.rssUrl,
-        {
-          timeout: 30000,
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-          },
-        }
-      );
-      const xmlText: string = rssResponse.data;
-      const feed = await parser.parseString(xmlText);
+      const rssResponse = await axios.get(source.rssUrl, {
+        timeout: 30000,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        },
+      });
 
-      // Check if feed has an image and update source only if imageUrl is null/undefined
-      if (feed.image?.url && !source.imageUrl) {
-        await Source.findByIdAndUpdate(sourceId, { imageUrl: feed.image.url });
+      const feed = await parser.parseString(rssResponse.data);
+
+      // Update source image if feed has one and source doesn't
+      if (feed.image?.url && !sourceMetadata.imageUrl && source.id) {
+        await sourceService.updateSource(source.id, {
+          ...source,
+          metadata: JSON.stringify({
+            ...sourceMetadata,
+            imageUrl: feed.image.url,
+          }),
+        });
       }
 
-      const stories: IStory[] = feed.items.reduce(
-        (acc: IStory[], item: any, index: number) => {
-          try {
-            // START MAPPING
-            const hasAudioEnclosure: boolean =
-              (item.enclosure && item.enclosure.type === "audio/mpeg") ?? false;
-            const hasVideoEnclosure: boolean =
-              (item.enclosure && item.enclosure.type === "video/mp4") ?? false;
+      return feed.items.reduce((acc: IStory[], item: any, index: number) => {
+        try {
+          const hasAudioEnclosure = item.enclosure?.type === "audio/mpeg";
+          const hasVideoEnclosure = item.enclosure?.type === "video/mp4";
 
-            // Extract image URL from media:content if available
-            let imageUrl: string | null = null;
+          // Extract image URL from media:content if available
+          let imageUrl: string | undefined = undefined;
 
-            // Try to find an image from mediaContent
-            if (item.mediaContent && Array.isArray(item.mediaContent)) {
-              // Look for media with an image type or medium
-              for (const media of item.mediaContent) {
-                if (
-                  media &&
-                  media.$ &&
-                  (media.$.medium === "image" ||
-                    (media.$.type && media.$.type.startsWith("image/"))) &&
-                  media.$.url
-                ) {
-                  imageUrl = media.$.url;
-                  break;
-                }
-              }
-
-              // If no image type found but we have media with urls, use the first one
+          if (item.mediaContent && Array.isArray(item.mediaContent)) {
+            for (const media of item.mediaContent) {
               if (
-                !imageUrl &&
-                item.mediaContent.length > 0 &&
-                item.mediaContent[0].$ &&
-                item.mediaContent[0].$.url
+                media?.$ &&
+                (media.$.medium === "image" ||
+                  media.$.type?.startsWith("image/")) &&
+                media.$.url
               ) {
-                imageUrl = item.mediaContent[0].$.url;
+                imageUrl = media.$.url;
+                break;
               }
             }
-
-            // Try to find an image from mediaThumbnail
-            if (
-              !imageUrl &&
-              item.mediaThumbnail &&
-              Array.isArray(item.mediaThumbnail)
-            ) {
-              for (const thumbnail of item.mediaThumbnail) {
-                if (thumbnail && thumbnail.$ && thumbnail.$.url) {
-                  imageUrl = thumbnail.$.url;
-                  break;
-                }
-              }
+            if (!imageUrl && item.mediaContent[0]?.$?.url) {
+              imageUrl = item.mediaContent[0].$.url;
             }
-
-            // Fall back to enclosure if it's an image
-            if (
-              !imageUrl &&
-              item.enclosure &&
-              item.enclosure.type &&
-              item.enclosure.type.startsWith("image/") &&
-              item.enclosure.url
-            ) {
-              imageUrl = item.enclosure.url;
-            }
-
-            // Get publish date from RSS feed if available
-
-            // Get full content if available
-
-            const newStory = {
-              fullHeadline: he.decode(item.title || ""),
-              articleUrl: item.link || "",
-              summary: he.decode(
-                item.contentSnippet ||
-                  item.content ||
-                  (typeof item.description === "string"
-                    ? item.description
-                    : "") ||
-                  (hasAudioEnclosure ? "Audio recording" : "") ||
-                  (hasVideoEnclosure ? "Video recording" : "")
-              ),
-              fullText: he.decode(item.content || ""),
-              section: Section.NEWS, // Default to NEWS, can be updated by AI later
-              type: NewsTopic.US_POLITICS, // Default to US_POLITICS, can be updated by AI later
-              inPageRank: index + 1,
-              sourceId: new mongoose.Types.ObjectId(sourceId),
-              imageUrl,
-              createdAt: item.isoDate // isoDate is most reliable
-                ? new Date(item.isoDate)
-                : item.pubDate
-                  ? new Date(item.pubDate)
-                  : new Date(),
-            } as IStory;
-
-            acc.push(newStory);
-            // END MAPPING
-          } catch (error) {
-            console.error(
-              `[Scraper] Failed to parse an article from source ${source.name} (${sourceId}). Error:`,
-              error
-            );
-            console.error("[Scraper] Offending item:", item);
           }
-          return acc;
-        },
-        []
-      );
 
-      return stories;
+          if (
+            !imageUrl &&
+            item.mediaThumbnail &&
+            Array.isArray(item.mediaThumbnail)
+          ) {
+            for (const thumbnail of item.mediaThumbnail) {
+              if (thumbnail?.$ && thumbnail.$.url) {
+                imageUrl = thumbnail.$.url;
+                break;
+              }
+            }
+          }
+
+          if (
+            !imageUrl &&
+            item.enclosure?.type?.startsWith("image/") &&
+            item.enclosure.url
+          ) {
+            imageUrl = item.enclosure.url;
+          }
+
+          const newStory: IStory = {
+            headline: he.decode(item.title || ""),
+            url: item.link || "",
+            summary: he.decode(
+              item.contentSnippet ||
+                item.content ||
+                (typeof item.description === "string"
+                  ? item.description
+                  : "") ||
+                (hasAudioEnclosure ? "Audio recording" : "") ||
+                (hasVideoEnclosure ? "Video recording" : "")
+            ),
+            imageUrl,
+            newsSource: sourceId,
+            metadata: JSON.stringify({
+              section: Section.NEWS,
+              type: NewsTopic.US_POLITICS,
+              fullText: he.decode(item.content || ""),
+              inPageRank: index + 1,
+              createdAt: item.isoDate
+                ? new Date(item.isoDate).toISOString()
+                : item.pubDate
+                  ? new Date(item.pubDate).toISOString()
+                  : new Date().toISOString(),
+            }),
+          };
+
+          acc.push(newStory);
+        } catch (error) {
+          console.error(
+            `[Scraper] Failed to parse an article from source ${source.name} (${sourceId}). Error:`,
+            error
+          );
+          console.error("[Scraper] Offending item:", item);
+        }
+        return acc;
+      }, []);
     } catch (error) {
       console.error("Error reading RSS feed:", error);
       throw error;
