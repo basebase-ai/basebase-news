@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { basebaseService } from "@/services/basebase.service";
+import { basebaseAuthService } from "@/services/basebase.auth.service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const success = await basebaseService.requestCode(phone, name);
+    const success = await basebaseAuthService.requestCode(phone, name);
 
     if (success) {
       return NextResponse.json({ success: true });

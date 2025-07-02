@@ -3,18 +3,6 @@ import { GraphQLClient, gql } from "graphql-request";
 const BASEBASE_ENDPOINT = "https://app.basebase.us/graphql";
 
 // Define response types
-interface RequestCodeResponse {
-  data: {
-    requestCode: boolean;
-  };
-}
-
-interface VerifyCodeResponse {
-  data: {
-    verifyCode: string;
-  };
-}
-
 interface GetUserResponse {
   data: {
     document: {
@@ -43,18 +31,6 @@ interface UpdateUserFriendsResponse {
 }
 
 // GraphQL Queries and Mutations
-const REQUEST_CODE = gql`
-  mutation RequestCode($phone: String!, $name: String!) {
-    requestCode(phone: $phone, name: $name)
-  }
-`;
-
-const VERIFY_CODE = gql`
-  mutation VerifyCode($phone: String!, $code: String!) {
-    verifyCode(phone: $phone, code: $code)
-  }
-`;
-
 const GET_USER = gql`
   query GetUser($id: ID!) {
     document(collection: "users", id: $id) {
@@ -98,40 +74,8 @@ class BasebaseService {
     });
   }
 
-  async requestCode(phone: string, name: string): Promise<boolean> {
-    try {
-      const response = await this.client.request<RequestCodeResponse>(
-        REQUEST_CODE,
-        {
-          phone,
-          name,
-        }
-      );
-      return response.data.requestCode;
-    } catch (error) {
-      console.error("Error requesting code:", error);
-      throw error;
-    }
-  }
-
-  async verifyCode(phone: string, code: string): Promise<string> {
-    try {
-      const response = await this.client.request<VerifyCodeResponse>(
-        VERIFY_CODE,
-        {
-          phone,
-          code,
-        }
-      );
-      const token = response.data.verifyCode;
-      if (token) {
-        this.setAuthToken(token);
-      }
-      return token;
-    } catch (error) {
-      console.error("Error verifying code:", error);
-      throw error;
-    }
+  setToken(token: string) {
+    this.setAuthToken(token);
   }
 
   async getUser(id: string) {

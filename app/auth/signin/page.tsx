@@ -3,13 +3,58 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faPhone } from '@fortawesome/free-solid-svg-icons';
+import { tokenService } from '@/lib/token.service';
 
 export default function SignInPage() {
+  const router = useRouter();
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [name, setName] = useState<string>('');
+
+  const handleVerifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
+    console.log('[SignIn] Verification code submission started');
+    
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const code = formData.get('verification-code') as string;
+
+    try {
+      if (!code || !code.trim()) {
+        setError('Please enter the verification code.');
+        return;
+      }
+
+      console.log('[SignIn] Verifying code for:', { phone, code });
+      
+      const response = await fetch(`/api/auth/verify?phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}`);
+      const data = await response.json();
+
+      if (response.ok && data.token) {
+        console.log('[SignIn] Verification successful, redirecting...');
+        // Store the token using our token service
+        tokenService.setToken(data.token);
+        router.push('/reader');
+      } else {
+        console.error('[SignIn] Verification failed:', data.error);
+        setError(data.error || 'Invalid verification code. Please try again.');
+      }
+    } catch (error) {
+      console.error('[SignIn] Error:', error);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+      console.log('[SignIn] Verification completed');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,6 +94,8 @@ export default function SignInPage() {
 
       if (response.ok && data.success) {
         console.log('[SignIn] Success! Showing confirmation screen');
+        setPhone(phone);
+        setName(name);
         setShowConfirmation(true);
       } else {
         console.error('[SignIn] Failed:', data.error);
@@ -92,7 +139,71 @@ export default function SignInPage() {
             )}
           </p>
         </div>
-        {showConfirmation ? null : (
+        {showConfirmation ? (
+          <div className="bg-white shadow-md rounded-lg p-8">
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+              
+              {/* Hidden input to catch phone autofill */}
+              <input 
+                type="tel" 
+                name="phone"
+                autoComplete="tel"
+                style={{ display: 'none' }} 
+              />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Verification Code
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  name="verification-code"
+                  placeholder="Enter the code we sent you"
+                  required
+                  autoComplete="off"
+                  disabled={isLoading}
+                  className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed text-2xl text-center tracking-wider [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify Code'
+                )}
+              </button>
+
+              <div className="text-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirmation(false);
+                    setError('');
+                    setIsLoading(false);
+                  }}
+                  className="text-primary hover:text-primary-dark text-sm font-medium"
+                >
+                  Didn&apos;t receive the code? Click to resend
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
           <div className="bg-white shadow-md rounded-lg p-8">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
