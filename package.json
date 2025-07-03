@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate-stories": "npx ts-node scripts/migrate-stories.ts",
+    "introspect-schema": "npx ts-node scripts/introspect-schema.ts"
   },
   "repository": {
     "type": "git",

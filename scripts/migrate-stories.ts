@@ -123,6 +123,11 @@ async function migrateStories() {
           url: story.articleUrl,
           imageUrl: story.imageUrl || "https://via.placeholder.com/300",
           newsSource: story.sourceId.toString(),
+        };
+
+        // Create a proper IStory object for the addStory method
+        const fullStory = {
+          ...basebaseStory,
           creator: {
             id: "system",
             name: "Migration System",
@@ -131,7 +136,7 @@ async function migrateStories() {
           updatedAt: story.updatedAt?.toISOString() || new Date().toISOString(),
         };
 
-        await storyService.addStory(story.sourceId.toString(), basebaseStory);
+        await storyService.addStory(story.sourceId.toString(), fullStory);
         console.log(
           `[${progress}%] ✓ Successfully migrated "${story.fullHeadline}"`
         );

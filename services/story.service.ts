@@ -127,48 +127,20 @@ export class StoryService {
       summary: story.summary || "No summary available",
       url: story.url,
       imageUrl: story.imageUrl || "https://via.placeholder.com/300",
-      newsSource: sourceId,
-      creator: {
-        id: "system",
-        name: "Migration System",
-      },
-      createdAt: story.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      newsSource: sourceId, // This should be the ID of the NewsSource
     };
   }
 
   public async addStory(sourceId: string, story: IStory): Promise<IStory> {
-    // First check if story already exists by URL
-    const allStories =
-      await basebaseService.graphql<GetAllNewsStoriesResponse>(GET_ALL_STORIES);
-    const existingStory = allStories.getNewsStorys.find(
-      (s) => s.url === story.url && s.newsSource === sourceId
+    const storyData = this.prepareStoryData(story, sourceId);
+    const result = await basebaseService.graphql<CreateNewsStoryResponse>(
+      CREATE_STORY,
+      {
+        input: storyData,
+      }
     );
 
-    if (existingStory) {
-      // Update existing story
-      const storyData = this.prepareStoryData(story, sourceId);
-      const result = await basebaseService.graphql<UpdateNewsStoryResponse>(
-        UPDATE_STORY,
-        {
-          id: existingStory.id,
-          input: storyData,
-        }
-      );
-
-      return result.updateNewsStory;
-    } else {
-      // Create new story
-      const storyData = this.prepareStoryData(story, sourceId);
-      const result = await basebaseService.graphql<CreateNewsStoryResponse>(
-        CREATE_STORY,
-        {
-          input: storyData,
-        }
-      );
-
-      return result.createNewsStory;
-    }
+    return result.createNewsStory;
   }
 
   public async getStories(sourceId: string): Promise<IStory[]> {
