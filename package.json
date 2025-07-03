@@ -71,12 +71,15 @@
   },
   "devDependencies": {
     "@types/he": "^1.2.3",
+    "@types/mongodb": "^4.0.6",
     "@types/twilio": "^3.19.2",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "dotenv": "^17.0.1",
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.1.0",
     "eslint-config-prettier": "^9.0.0",
+    "mongodb": "^6.17.0",
     "nodemon": "^3.1.9",
     "prettier": "^3.0.0"
   }

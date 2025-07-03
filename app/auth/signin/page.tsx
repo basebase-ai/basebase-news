@@ -39,9 +39,22 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (response.ok && data.token) {
-        console.log('[SignIn] Verification successful, redirecting...');
+        console.log('[SignIn] Verification successful, token received:', {
+          tokenLength: data.token?.length || 0,
+          tokenPreview: data.token ? `${data.token.substring(0, 20)}...` : null
+        });
+        
         // Store the token using our token service
         tokenService.setToken(data.token);
+        
+        // Verify token was stored
+        const storedToken = tokenService.getToken();
+        console.log('[SignIn] Token storage verification:', {
+          stored: !!storedToken,
+          matches: storedToken === data.token,
+          storedLength: storedToken?.length || 0
+        });
+        
         router.push('/reader');
       } else {
         console.error('[SignIn] Verification failed:', data.error);

@@ -217,93 +217,34 @@ ${html}`;
 
   private async scrapeStoryDetailsPage(story: IStory): Promise<IStory> {
     try {
-      // Only fetch metadata if the URL is valid
+      // Only fetch page metadata if the URL is valid
       if (story.url) {
-        const metadata = await previewService.getPageMetadata(story.url);
+        const pageMetadata = await previewService.getPageMetadata(story.url);
 
         // Set lastScrapedAt to current time
-        const storyMetadata = JSON.parse(story.metadata || "{}");
-        storyMetadata.lastScrapedAt = new Date().toISOString();
+        story.updatedAt = new Date();
 
         // Add image URL if found
-        if (metadata.imageUrl) {
-          story.imageUrl = metadata.imageUrl;
+        if (pageMetadata.imageUrl) {
+          story.imageUrl = pageMetadata.imageUrl;
         }
 
         // Use description from article page if it's longer than the existing summary
-        if (metadata.description) {
+        if (pageMetadata.description) {
           const summaryLength = story.summary ? story.summary.length : 0;
-          const metadataDescriptionLength = metadata.description.length;
+          const metadataDescriptionLength = pageMetadata.description.length;
 
           if (metadataDescriptionLength > summaryLength) {
-            story.summary = he.decode(metadata.description);
+            story.summary = he.decode(pageMetadata.description);
           }
         }
-
-        // Try to fetch the full article text
-        try {
-          const response = await this.retryableRequest(story.url);
-          const $ = cheerio.load(response.data);
-          const textContent = $("body").text();
-
-          const prompt = `
-Extract the following information from this news article as a valid JSON object:
-1. fullText: The complete article text content, excluding navigation, ads, related articles, comments, and other non-article content
-2. authorNames: An array of names of the article's author(s)
-
-If you can't find any clear article text or the article appears to be behind a paywall, set fullText to "PAYWALL_DETECTED" and provide any author information if available.
-
-Return only a valid JSON object with these fields, properly escaped, with no additional text, markdown, or explanation.
-
-HTML content:
-${textContent.substring(0, this.MAX_TOKENS)}
-`;
-
-          const aiResponse = await this.langChainService.askAi(prompt);
-
-          try {
-            const articleData = this.cleanJsonResponse(aiResponse);
-
-            if (articleData) {
-              if (
-                articleData.fullText &&
-                articleData.fullText !== "PAYWALL_DETECTED" &&
-                articleData.fullText.length > 100
-              ) {
-                storyMetadata.fullText = he.decode(articleData.fullText);
-              }
-
-              if (
-                articleData.authorNames &&
-                Array.isArray(articleData.authorNames)
-              ) {
-                storyMetadata.authorNames = articleData.authorNames;
-              } else if (
-                articleData.authorName &&
-                typeof articleData.authorName === "string"
-              ) {
-                storyMetadata.authorNames = [articleData.authorName];
-              }
-
-              story.metadata = JSON.stringify(storyMetadata);
-            }
-          } catch (jsonError) {
-            console.error(`Error parsing JSON response: ${jsonError}`);
-          }
-        } catch (extractError) {
-          console.error(
-            `Error extracting article data for ${story.url}:`,
-            extractError
-          );
-        }
-
-        return story;
       }
-    } catch (error) {
-      console.error(`Error fetching metadata for ${story.url}:`, error);
-    }
 
-    return story;
+      return story;
+    } catch (error) {
+      console.error(`Error fetching page metadata for ${story.url}:`, error);
+      return story;
+    }
   }
 
   public async scrapeAllSources(): Promise<void> {
@@ -322,7 +263,7 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       for (const source of sources) {
         if (source.id) {
           // Type guard for source.id
-          await this.scrapeSource(source);
+          await this.scrapeSource(source.id);
         }
       }
       console.log("Completed collecting from all sources");
@@ -332,84 +273,32 @@ ${textContent.substring(0, this.MAX_TOKENS)}
     }
   }
 
-  public async scrapeSource(source: ISource): Promise<IStory[]> {
+  public async scrapeSource(sourceId: string): Promise<void> {
+    // Get source from BaseBase
+    const source = await sourceService.getSource(sourceId);
+
+    if (!source || !source.rssUrl) {
+      throw new Error(
+        `No RSS URL configured for source: ${source?.name || sourceId}`
+      );
+    }
+
     try {
-      console.log(
-        `Starting collection for source: ${source.name} (${source.homepageUrl})`
-      );
+      const stories = await this.readRss(sourceId);
 
-      if (!source.id) {
-        throw new Error("Source ID is required");
+      // Process each story
+      for (const story of stories) {
+        await storyService.addStory(sourceId, story);
       }
-
-      // Update lastScrapedAt in source metadata
-      await sourceService.updateSource(source.id, {
-        ...source,
-        lastScrapedAt: new Date().toISOString(),
-      });
-
-      let stories: IStory[] = [];
-      if (source.rssUrl) {
-        console.log(`Using RSS feed for ${source.name}`);
-        stories = await this.readRss(source.id);
-      } else if (source.includeSelector) {
-        console.log(`Scraping webpage for ${source.name}`);
-        stories = await this.scrapeHomepage(source.id);
-      } else {
-        const rssUrl = source.homepageUrl + "/feed";
-        if (await this.rssExists(rssUrl)) {
-          console.log(`Found RSS feed at ${rssUrl}`);
-          // Update source with RSS URL
-          await sourceService.updateSource(source.id, {
-            ...source,
-            rssUrl: rssUrl,
-          });
-          stories = await this.readRss(source.id);
-        }
-      }
-
-      // Process and save each story individually
-      const savedStories: IStory[] = [];
-      for (let index = 0; index < stories.length; index++) {
-        const story = stories[index];
-        try {
-          let enhancedStory = story;
-
-          // Only scrape details if no paywall exists
-          if (!source.hasPaywall) {
-            console.log(`Scraping story: ${story.url}`);
-            enhancedStory = await this.scrapeStoryDetailsPage(story);
-          }
-
-          // Save the story using our story service
-          const savedStory = await storyService.addStory(
-            source.id,
-            enhancedStory,
-            index + 1
-          );
-          savedStories.push(savedStory);
-          console.log(`Saved story: ${savedStory.headline}`);
-        } catch (storyError) {
-          console.error(`Error processing story ${story.url}:`, storyError);
-        }
-      }
-
-      console.log(`Saved ${savedStories.length} stories for ${source.name}`);
-      return savedStories;
     } catch (error) {
-      console.error(
-        `Error collecting from source ${source.name}:`,
-        (error as Error).message
-      );
-      return [];
+      console.error("Error scraping source:", error);
+      throw error;
     }
   }
 
   public async scrapeHomepage(sourceId: string): Promise<IStory[]> {
     // Get source from BaseBase
     const source = await sourceService.getSource(sourceId);
-    const sourceMetadata = JSON.parse(source.metadata || "{}");
-    const fullSource = { ...source, ...sourceMetadata };
 
     if (!source) {
       throw new Error(`Unknown source: ${sourceId}`);
@@ -418,7 +307,7 @@ ${textContent.substring(0, this.MAX_TOKENS)}
     try {
       const response = await this.retryableRequest(source.homepageUrl || "");
       const html: string = response.data;
-      const cleanedHtml: string = this.cleanHtml(html, fullSource);
+      const cleanedHtml: string = this.cleanHtml(html, source);
       const stories = await this.parseStories(
         cleanedHtml,
         source.homepageUrl || ""
@@ -434,8 +323,6 @@ ${textContent.substring(0, this.MAX_TOKENS)}
   public async readRss(sourceId: string): Promise<IStory[]> {
     // Get source from BaseBase
     const source = await sourceService.getSource(sourceId);
-    const sourceMetadata = JSON.parse(source.metadata || "{}");
-    const fullSource = { ...source, ...sourceMetadata };
 
     if (!source || !source.rssUrl) {
       throw new Error(
@@ -467,17 +354,6 @@ ${textContent.substring(0, this.MAX_TOKENS)}
       });
 
       const feed = await parser.parseString(rssResponse.data);
-
-      // Update source image if feed has one and source doesn't
-      if (feed.image?.url && !sourceMetadata.imageUrl && source.id) {
-        await sourceService.updateSource(source.id, {
-          ...source,
-          metadata: JSON.stringify({
-            ...sourceMetadata,
-            imageUrl: feed.image.url,
-          }),
-        });
-      }
 
       return feed.items.reduce((acc: IStory[], item: any, index: number) => {
         try {
@@ -539,17 +415,15 @@ ${textContent.substring(0, this.MAX_TOKENS)}
             ),
             imageUrl,
             newsSource: sourceId,
-            metadata: JSON.stringify({
-              section: Section.NEWS,
-              type: NewsTopic.US_POLITICS,
-              fullText: he.decode(item.content || ""),
-              inPageRank: index + 1,
-              createdAt: item.isoDate
-                ? new Date(item.isoDate).toISOString()
-                : item.pubDate
-                  ? new Date(item.pubDate).toISOString()
-                  : new Date().toISOString(),
-            }),
+            section: Section.NEWS,
+            type: NewsTopic.US_POLITICS,
+            fullText: he.decode(item.content || ""),
+            inPageRank: index + 1,
+            createdAt: item.isoDate
+              ? new Date(item.isoDate)
+              : item.pubDate
+                ? new Date(item.pubDate)
+                : new Date(),
           };
 
           acc.push(newStory);

@@ -14,27 +14,42 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const checkAuth = async () => {
       if (!pathname) {
         setIsLoading(false);
         return;
       }
+
+      // Small delay to ensure token is stored
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const token = tokenService.getToken();
+      console.log('[AuthWrapper] Checking auth:', {
+        pathname,
+        hasToken: !!token,
+        tokenLength: token?.length || 0
+      });
+      
       const isAuthRoute = AUTH_ROUTES.includes(pathname);
 
       if (!token) {
-      // No token - show homepage or allow auth routes
-      if (!isAuthRoute && pathname !== '/') {
-        router.replace('/');
+        // No token - show homepage or allow auth routes
+        if (!isAuthRoute && pathname !== '/') {
+          console.log('[AuthWrapper] No token, redirecting to homepage');
+          router.replace('/');
+        }
+      } else {
+        // Has token - redirect to reader if on homepage or auth routes
+        if (isAuthRoute || pathname === '/') {
+          console.log('[AuthWrapper] Has token, redirecting to reader');
+          router.replace('/reader');
+        }
       }
-    } else {
-      // Has token - redirect to reader if on homepage or auth routes
-            if (isAuthRoute || pathname === '/') {
-              router.replace('/reader');
-            }
-    }
 
-          setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, [pathname, router]);
 
   if (isLoading) {

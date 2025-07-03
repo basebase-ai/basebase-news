@@ -9,8 +9,6 @@ export interface ISource {
   homepageUrl?: string;
   rssUrl?: string;
   lastScrapedAt?: string;
-  metadata?: string; // Stringified JSON containing our additional fields
-  // These fields are stored in metadata
   includeSelector?: string;
   excludeSelector?: string;
   tags?: string[];
@@ -20,9 +18,7 @@ export interface ISource {
 
 // GraphQL response types
 interface GetAllNewsSourcesResponse {
-  data: {
-    getAllNewsSources: ISource[];
-  };
+  getNewsSources: ISource[];
 }
 
 interface GetNewsSourceResponse {
@@ -45,11 +41,14 @@ interface UpdateNewsSourceResponse {
 
 // GraphQL Queries and Mutations
 const CREATE_SOURCE = gql`
-  mutation CreateNewsSource($input: CreateNewsSourceInput!) {
+  mutation CreateNewsSource($input: NewsSourceInput!) {
     createNewsSource(input: $input) {
       id
       name
-      creator
+      creator {
+        id
+        name
+      }
       homepageUrl
       rssUrl
       lastScrapedAt
@@ -58,11 +57,14 @@ const CREATE_SOURCE = gql`
 `;
 
 const UPDATE_SOURCE = gql`
-  mutation UpdateNewsSource($id: ID!, $input: UpdateNewsSourceInput!) {
+  mutation UpdateNewsSource($id: ID!, $input: NewsSourceInput!) {
     updateNewsSource(id: $id, input: $input) {
       id
       name
-      creator
+      creator {
+        id
+        name
+      }
       homepageUrl
       rssUrl
       lastScrapedAt
@@ -75,7 +77,10 @@ const GET_SOURCE = gql`
     getNewsSource(id: $id) {
       id
       name
-      creator
+      creator {
+        id
+        name
+      }
       homepageUrl
       rssUrl
       lastScrapedAt
@@ -84,11 +89,14 @@ const GET_SOURCE = gql`
 `;
 
 const GET_ALL_SOURCES = gql`
-  query GetAllNewsSources {
-    getAllNewsSources {
+  query GetNewsSources {
+    getNewsSources {
       id
       name
-      creator
+      creator {
+        id
+        name
+      }
       homepageUrl
       rssUrl
       lastScrapedAt
@@ -104,36 +112,21 @@ export class SourceService {
     const homepageUrl = source.homepageUrl?.trim().replace(/\/+$/, "");
     const rssUrl = source.rssUrl?.trim().replace(/\/+$/, "");
 
-    // Store additional metadata in a structured format that we'll save in BaseBase
-    const metadata = {
+    return {
+      name: source.name?.trim(),
+      homepageUrl,
+      rssUrl,
       includeSelector: source.includeSelector?.trim(),
       excludeSelector: source.excludeSelector?.trim(),
       tags: source.tags?.map((tag: string) => tag.trim()),
       biasScore: source.biasScore,
       hasPaywall: source.hasPaywall,
-    };
-
-    return {
-      name: source.name?.trim(),
-      homepageUrl,
-      rssUrl,
-      metadata: JSON.stringify(metadata),
+      lastScrapedAt: new Date().toISOString(), // Add required lastScrapedAt field
     };
   }
 
   public async addSource(source: ISource): Promise<void> {
     const trimmedSource = this.trimSourceFields(source);
-
-    // Check if source with same name exists
-    const existingSources =
-      await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
-    if (
-      existingSources.data.getAllNewsSources.some(
-        (s: ISource) => s.name === trimmedSource.name
-      )
-    ) {
-      throw new Error(`Source ${trimmedSource.name} already exists`);
-    }
 
     await basebaseService.graphql<CreateNewsSourceResponse>(CREATE_SOURCE, {
       input: trimmedSource,
@@ -166,9 +159,16 @@ export class SourceService {
   }
 
   public async getSources(): Promise<ISource[]> {
-    const response =
-      await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
-    return response.data.getAllNewsSources;
+    try {
+      const response =
+        await basebaseService.graphql<GetAllNewsSourcesResponse>(
+          GET_ALL_SOURCES
+        );
+      return response.getNewsSources;
+    } catch (error) {
+      console.error("Error getting sources:", error);
+      throw error;
+    }
   }
 
   /**
@@ -186,7 +186,7 @@ export class SourceService {
     // Get all sources and filter/sort in memory since BaseBase doesn't support text search yet
     const response =
       await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
-    const sources = response.data.getAllNewsSources;
+    const sources = response.data.getNewsSources;
 
     return sources
       .filter((source: ISource) =>

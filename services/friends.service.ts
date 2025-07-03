@@ -10,7 +10,6 @@ const GET_USER_FRIENDS = gql`
         id
         name
         phone
-        metadata
       }
     }
   }
@@ -26,7 +25,6 @@ const GET_MUTUAL_FRIENDS = gql`
           id
           name
           phone
-          metadata
         }
       }
     }
@@ -41,7 +39,6 @@ const UPDATE_USER_FRIENDS = gql`
         id
         name
         phone
-        metadata
       }
     }
   }
@@ -53,7 +50,6 @@ export interface IUser {
   email: string;
   phone: string;
   imageUrl?: string;
-  metadata?: string;
   friends?: IUser[];
 }
 
@@ -63,7 +59,6 @@ interface IFriend {
   email: string;
   phone: string;
   imageUrl?: string;
-  metadata?: string;
   friends?: IUser[];
 }
 
@@ -109,7 +104,6 @@ export class FriendsService {
         email: user.data.email,
         phone: user.data.phone,
         imageUrl: user.data.imageUrl,
-        metadata: user.data.metadata,
       }));
   }
 
@@ -139,7 +133,6 @@ export class FriendsService {
         email: user.data.email,
         phone: user.data.phone,
         imageUrl: user.data.imageUrl,
-        metadata: user.data.metadata,
       }));
   }
 

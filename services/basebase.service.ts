@@ -137,6 +137,7 @@ class BasebaseService {
     if (!this.authenticatedClient) {
       throw new Error("Not authenticated");
     }
+    console.log("GraphQL request:", BASEBASE_ENDPOINT, query, variables);
 
     try {
       return await this.authenticatedClient.request<T>(query, variables);
