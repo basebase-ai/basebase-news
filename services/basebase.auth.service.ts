@@ -12,6 +12,33 @@ interface VerifyCodeResponse {
   verifyCode: string;
 }
 
+const canonicalizePhone = (phone: string): string => {
+  if (!phone) {
+    return "";
+  }
+  // If phone already starts with + and the rest of the string contains only digits, assume it's in E.164 format
+  if (phone.startsWith("+") && /^\d+$/.test(phone.slice(1))) {
+    return phone;
+  }
+
+  // Otherwise, remove all non-digit characters
+  let digits = phone.replace(/\D/g, "");
+
+  // If the number has 10 digits (US number), prepend +1
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+
+  // If the number has 11 digits and starts with 1 (US number), prepend +
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+${digits}`;
+  }
+
+  // For other cases, just prepend +
+  // This is a simplistic approach and might not cover all international cases
+  return `+${digits}`;
+};
+
 // GraphQL Queries and Mutations
 const REQUEST_CODE = gql`
   mutation RequestCode($phone: String!, $name: String!) {
@@ -39,15 +66,16 @@ class BasebaseAuthService {
 
   async requestCode(phone: string, name: string): Promise<boolean> {
     try {
+      const canonicalizedPhone = canonicalizePhone(phone);
       console.log("[BasebaseAuthService] Sending requestCode with:", {
-        phone,
+        phone: canonicalizedPhone,
         name,
       });
 
       const response = await this.client.request<RequestCodeResponse>(
         REQUEST_CODE,
         {
-          phone,
+          phone: canonicalizedPhone,
           name,
         }
       );
@@ -71,10 +99,11 @@ class BasebaseAuthService {
 
   async verifyCode(phone: string, code: string): Promise<string> {
     try {
+      const canonicalizedPhone = canonicalizePhone(phone);
       const response = await this.client.request<VerifyCodeResponse>(
         VERIFY_CODE,
         {
-          phone,
+          phone: canonicalizedPhone,
           code,
           appApiKey: BASEBASE_API_KEY,
         }
