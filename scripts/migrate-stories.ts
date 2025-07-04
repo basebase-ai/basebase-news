@@ -168,6 +168,8 @@ async function migrateStories() {
           url: story.articleUrl,
           imageUrl: story.imageUrl || "https://via.placeholder.com/300",
           newsSource: basebaseSourceId,
+          publishedAt:
+            story.createdAt?.toISOString() || new Date().toISOString(),
         };
 
         console.log(`  📝 Story data prepared:`, {
@@ -176,6 +178,7 @@ async function migrateStories() {
           url: basebaseStory.url,
           imageUrl: basebaseStory.imageUrl.substring(0, 50) + "...",
           newsSource: basebaseStory.newsSource,
+          publishedAt: basebaseStory.publishedAt,
         });
 
         // Create a proper IStory object for the addStory method
@@ -185,8 +188,6 @@ async function migrateStories() {
             id: "system",
             name: "Migration System",
           },
-          createdAt: story.createdAt?.toISOString() || new Date().toISOString(),
-          updatedAt: story.updatedAt?.toISOString() || new Date().toISOString(),
         };
 
         console.log(`  🚀 Calling storyService.addStory...`);

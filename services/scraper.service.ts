@@ -157,11 +157,7 @@ ${html}`;
         headline: he.decode(story.fullHeadline),
         url: this.makeUrlAbsolute(story.articleUrl, baseUrl),
         summary: story.summary,
-        metadata: JSON.stringify({
-          section: story.section,
-          type: story.type,
-          fullHeadline: he.decode(story.fullHeadline),
-        }),
+        publishedAt: new Date().toISOString(),
       }));
     } catch (error) {
       console.error("Error parsing stories:", error);
@@ -222,7 +218,6 @@ ${html}`;
         const pageMetadata = await previewService.getPageMetadata(story.url);
 
         // Set lastScrapedAt to current time
-        story.updatedAt = new Date();
 
         // Add image URL if found
         if (pageMetadata.imageUrl) {
@@ -401,7 +396,7 @@ ${html}`;
             imageUrl = item.enclosure.url;
           }
 
-          const newStory: IStory = {
+          const newStory = {
             headline: he.decode(item.title || ""),
             url: item.link || "",
             summary: he.decode(
@@ -413,18 +408,27 @@ ${html}`;
                 (hasAudioEnclosure ? "Audio recording" : "") ||
                 (hasVideoEnclosure ? "Video recording" : "")
             ),
-            imageUrl,
+            imageUrl: imageUrl || "",
             newsSource: sourceId,
+            publishedAt: (item.isoDate
+              ? new Date(item.isoDate)
+              : item.pubDate
+                ? new Date(item.pubDate)
+                : new Date()
+            ).toISOString(),
             section: Section.NEWS,
             type: NewsTopic.US_POLITICS,
             fullText: he.decode(item.content || ""),
             inPageRank: index + 1,
-            createdAt: item.isoDate
+            createdAt: (item.isoDate
               ? new Date(item.isoDate)
               : item.pubDate
                 ? new Date(item.pubDate)
-                : new Date(),
-          };
+                : new Date()
+            ).toISOString(),
+            updatedAt: new Date().toISOString(),
+            creator: { id: "system", name: "system" },
+          } as IStory;
 
           acc.push(newStory);
         } catch (error) {

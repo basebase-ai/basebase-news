@@ -13,8 +13,7 @@ export interface IStory {
   url: string;
   imageUrl: string;
   newsSource: string;
-  createdAt: string;
-  updatedAt: string;
+  publishedAt: string;
 }
 
 interface IStoryStatus {
@@ -22,6 +21,11 @@ interface IStoryStatus {
   storyId: string;
   status: "READ" | "UNREAD";
   starred: boolean;
+  newsSource: {
+    id: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface GqlStory {
@@ -39,6 +43,7 @@ interface GqlStory {
   };
   createdAt: string;
   updatedAt: string;
+  publishedAt: string;
 }
 
 // GraphQL response types
@@ -76,6 +81,7 @@ const CREATE_STORY = gql`
       }
       createdAt
       updatedAt
+      publishedAt
     }
   }
 `;
@@ -97,6 +103,7 @@ const UPDATE_STORY = gql`
       }
       createdAt
       updatedAt
+      publishedAt
     }
   }
 `;
@@ -118,6 +125,7 @@ const GET_STORY = gql`
       }
       createdAt
       updatedAt
+      publishedAt
     }
   }
 `;
@@ -139,6 +147,7 @@ const GET_ALL_STORIES = gql`
       }
       createdAt
       updatedAt
+      publishedAt
     }
   }
 `;
@@ -153,6 +162,7 @@ export class StoryService {
       url: story.url,
       imageUrl: story.imageUrl || "https://via.placeholder.com/300",
       newsSource: sourceId,
+      publishedAt: story.publishedAt,
     };
   }
 

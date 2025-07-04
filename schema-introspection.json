@@ -2411,6 +2411,18 @@
               }
             },
             "args": []
+          },
+          {
+            "name": "publishedAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "Date",
+                "kind": "SCALAR"
+              }
+            },
+            "args": []
           }
         ],
         "inputFields": null
@@ -2746,6 +2758,17 @@
               "kind": "NON_NULL",
               "ofType": {
                 "name": "ID",
+                "kind": "SCALAR"
+              }
+            }
+          },
+          {
+            "name": "publishedAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "Date",
                 "kind": "SCALAR"
               }
             }
