@@ -22,21 +22,15 @@ interface GetAllNewsSourcesResponse {
 }
 
 interface GetNewsSourceResponse {
-  data: {
-    getNewsSource: ISource;
-  };
+  getNewsSource: ISource;
 }
 
 interface CreateNewsSourceResponse {
-  data: {
-    createNewsSource: ISource;
-  };
+  createNewsSource: ISource;
 }
 
 interface UpdateNewsSourceResponse {
-  data: {
-    updateNewsSource: ISource;
-  };
+  updateNewsSource: ISource;
 }
 
 // GraphQL Queries and Mutations
@@ -152,7 +146,7 @@ export class SourceService {
         GET_SOURCE,
         { id }
       );
-      return response.data.getNewsSource;
+      return response.getNewsSource;
     } catch (error) {
       throw new Error(`Source with id ${id} not found`);
     }
@@ -186,7 +180,7 @@ export class SourceService {
     // Get all sources and filter/sort in memory since BaseBase doesn't support text search yet
     const response =
       await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
-    const sources = response.data.getNewsSources;
+    const sources = response.getNewsSources;
 
     return sources
       .filter((source: ISource) =>

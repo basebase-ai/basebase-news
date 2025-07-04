@@ -1,0 +1,504 @@
+{
+  "generatedAt": "2025-07-03T19:56:02.728Z",
+  "totalMapped": 70,
+  "totalUnmatchedMongo": 0,
+  "totalUnmatchedBasebase": 0,
+  "mapping": {
+    "67fed58dc1b67f2c01a279e9": "6866a5e28241fb5a11a1caf6",
+    "68004510fd56ec46b3efd523": "6866a5e28241fb5a11a1caf7",
+    "680050ba8d7c49c64ce03894": "6866a5e38241fb5a11a1caf8",
+    "68012d04af809cb7c12f6233": "6866a5e38241fb5a11a1caf9",
+    "680143d57612d6b22e29fbbe": "6866a5e48241fb5a11a1cafa",
+    "680146937612d6b22e29fdaf": "6866a5e48241fb5a11a1cafb",
+    "6801476bb3ab61433350df6e": "6866a5e58241fb5a11a1cafc",
+    "68014831b3ab61433350e056": "6866a5e58241fb5a11a1cafd",
+    "68014aeeb3ab61433350e647": "6866a5e58241fb5a11a1cafe",
+    "68014de9e2084ca0488745da": "6866a5e68241fb5a11a1caff",
+    "68014ebfe2084ca0488746ed": "6866a5e68241fb5a11a1cb00",
+    "68014ed9e2084ca048874752": "6866a5e78241fb5a11a1cb01",
+    "68015043b51f114f513228a6": "6866a5e78241fb5a11a1cb02",
+    "6801a17a21adbd2e8d2eaa5f": "6866a5e88241fb5a11a1cb03",
+    "6803fd644c5c9c3bb5cd10b9": "6866a5e88241fb5a11a1cb04",
+    "680048daa57e029c4deeddea": "6866a5e88241fb5a11a1cb05",
+    "6801474ab3ab61433350def4": "6866a5e98241fb5a11a1cb06",
+    "68014a37b3ab61433350e261": "6866a5ea8241fb5a11a1cb07",
+    "68014ab3b3ab61433350e430": "6866a5ea8241fb5a11a1cb08",
+    "68014c2ab3ab61433350e800": "6866a5ea8241fb5a11a1cb09",
+    "68014f54b51f114f5132261c": "6866a5eb8241fb5a11a1cb0a",
+    "68014f87b51f114f513226fa": "6866a5eb8241fb5a11a1cb0b",
+    "68015033b51f114f51322871": "6866a5ec8241fb5a11a1cb0c",
+    "6801505ab51f114f513228ea": "6866a5ec8241fb5a11a1cb0d",
+    "680150fab51f114f51322b6e": "6866a5ed8241fb5a11a1cb0e",
+    "68015125b51f114f51322bf6": "6866a5ed8241fb5a11a1cb0f",
+    "6801516db51f114f51322e7b": "6866a5ee8241fb5a11a1cb10",
+    "680151f7b51f114f513231a7": "6866a5ee8241fb5a11a1cb11",
+    "68044d3984e6767a701a4d4d": "6866a5ee8241fb5a11a1cb12",
+    "6801440c7612d6b22e29fc34": "6866a5ef8241fb5a11a1cb13",
+    "68014a15b3ab61433350e1ff": "6866a5ef8241fb5a11a1cb14",
+    "68014b83b3ab61433350e715": "6866a5f08241fb5a11a1cb15",
+    "68014c8fb3ab61433350e8a5": "6866a5f08241fb5a11a1cb16",
+    "68014cd6b3ab61433350e95d": "6866a5f18241fb5a11a1cb17",
+    "68014fedb51f114f513227b5": "6866a5f18241fb5a11a1cb18",
+    "68015005b51f114f513227f9": "6866a5f18241fb5a11a1cb19",
+    "68015024b51f114f5132283d": "6866a5f28241fb5a11a1cb1a",
+    "680150a8b51f114f51322ae6": "6866a5f28241fb5a11a1cb1b",
+    "68015141b51f114f51322c40": "6866a5f38241fb5a11a1cb1c",
+    "680151abb51f114f51322fa9": "6866a5f38241fb5a11a1cb1d",
+    "680195aeac938d1d15ab755f": "6866a5f48241fb5a11a1cb1e",
+    "6800506b8d7c49c64ce0384c": "6866a5f48241fb5a11a1cb1f",
+    "68014a4cb3ab61433350e2d2": "6866a5f58241fb5a11a1cb20",
+    "68014a9cb3ab61433350e3b7": "6866a5f58241fb5a11a1cb21",
+    "68014ad0b3ab61433350e4b4": "6866a5f68241fb5a11a1cb22",
+    "68014fb1b51f114f5132273e": "6866a5f68241fb5a11a1cb23",
+    "68015116b51f114f51322bb2": "6866a5f68241fb5a11a1cb24",
+    "68015134b51f114f51322bfc": "6866a5f78241fb5a11a1cb25",
+    "68015150b51f114f51322c75": "6866a5f78241fb5a11a1cb26",
+    "68015185b51f114f51322f11": "6866a5f88241fb5a11a1cb27",
+    "680151e4b51f114f5132310b": "6866a5f88241fb5a11a1cb28",
+    "6803fa41db5e0edb2dcaf5e7": "6866a5f98241fb5a11a1cb29",
+    "68044dc9cedb1176f1e6a7b5": "6866a5f98241fb5a11a1cb2a",
+    "68488826df5bcc7b75cf5a75": "6866a5fa8241fb5a11a1cb2b",
+    "6848a4ca7f21ef903eaf1b9b": "6866a5fa8241fb5a11a1cb2c",
+    "68499d72038d050d8a1fdb91": "6866a5fb8241fb5a11a1cb2d",
+    "684a34a3f1c8687524352f13": "6866a5fb8241fb5a11a1cb2e",
+    "684a3ff62e37d09425f89bd6": "6866a5fc8241fb5a11a1cb2f",
+    "684a4c46f1c86875243535af": "6866a5fc8241fb5a11a1cb30",
+    "684a4cfff1c8687524353691": "6866a5fc8241fb5a11a1cb31",
+    "684a4dcdf1c86875243536e8": "6866a5fd8241fb5a11a1cb32",
+    "684a52d82f4fa43616e2f84b": "6866a5fd8241fb5a11a1cb33",
+    "684da878821f644f18eb4754": "6866a5fe8241fb5a11a1cb34",
+    "684f2f6127798f91bda94ce1": "6866a5ff8241fb5a11a1cb35",
+    "685b131313f0aa1c3742cc94": "6866a5ff8241fb5a11a1cb36",
+    "685b1bd16b4e6d2fed6f0052": "6866a5ff8241fb5a11a1cb37",
+    "685c2d78b581ecb366bcfba8": "6866a6008241fb5a11a1cb38",
+    "685c2fc156753b048e3b53c4": "6866a6008241fb5a11a1cb39",
+    "685c30110a0fda743945d460": "6866a6018241fb5a11a1cb3a",
+    "685d9e632efa0f2fbc8f4261": "6866a6018241fb5a11a1cb3b"
+  },
+  "details": {
+    "mapped": [
+      {
+        "mongoId": "67fed58dc1b67f2c01a279e9",
+        "basebaseId": "6866a5e28241fb5a11a1caf6",
+        "name": "The New York Times",
+        "homepageUrl": "https://www.nytimes.com"
+      },
+      {
+        "mongoId": "68004510fd56ec46b3efd523",
+        "basebaseId": "6866a5e28241fb5a11a1caf7",
+        "name": "Boing Boing",
+        "homepageUrl": "https://boingboing.net"
+      },
+      {
+        "mongoId": "680050ba8d7c49c64ce03894",
+        "basebaseId": "6866a5e38241fb5a11a1caf8",
+        "name": "Deadline",
+        "homepageUrl": "https://deadline.com"
+      },
+      {
+        "mongoId": "68012d04af809cb7c12f6233",
+        "basebaseId": "6866a5e38241fb5a11a1caf9",
+        "name": "LA Times",
+        "homepageUrl": "https://www.latimes.com"
+      },
+      {
+        "mongoId": "680143d57612d6b22e29fbbe",
+        "basebaseId": "6866a5e48241fb5a11a1cafa",
+        "name": "The Nerd Reich",
+        "homepageUrl": "https://www.thenerdreich.com/"
+      },
+      {
+        "mongoId": "680146937612d6b22e29fdaf",
+        "basebaseId": "6866a5e48241fb5a11a1cafb",
+        "name": "Wired",
+        "homepageUrl": "https://www.wired.com"
+      },
+      {
+        "mongoId": "6801476bb3ab61433350df6e",
+        "basebaseId": "6866a5e58241fb5a11a1cafc",
+        "name": "Press Watch",
+        "homepageUrl": "https://criticalread.substack.com/"
+      },
+      {
+        "mongoId": "68014831b3ab61433350e056",
+        "basebaseId": "6866a5e58241fb5a11a1cafd",
+        "name": "TechDirt",
+        "homepageUrl": "https://www.techdirt.com/"
+      },
+      {
+        "mongoId": "68014aeeb3ab61433350e647",
+        "basebaseId": "6866a5e58241fb5a11a1cafe",
+        "name": "Popular Information",
+        "homepageUrl": "https://popular.info/"
+      },
+      {
+        "mongoId": "68014de9e2084ca0488745da",
+        "basebaseId": "6866a5e68241fb5a11a1caff",
+        "name": "Can We Still Govern",
+        "homepageUrl": "https://donmoynihan.substack.com/"
+      },
+      {
+        "mongoId": "68014ebfe2084ca0488746ed",
+        "basebaseId": "6866a5e68241fb5a11a1cb00",
+        "name": "Citation Needed",
+        "homepageUrl": "https://www.citationneeded.news/"
+      },
+      {
+        "mongoId": "68014ed9e2084ca048874752",
+        "basebaseId": "6866a5e78241fb5a11a1cb01",
+        "name": "Wolf Street",
+        "homepageUrl": "https://wolfstreet.com/"
+      },
+      {
+        "mongoId": "68015043b51f114f513228a6",
+        "basebaseId": "6866a5e78241fb5a11a1cb02",
+        "name": "The Snap Forward",
+        "homepageUrl": "https://alexsteffen.substack.com/"
+      },
+      {
+        "mongoId": "6801a17a21adbd2e8d2eaa5f",
+        "basebaseId": "6866a5e88241fb5a11a1cb03",
+        "name": "Kottke",
+        "homepageUrl": "https://kottke.org"
+      },
+      {
+        "mongoId": "6803fd644c5c9c3bb5cd10b9",
+        "basebaseId": "6866a5e88241fb5a11a1cb04",
+        "name": "Chicago Sun-Times",
+        "homepageUrl": "https://chicago.suntimes.com"
+      },
+      {
+        "mongoId": "680048daa57e029c4deeddea",
+        "basebaseId": "6866a5e88241fb5a11a1cb05",
+        "name": "How Things Work",
+        "homepageUrl": "https://www.hamiltonnolan.com"
+      },
+      {
+        "mongoId": "6801474ab3ab61433350def4",
+        "basebaseId": "6866a5e98241fb5a11a1cb06",
+        "name": "Lucid",
+        "homepageUrl": "https://lucid.substack.com/"
+      },
+      {
+        "mongoId": "68014a37b3ab61433350e261",
+        "basebaseId": "6866a5ea8241fb5a11a1cb07",
+        "name": "American Freakshow",
+        "homepageUrl": "https://www.americanfreakshow.news/"
+      },
+      {
+        "mongoId": "68014ab3b3ab61433350e430",
+        "basebaseId": "6866a5ea8241fb5a11a1cb08",
+        "name": "Weather West",
+        "homepageUrl": "https://weatherwest.com/"
+      },
+      {
+        "mongoId": "68014c2ab3ab61433350e800",
+        "basebaseId": "6866a5ea8241fb5a11a1cb09",
+        "name": "404 Media",
+        "homepageUrl": "https://www.404media.co/"
+      },
+      {
+        "mongoId": "68014f54b51f114f5132261c",
+        "basebaseId": "6866a5eb8241fb5a11a1cb0a",
+        "name": "User Mag",
+        "homepageUrl": "https://www.usermag.co/"
+      },
+      {
+        "mongoId": "68014f87b51f114f513226fa",
+        "basebaseId": "6866a5eb8241fb5a11a1cb0b",
+        "name": "Café Anne",
+        "homepageUrl": "https://annekadet.substack.com/"
+      },
+      {
+        "mongoId": "68015033b51f114f51322871",
+        "basebaseId": "6866a5ec8241fb5a11a1cb0c",
+        "name": "Heads Up News",
+        "homepageUrl": "https://www.headsupnews.org/"
+      },
+      {
+        "mongoId": "6801505ab51f114f513228ea",
+        "basebaseId": "6866a5ec8241fb5a11a1cb0d",
+        "name": "Heather Cox Richardson - Letters from an American",
+        "homepageUrl": "https://heathercoxrichardson.substack.com/"
+      },
+      {
+        "mongoId": "680150fab51f114f51322b6e",
+        "basebaseId": "6866a5ed8241fb5a11a1cb0e",
+        "name": "The Lens",
+        "homepageUrl": "https://stephaniekelton.substack.com/"
+      },
+      {
+        "mongoId": "68015125b51f114f51322bf6",
+        "basebaseId": "6866a5ed8241fb5a11a1cb0f",
+        "name": "Uses This",
+        "homepageUrl": "https://usesthis.com/"
+      },
+      {
+        "mongoId": "6801516db51f114f51322e7b",
+        "basebaseId": "6866a5ee8241fb5a11a1cb10",
+        "name": "How To Feel Alive",
+        "homepageUrl": "https://catherineprice.substack.com/"
+      },
+      {
+        "mongoId": "680151f7b51f114f513231a7",
+        "basebaseId": "6866a5ee8241fb5a11a1cb11",
+        "name": "Curious About Everything",
+        "homepageUrl": "https://jodiettenberg.substack.com/"
+      },
+      {
+        "mongoId": "68044d3984e6767a701a4d4d",
+        "basebaseId": "6866a5ee8241fb5a11a1cb12",
+        "name": "The Atlantic",
+        "homepageUrl": "https://www.theatlantic.com"
+      },
+      {
+        "mongoId": "6801440c7612d6b22e29fc34",
+        "basebaseId": "6866a5ef8241fb5a11a1cb13",
+        "name": "Men Yell At Me",
+        "homepageUrl": "https://lyz.substack.com/"
+      },
+      {
+        "mongoId": "68014a15b3ab61433350e1ff",
+        "basebaseId": "6866a5ef8241fb5a11a1cb14",
+        "name": "Ed Zitron",
+        "homepageUrl": "https://www.wheresyoured.at/"
+      },
+      {
+        "mongoId": "68014b83b3ab61433350e715",
+        "basebaseId": "6866a5f08241fb5a11a1cb15",
+        "name": "BIG by Matt Stoller",
+        "homepageUrl": "https://www.thebignewsletter.com/"
+      },
+      {
+        "mongoId": "68014c8fb3ab61433350e8a5",
+        "basebaseId": "6866a5f08241fb5a11a1cb16",
+        "name": "Breaking the News",
+        "homepageUrl": "https://fallows.substack.com/"
+      },
+      {
+        "mongoId": "68014cd6b3ab61433350e95d",
+        "basebaseId": "6866a5f18241fb5a11a1cb17",
+        "name": "The Handbasket",
+        "homepageUrl": "https://www.thehandbasket.co/"
+      },
+      {
+        "mongoId": "68014fedb51f114f513227b5",
+        "basebaseId": "6866a5f18241fb5a11a1cb18",
+        "name": "The Present Age",
+        "homepageUrl": "https://www.readtpa.com/"
+      },
+      {
+        "mongoId": "68015005b51f114f513227f9",
+        "basebaseId": "6866a5f18241fb5a11a1cb19",
+        "name": "Still Looking For The Joke",
+        "homepageUrl": "https://merrillmarkoe.substack.com/"
+      },
+      {
+        "mongoId": "68015024b51f114f5132283d",
+        "basebaseId": "6866a5f28241fb5a11a1cb1a",
+        "name": "MLB Trade Rumors",
+        "homepageUrl": "https://www.mlbtraderumors.com/"
+      },
+      {
+        "mongoId": "680150a8b51f114f51322ae6",
+        "basebaseId": "6866a5f28241fb5a11a1cb1b",
+        "name": "Hard Reset",
+        "homepageUrl": "https://hardresetmedia.substack.com/"
+      },
+      {
+        "mongoId": "68015141b51f114f51322c40",
+        "basebaseId": "6866a5f38241fb5a11a1cb1c",
+        "name": "The Reframe",
+        "homepageUrl": "https://www.the-reframe.com/"
+      },
+      {
+        "mongoId": "680151abb51f114f51322fa9",
+        "basebaseId": "6866a5f38241fb5a11a1cb1d",
+        "name": "The Sword and the Sandwich",
+        "homepageUrl": "https://buttondown.com/theswordandthesandwich"
+      },
+      {
+        "mongoId": "680195aeac938d1d15ab755f",
+        "basebaseId": "6866a5f48241fb5a11a1cb1e",
+        "name": "The Guardian",
+        "homepageUrl": "https://www.theguardian.com/us"
+      },
+      {
+        "mongoId": "6800506b8d7c49c64ce0384c",
+        "basebaseId": "6866a5f48241fb5a11a1cb1f",
+        "name": "Pluralistic: Daily links from Cory Doctorow",
+        "homepageUrl": "https://pluralistic.net/"
+      },
+      {
+        "mongoId": "68014a4cb3ab61433350e2d2",
+        "basebaseId": "6866a5f58241fb5a11a1cb20",
+        "name": "Ars Technica",
+        "homepageUrl": "https://arstechnica.com/"
+      },
+      {
+        "mongoId": "68014a9cb3ab61433350e3b7",
+        "basebaseId": "6866a5f58241fb5a11a1cb21",
+        "name": "Very Serious",
+        "homepageUrl": "https://www.joshbarro.com/"
+      },
+      {
+        "mongoId": "68014ad0b3ab61433350e4b4",
+        "basebaseId": "6866a5f68241fb5a11a1cb22",
+        "name": "Electrek",
+        "homepageUrl": "https://electrek.co/"
+      },
+      {
+        "mongoId": "68014fb1b51f114f5132273e",
+        "basebaseId": "6866a5f68241fb5a11a1cb23",
+        "name": "MGOBLOG",
+        "homepageUrl": "https://www.mgoblog.com/"
+      },
+      {
+        "mongoId": "68015116b51f114f51322bb2",
+        "basebaseId": "6866a5f68241fb5a11a1cb24",
+        "name": "Ctrl Alt Right Delete",
+        "homepageUrl": "https://www.altrightdelete.news/"
+      },
+      {
+        "mongoId": "68015134b51f114f51322bfc",
+        "basebaseId": "6866a5f78241fb5a11a1cb25",
+        "name": "Disconnect",
+        "homepageUrl": "https://www.disconnect.blog/"
+      },
+      {
+        "mongoId": "68015150b51f114f51322c75",
+        "basebaseId": "6866a5f78241fb5a11a1cb26",
+        "name": "Can't Get Much Higher",
+        "homepageUrl": "https://www.cantgetmuchhigher.com/"
+      },
+      {
+        "mongoId": "68015185b51f114f51322f11",
+        "basebaseId": "6866a5f88241fb5a11a1cb27",
+        "name": "Sherrilyn",
+        "homepageUrl": "https://sherrilyn.substack.com/"
+      },
+      {
+        "mongoId": "680151e4b51f114f5132310b",
+        "basebaseId": "6866a5f88241fb5a11a1cb28",
+        "name": "Finding Gravity",
+        "homepageUrl": "https://www.findinggravity.net/"
+      },
+      {
+        "mongoId": "6803fa41db5e0edb2dcaf5e7",
+        "basebaseId": "6866a5f98241fb5a11a1cb29",
+        "name": "Boston Globe",
+        "homepageUrl": "https://www.bostonglobe.com"
+      },
+      {
+        "mongoId": "68044dc9cedb1176f1e6a7b5",
+        "basebaseId": "6866a5f98241fb5a11a1cb2a",
+        "name": "The New Yorker",
+        "homepageUrl": "https://www.newyorker.com"
+      },
+      {
+        "mongoId": "68488826df5bcc7b75cf5a75",
+        "basebaseId": "6866a5fa8241fb5a11a1cb2b",
+        "name": "TechCrunch",
+        "homepageUrl": "https://www.techcrunch.com"
+      },
+      {
+        "mongoId": "6848a4ca7f21ef903eaf1b9b",
+        "basebaseId": "6866a5fa8241fb5a11a1cb2c",
+        "name": "VentureBeat",
+        "homepageUrl": "https://www.venturebeat.com"
+      },
+      {
+        "mongoId": "68499d72038d050d8a1fdb91",
+        "basebaseId": "6866a5fb8241fb5a11a1cb2d",
+        "name": "Your Time Starts Now",
+        "homepageUrl": "https://loricorbetmann.substack.com"
+      },
+      {
+        "mongoId": "684a34a3f1c8687524352f13",
+        "basebaseId": "6866a5fb8241fb5a11a1cb2e",
+        "name": "Axios",
+        "homepageUrl": "https://axios.com"
+      },
+      {
+        "mongoId": "684a3ff62e37d09425f89bd6",
+        "basebaseId": "6866a5fc8241fb5a11a1cb2f",
+        "name": "Meditations in an Emergency",
+        "homepageUrl": "https://www.meditationsinanemergency.com"
+      },
+      {
+        "mongoId": "684a4c46f1c86875243535af",
+        "basebaseId": "6866a5fc8241fb5a11a1cb30",
+        "name": "BBC",
+        "homepageUrl": "https://bbc.co.uk"
+      },
+      {
+        "mongoId": "684a4cfff1c8687524353691",
+        "basebaseId": "6866a5fc8241fb5a11a1cb31",
+        "name": "SF Standard",
+        "homepageUrl": "https://sfstandard.com"
+      },
+      {
+        "mongoId": "684a4dcdf1c86875243536e8",
+        "basebaseId": "6866a5fd8241fb5a11a1cb32",
+        "name": "National Public Radio",
+        "homepageUrl": "https://npr.org"
+      },
+      {
+        "mongoId": "684a52d82f4fa43616e2f84b",
+        "basebaseId": "6866a5fd8241fb5a11a1cb33",
+        "name": "Quartz",
+        "homepageUrl": "https://qz.com"
+      },
+      {
+        "mongoId": "684da878821f644f18eb4754",
+        "basebaseId": "6866a5fe8241fb5a11a1cb34",
+        "name": "Mother Jones",
+        "homepageUrl": "https://www.motherjones.com"
+      },
+      {
+        "mongoId": "684f2f6127798f91bda94ce1",
+        "basebaseId": "6866a5ff8241fb5a11a1cb35",
+        "name": "The Ink",
+        "homepageUrl": "https://the.ink"
+      },
+      {
+        "mongoId": "685b131313f0aa1c3742cc94",
+        "basebaseId": "6866a5ff8241fb5a11a1cb36",
+        "name": "Hacker News",
+        "homepageUrl": "https://news.ycombinator.com"
+      },
+      {
+        "mongoId": "685b1bd16b4e6d2fed6f0052",
+        "basebaseId": "6866a5ff8241fb5a11a1cb37",
+        "name": "The Onion",
+        "homepageUrl": "https://theonion.com"
+      },
+      {
+        "mongoId": "685c2d78b581ecb366bcfba8",
+        "basebaseId": "6866a6008241fb5a11a1cb38",
+        "name": "The Financial Times",
+        "homepageUrl": "https://www.ft.com"
+      },
+      {
+        "mongoId": "685c2fc156753b048e3b53c4",
+        "basebaseId": "6866a6008241fb5a11a1cb39",
+        "name": "Marin Independent Journal",
+        "homepageUrl": "https://www.marinij.com"
+      },
+      {
+        "mongoId": "685c30110a0fda743945d460",
+        "basebaseId": "6866a6018241fb5a11a1cb3a",
+        "name": "Business Insider",
+        "homepageUrl": "https://www.businessinsider.com"
+      },
+      {
+        "mongoId": "685d9e632efa0f2fbc8f4261",
+        "basebaseId": "6866a6018241fb5a11a1cb3b",
+        "name": "Straight Arrow News",
+        "homepageUrl": "https://san.com"
+      }
+    ],
+    "unmatchedMongo": [],
+    "unmatchedBasebase": []
+  }
+}

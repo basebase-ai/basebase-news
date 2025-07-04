@@ -17,21 +17,25 @@ async function listStories() {
     basebaseService.setToken(token);
 
     // Get all stories
-    const response = await basebaseService.graphql<{ getNewsStorys: any[] }>(
+    const response = await basebaseService.graphql<{
+      getNewsStorys: {
+        id: string;
+        headline: string;
+        url: string;
+        newsSource: { id: string; name: string };
+        createdAt: string;
+      }[];
+    }>(
       `query GetNewsStorys {
         getNewsStorys {
           id
-          creator {
+          headline
+          url
+          newsSource {
             id
             name
           }
-          headline
-          summary
-          url
-          imageUrl
-          newsSource
           createdAt
-          updatedAt
         }
       }`
     );
@@ -43,7 +47,9 @@ async function listStories() {
     stories.forEach((story, index) => {
       console.log(`${index + 1}. ${story.headline}`);
       console.log(`   URL: ${story.url}`);
-      console.log(`   Source: ${story.newsSource}`);
+      console.log(
+        `   Source: ${story.newsSource.name} (${story.newsSource.id})`
+      );
       console.log(`   Created: ${new Date(story.createdAt).toLocaleString()}`);
       console.log("");
     });

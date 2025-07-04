@@ -24,21 +24,38 @@ interface IStoryStatus {
   starred: boolean;
 }
 
+interface GqlStory {
+  id?: string;
+  creator: {
+    id: string;
+    name: string;
+  };
+  headline: string;
+  summary: string;
+  url: string;
+  imageUrl: string;
+  newsSource: {
+    id: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 // GraphQL response types
 interface GetAllNewsStoriesResponse {
-  getNewsStorys: IStory[];
+  getNewsStorys: GqlStory[];
 }
 
 interface GetNewsStoryResponse {
-  getNewsStory: IStory;
+  getNewsStory: GqlStory;
 }
 
 interface CreateNewsStoryResponse {
-  createNewsStory: IStory;
+  createNewsStory: GqlStory;
 }
 
 interface UpdateNewsStoryResponse {
-  updateNewsStory: IStory;
+  updateNewsStory: GqlStory;
 }
 
 // GraphQL Queries and Mutations
@@ -54,7 +71,9 @@ const CREATE_STORY = gql`
       summary
       url
       imageUrl
-      newsSource
+      newsSource {
+        id
+      }
       createdAt
       updatedAt
     }
@@ -73,7 +92,9 @@ const UPDATE_STORY = gql`
       summary
       url
       imageUrl
-      newsSource
+      newsSource {
+        id
+      }
       createdAt
       updatedAt
     }
@@ -92,7 +113,9 @@ const GET_STORY = gql`
       summary
       url
       imageUrl
-      newsSource
+      newsSource {
+        id
+      }
       createdAt
       updatedAt
     }
@@ -111,7 +134,9 @@ const GET_ALL_STORIES = gql`
       summary
       url
       imageUrl
-      newsSource
+      newsSource {
+        id
+      }
       createdAt
       updatedAt
     }
@@ -127,7 +152,7 @@ export class StoryService {
       summary: story.summary || "No summary available",
       url: story.url,
       imageUrl: story.imageUrl || "https://via.placeholder.com/300",
-      newsSource: sourceId, // This should be the ID of the NewsSource
+      newsSource: sourceId,
     };
   }
 
@@ -140,7 +165,8 @@ export class StoryService {
       }
     );
 
-    return result.createNewsStory;
+    const { newsSource, ...rest } = result.createNewsStory;
+    return { ...rest, newsSource: newsSource.id };
   }
 
   public async getStories(sourceId: string): Promise<IStory[]> {
@@ -150,7 +176,7 @@ export class StoryService {
     const response =
       await basebaseService.graphql<GetAllNewsStoriesResponse>(GET_ALL_STORIES);
     let stories = response.getNewsStorys.filter(
-      (story) => story.newsSource === sourceId
+      (story) => story.newsSource.id === sourceId
     );
 
     // Sort by date
@@ -158,7 +184,10 @@ export class StoryService {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-    return stories.slice(0, MAX_STORIES);
+    return stories.slice(0, MAX_STORIES).map(({ newsSource, ...rest }) => ({
+      ...rest,
+      newsSource: newsSource.id,
+    }));
   }
 
   public async searchStories(
@@ -186,7 +215,7 @@ export class StoryService {
 
     // Apply filters
     if (sourceId) {
-      stories = stories.filter((story) => story.newsSource === sourceId);
+      stories = stories.filter((story) => story.newsSource.id === sourceId);
     }
 
     if (before) {
@@ -220,7 +249,10 @@ export class StoryService {
     const paginatedStories = stories.slice(startIndex, endIndex);
 
     return {
-      stories: paginatedStories,
+      stories: paginatedStories.map(({ newsSource, ...rest }) => ({
+        ...rest,
+        newsSource: newsSource.id,
+      })),
       totalCount,
       hasMore: endIndex < totalCount,
       page,
