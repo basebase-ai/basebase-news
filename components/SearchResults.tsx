@@ -18,7 +18,7 @@ interface SearchStory {
     name: string;
     imageUrl?: string;
   };
-  createdAt: string;
+  publishedAt: string;
 }
 
 interface SearchResultsProps {
@@ -59,13 +59,13 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
             id: story.id || '',
             headline: story.headline,
             summary: story.summary || '',
-            url: story.url || story.articleUrl || '',
+            url: story.url || '',
             imageUrl: story.imageUrl,
             source: {
               name: sourceName,
               imageUrl: undefined // BaseBase doesn't support source images yet
             },
-            createdAt: story.createdAt?.toISOString() || new Date().toISOString()
+            publishedAt: story.publishedAt || new Date().toISOString()
           };
         }));
 
@@ -181,7 +181,7 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
                         )}
                         <span>{story.source.name}</span>
                       </div>
-                      <span>{formatTimeAgo(story.createdAt)}</span>
+                      <span>{formatTimeAgo(story.publishedAt)}</span>
                     </div>
                     
                     <FontAwesomeIcon 

@@ -32,11 +32,7 @@ export interface Story {
   sourceUrl: string;
   summary?: string;
   imageUrl?: string;
-  authorNames?: string[];
-  section?: string;
-  type?: string;
-  inPageRank?: number;
   status?: "READ" | "UNREAD";
   starred?: boolean;
-  createdAt?: string;
+  publishedAt?: string;
 }

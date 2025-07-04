@@ -14,6 +14,7 @@ interface CommentData {
   _id: string;
   text: string;
   createdAt: string;
+  updatedAt: string;
   userId: {
     _id: string;
     first: string;
@@ -29,7 +30,7 @@ interface StoryData {
   articleUrl: string;
   summary?: string;
   imageUrl?: string;
-  createdAt?: string;
+  publishedAt?: string;
   source: {
     _id: string;
     name: string;
@@ -224,7 +225,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
           imageUrl={story.imageUrl}
           articleUrl={story.articleUrl}
           showFullImage={true}
-          createdAt={story.createdAt}
+          publishedAt={story.publishedAt}
           storyId={story._id}
           onStoryClick={handleStoryClick}
         />
@@ -327,7 +328,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
             sourceUrl: reactionStory.source.homepageUrl,
             summary: reactionStory.summary,
             imageUrl: reactionStory.imageUrl,
-            createdAt: reactionStory.createdAt
+            publishedAt: reactionStory.publishedAt
           }}
           onClose={() => {
             setShowReactionModal(false);

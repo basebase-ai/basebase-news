@@ -13,6 +13,7 @@ interface CommentData {
   _id: string;
   text: string;
   createdAt: string;
+  updatedAt: string;
   userId: {
     _id: string;
     first: string;
@@ -66,7 +67,6 @@ export default function Feed() {
 
       // Transform stories to match the UI's expected format
       const transformedStories = await Promise.all(result.stories.map(async story => {
-        const metadata = JSON.parse(story.metadata || '{}');
         let source = {
           _id: story.newsSource || '',
           name: '', // Default value
@@ -91,11 +91,11 @@ export default function Feed() {
 
         return {
           _id: story.id || '',
-          fullHeadline: metadata.fullHeadline || story.headline,
+          fullHeadline: story.headline,
           articleUrl: story.url || '',
           summary: story.summary,
           imageUrl: story.imageUrl,
-          createdAt: metadata.createdAt,
+          createdAt: story.publishedAt,
           source,
           starCount: 0, // We'll need to implement star functionality in BaseBase
           starredBy: [], // We'll need to implement star functionality in BaseBase

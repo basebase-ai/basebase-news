@@ -27,7 +27,6 @@ export default function ReaderPage() {
         homepageUrl: source.homepageUrl || '',
         imageUrl: undefined,
         lastScrapedAt: source.lastScrapedAt,
-        metadata: source.metadata ? JSON.parse(source.metadata) : {},
       }));
       setCurrentSources(transformedSources);
     } catch (error) {

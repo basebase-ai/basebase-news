@@ -41,7 +41,6 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
       name: formData.get('name') as string,
       homepageUrl: homepageUrl,
       rssUrl: rssUrl,
-      metadata: JSON.stringify({ imageUrl })
     };
 
     try {

@@ -8,7 +8,7 @@ interface LinkPreviewProps {
   imageUrl?: string;
   articleUrl: string;
   showFullImage?: boolean;
-  createdAt?: string;
+  publishedAt?: string;
   storyId?: string;
   onStoryClick?: (storyId: string) => void;
 }
@@ -19,7 +19,7 @@ export default function LinkPreview({
   imageUrl, 
   articleUrl, 
   showFullImage = true,
-  createdAt,
+  publishedAt,
   storyId,
   onStoryClick
 }: LinkPreviewProps) {
@@ -78,9 +78,9 @@ export default function LinkPreview({
             <h3 className="text-base font-medium text-gray-900 dark:text-white line-clamp-2 mb-1">
               {headline}
             </h3>
-            {createdAt && (
+            {publishedAt && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                {formatDate(createdAt)}
+                {formatDate(publishedAt)}
               </p>
             )}
             {summary && (

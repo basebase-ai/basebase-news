@@ -101,8 +101,8 @@ export default function SourceBox({
     try {
       const stories = await storyService.getStories(source._id);
       const sortedStories = [...stories].sort((a, b) => {
-        const dateA = new Date(a.createdAt || '');
-        const dateB = new Date(b.createdAt || '');
+        const dateA = new Date(a.publishedAt || '');
+        const dateB = new Date(b.publishedAt || '');
         return dateB.getTime() - dateA.getTime();
       });
 
@@ -115,13 +115,9 @@ export default function SourceBox({
         sourceUrl: source.homepageUrl,
         summary: story.summary,
         imageUrl: story.imageUrl,
-        authorNames: story.authorNames,
-        section: story.section,
-        type: story.type,
-        inPageRank: story.inPageRank || undefined,
         status: 'UNREAD' as const,
         starred: false,
-        createdAt: story.createdAt?.toISOString()
+        publishedAt: story.publishedAt || '',
       }));
 
       setHeadlines(transformedStories as Story[]);
@@ -404,9 +400,9 @@ export default function SourceBox({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        {headline.createdAt && (
+                        {headline.publishedAt && (
                           <div className={`text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ${denseMode ? 'hidden group-hover:block' : 'block'}`}>
-                            {formatDate(headline.createdAt)}
+                            {formatDate(headline.publishedAt)}
                           </div>
                         )}
                         {headline.status === 'READ' && (

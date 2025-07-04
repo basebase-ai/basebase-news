@@ -65,48 +65,6 @@
             ]
           },
           {
-            "name": "getApp",
-            "type": {
-              "name": "App",
-              "kind": "OBJECT",
-              "ofType": null
-            },
-            "args": [
-              {
-                "name": "id",
-                "type": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "ID",
-                    "kind": "SCALAR"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "name": "getApps",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": null,
-                "kind": "LIST"
-              }
-            },
-            "args": [
-              {
-                "name": "filter",
-                "type": {
-                  "name": "JSON",
-                  "kind": "SCALAR",
-                  "ofType": null
-                }
-              }
-            ]
-          },
-          {
             "name": "getMovie",
             "type": {
               "name": "Movie",
@@ -359,6 +317,48 @@
             ]
           },
           {
+            "name": "getProject",
+            "type": {
+              "name": "Project",
+              "kind": "OBJECT",
+              "ofType": null
+            },
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "ID",
+                    "kind": "SCALAR"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "getProjects",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": null,
+                "kind": "LIST"
+              }
+            },
+            "args": [
+              {
+                "name": "filter",
+                "type": {
+                  "name": "JSON",
+                  "kind": "SCALAR",
+                  "ofType": null
+                }
+              }
+            ]
+          },
+          {
             "name": "getMyUser",
             "type": {
               "name": "User",
@@ -368,14 +368,11 @@
             "args": []
           },
           {
-            "name": "getMyApps",
+            "name": "getMyProject",
             "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": null,
-                "kind": "LIST"
-              }
+              "name": "Project",
+              "kind": "OBJECT",
+              "ofType": null
             },
             "args": []
           },
@@ -564,119 +561,6 @@
               },
               {
                 "name": "itemId",
-                "type": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "ID",
-                    "kind": "SCALAR"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "name": "createApp",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "App",
-                "kind": "OBJECT"
-              }
-            },
-            "args": [
-              {
-                "name": "input",
-                "type": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "AppInput",
-                    "kind": "INPUT_OBJECT"
-                  }
-                }
-              },
-              {
-                "name": "name",
-                "type": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "String",
-                    "kind": "SCALAR"
-                  }
-                }
-              },
-              {
-                "name": "description",
-                "type": {
-                  "name": "String",
-                  "kind": "SCALAR",
-                  "ofType": null
-                }
-              },
-              {
-                "name": "githubUrl",
-                "type": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "String",
-                    "kind": "SCALAR"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "name": "updateApp",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "App",
-                "kind": "OBJECT"
-              }
-            },
-            "args": [
-              {
-                "name": "id",
-                "type": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "ID",
-                    "kind": "SCALAR"
-                  }
-                }
-              },
-              {
-                "name": "input",
-                "type": {
-                  "name": null,
-                  "kind": "NON_NULL",
-                  "ofType": {
-                    "name": "AppInput",
-                    "kind": "INPUT_OBJECT"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "name": "deleteApp",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "Boolean",
-                "kind": "SCALAR"
-              }
-            },
-            "args": [
-              {
-                "name": "id",
                 "type": {
                   "name": null,
                   "kind": "NON_NULL",
@@ -1397,6 +1281,89 @@
             ]
           },
           {
+            "name": "createProject",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "Project",
+                "kind": "OBJECT"
+              }
+            },
+            "args": [
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "ProjectInput",
+                    "kind": "INPUT_OBJECT"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "updateProject",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "Project",
+                "kind": "OBJECT"
+              }
+            },
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "ID",
+                    "kind": "SCALAR"
+                  }
+                }
+              },
+              {
+                "name": "input",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "ProjectInput",
+                    "kind": "INPUT_OBJECT"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "deleteProject",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "Boolean",
+                "kind": "SCALAR"
+              }
+            },
+            "args": [
+              {
+                "name": "id",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "ID",
+                    "kind": "SCALAR"
+                  }
+                }
+              }
+            ]
+          },
+          {
             "name": "requestCode",
             "type": {
               "name": null,
@@ -1462,7 +1429,7 @@
                 }
               },
               {
-                "name": "appApiKey",
+                "name": "projectApiKey",
                 "type": {
                   "name": null,
                   "kind": "NON_NULL",
@@ -1475,18 +1442,18 @@
             ]
           },
           {
-            "name": "generateAppApiKey",
+            "name": "generateProjectApiKey",
             "type": {
               "name": null,
               "kind": "NON_NULL",
               "ofType": {
-                "name": "App",
+                "name": "Project",
                 "kind": "OBJECT"
               }
             },
             "args": [
               {
-                "name": "appId",
+                "name": "ProjectId",
                 "type": {
                   "name": null,
                   "kind": "NON_NULL",
@@ -1499,18 +1466,18 @@
             ]
           },
           {
-            "name": "revokeAppApiKey",
+            "name": "revokeProjectApiKey",
             "type": {
               "name": null,
               "kind": "NON_NULL",
               "ofType": {
-                "name": "App",
+                "name": "Project",
                 "kind": "OBJECT"
               }
             },
             "args": [
               {
-                "name": "appId",
+                "name": "ProjectId",
                 "type": {
                   "name": null,
                   "kind": "NON_NULL",
@@ -1558,12 +1525,23 @@
             },
             "args": [
               {
-                "name": "input",
+                "name": "typeName",
                 "type": {
                   "name": null,
                   "kind": "NON_NULL",
                   "ofType": {
-                    "name": "AddFieldInput",
+                    "name": "String",
+                    "kind": "SCALAR"
+                  }
+                }
+              },
+              {
+                "name": "field",
+                "type": {
+                  "name": null,
+                  "kind": "NON_NULL",
+                  "ofType": {
+                    "name": "GraphQLFieldInput",
                     "kind": "INPUT_OBJECT"
                   }
                 }
@@ -1770,86 +1748,6 @@
               "ofType": {
                 "name": "User",
                 "kind": "OBJECT"
-              }
-            },
-            "args": []
-          }
-        ],
-        "inputFields": null
-      },
-      {
-        "name": "App",
-        "kind": "OBJECT",
-        "description": "An application in the system",
-        "fields": [
-          {
-            "name": "id",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "ID",
-                "kind": "SCALAR"
-              }
-            },
-            "args": []
-          },
-          {
-            "name": "creator",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "User",
-                "kind": "OBJECT"
-              }
-            },
-            "args": []
-          },
-          {
-            "name": "createdAt",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "Date",
-                "kind": "SCALAR"
-              }
-            },
-            "args": []
-          },
-          {
-            "name": "updatedAt",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "Date",
-                "kind": "SCALAR"
-              }
-            },
-            "args": []
-          },
-          {
-            "name": "githubUrl",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "String",
-                "kind": "SCALAR"
-              }
-            },
-            "args": []
-          },
-          {
-            "name": "name",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "String",
-                "kind": "SCALAR"
               }
             },
             "args": []
@@ -2428,6 +2326,113 @@
         "inputFields": null
       },
       {
+        "name": "Project",
+        "kind": "OBJECT",
+        "description": "An Projectlication in the system",
+        "fields": [
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "ID",
+                "kind": "SCALAR"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "creator",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "User",
+                "kind": "OBJECT"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "createdAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "Date",
+                "kind": "SCALAR"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "updatedAt",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "Date",
+                "kind": "SCALAR"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR",
+              "ofType": null
+            },
+            "args": []
+          },
+          {
+            "name": "githubUrl",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR"
+              }
+            },
+            "args": []
+          },
+          {
+            "name": "apiKey",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR",
+              "ofType": null
+            },
+            "args": []
+          },
+          {
+            "name": "apiKeyExpiresAt",
+            "type": {
+              "name": "Date",
+              "kind": "SCALAR",
+              "ofType": null
+            },
+            "args": []
+          }
+        ],
+        "inputFields": null
+      },
+      {
         "name": "UserInput",
         "kind": "INPUT_OBJECT",
         "description": null,
@@ -2478,36 +2483,6 @@
               "kind": "LIST",
               "ofType": {
                 "name": "ID",
-                "kind": "SCALAR"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "AppInput",
-        "kind": "INPUT_OBJECT",
-        "description": null,
-        "fields": null,
-        "inputFields": [
-          {
-            "name": "githubUrl",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "String",
-                "kind": "SCALAR"
-              }
-            }
-          },
-          {
-            "name": "name",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "String",
                 "kind": "SCALAR"
               }
             }
@@ -2776,6 +2751,60 @@
         ]
       },
       {
+        "name": "ProjectInput",
+        "kind": "INPUT_OBJECT",
+        "description": null,
+        "fields": null,
+        "inputFields": [
+          {
+            "name": "name",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR"
+              }
+            }
+          },
+          {
+            "name": "description",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR",
+              "ofType": null
+            }
+          },
+          {
+            "name": "githubUrl",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL",
+              "ofType": {
+                "name": "String",
+                "kind": "SCALAR"
+              }
+            }
+          },
+          {
+            "name": "apiKey",
+            "type": {
+              "name": "String",
+              "kind": "SCALAR",
+              "ofType": null
+            }
+          },
+          {
+            "name": "apiKeyExpiresAt",
+            "type": {
+              "name": "Date",
+              "kind": "SCALAR",
+              "ofType": null
+            }
+          }
+        ]
+      },
+      {
         "name": "GraphQLFieldInput",
         "kind": "INPUT_OBJECT",
         "description": "Input type for defining a GraphQL field with its properties and metadata",
@@ -2814,23 +2843,17 @@
           {
             "name": "isList",
             "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "Boolean",
-                "kind": "SCALAR"
-              }
+              "name": "Boolean",
+              "kind": "SCALAR",
+              "ofType": null
             }
           },
           {
             "name": "isRequired",
             "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "Boolean",
-                "kind": "SCALAR"
-              }
+              "name": "Boolean",
+              "kind": "SCALAR",
+              "ofType": null
             }
           },
           {
@@ -2845,6 +2868,14 @@
             "name": "refType",
             "type": {
               "name": "String",
+              "kind": "SCALAR",
+              "ofType": null
+            }
+          },
+          {
+            "name": "unique",
+            "type": {
+              "name": "Boolean",
               "kind": "SCALAR",
               "ofType": null
             }
@@ -2884,36 +2915,6 @@
               "ofType": {
                 "name": null,
                 "kind": "LIST"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "name": "AddFieldInput",
-        "kind": "INPUT_OBJECT",
-        "description": "Input for adding a new field to an existing GraphQL type",
-        "fields": null,
-        "inputFields": [
-          {
-            "name": "typeName",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "String",
-                "kind": "SCALAR"
-              }
-            }
-          },
-          {
-            "name": "field",
-            "type": {
-              "name": null,
-              "kind": "NON_NULL",
-              "ofType": {
-                "name": "GraphQLFieldInput",
-                "kind": "INPUT_OBJECT"
               }
             }
           }
@@ -3788,107 +3789,6 @@
           ]
         },
         {
-          "name": "createApp",
-          "type": {
-            "name": null,
-            "kind": "NON_NULL"
-          },
-          "args": [
-            {
-              "name": "input",
-              "type": {
-                "name": null,
-                "kind": "NON_NULL",
-                "ofType": {
-                  "name": "AppInput",
-                  "kind": "INPUT_OBJECT"
-                }
-              }
-            },
-            {
-              "name": "name",
-              "type": {
-                "name": null,
-                "kind": "NON_NULL",
-                "ofType": {
-                  "name": "String",
-                  "kind": "SCALAR"
-                }
-              }
-            },
-            {
-              "name": "description",
-              "type": {
-                "name": "String",
-                "kind": "SCALAR",
-                "ofType": null
-              }
-            },
-            {
-              "name": "githubUrl",
-              "type": {
-                "name": null,
-                "kind": "NON_NULL",
-                "ofType": {
-                  "name": "String",
-                  "kind": "SCALAR"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "name": "updateApp",
-          "type": {
-            "name": null,
-            "kind": "NON_NULL"
-          },
-          "args": [
-            {
-              "name": "id",
-              "type": {
-                "name": null,
-                "kind": "NON_NULL",
-                "ofType": {
-                  "name": "ID",
-                  "kind": "SCALAR"
-                }
-              }
-            },
-            {
-              "name": "input",
-              "type": {
-                "name": null,
-                "kind": "NON_NULL",
-                "ofType": {
-                  "name": "AppInput",
-                  "kind": "INPUT_OBJECT"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "name": "deleteApp",
-          "type": {
-            "name": null,
-            "kind": "NON_NULL"
-          },
-          "args": [
-            {
-              "name": "id",
-              "type": {
-                "name": null,
-                "kind": "NON_NULL",
-                "ofType": {
-                  "name": "ID",
-                  "kind": "SCALAR"
-                }
-              }
-            }
-          ]
-        },
-        {
           "name": "createMovie",
           "type": {
             "name": null,
@@ -4501,6 +4401,77 @@
           ]
         },
         {
+          "name": "createProject",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          },
+          "args": [
+            {
+              "name": "input",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "ProjectInput",
+                  "kind": "INPUT_OBJECT"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateProject",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          },
+          "args": [
+            {
+              "name": "id",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "ID",
+                  "kind": "SCALAR"
+                }
+              }
+            },
+            {
+              "name": "input",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "ProjectInput",
+                  "kind": "INPUT_OBJECT"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteProject",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          },
+          "args": [
+            {
+              "name": "id",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "ID",
+                  "kind": "SCALAR"
+                }
+              }
+            }
+          ]
+        },
+        {
           "name": "requestCode",
           "type": {
             "name": null,
@@ -4561,7 +4532,7 @@
               }
             },
             {
-              "name": "appApiKey",
+              "name": "projectApiKey",
               "type": {
                 "name": null,
                 "kind": "NON_NULL",
@@ -4574,14 +4545,14 @@
           ]
         },
         {
-          "name": "generateAppApiKey",
+          "name": "generateProjectApiKey",
           "type": {
             "name": null,
             "kind": "NON_NULL"
           },
           "args": [
             {
-              "name": "appId",
+              "name": "ProjectId",
               "type": {
                 "name": null,
                 "kind": "NON_NULL",
@@ -4594,14 +4565,14 @@
           ]
         },
         {
-          "name": "revokeAppApiKey",
+          "name": "revokeProjectApiKey",
           "type": {
             "name": null,
             "kind": "NON_NULL"
           },
           "args": [
             {
-              "name": "appId",
+              "name": "ProjectId",
               "type": {
                 "name": null,
                 "kind": "NON_NULL",
@@ -4641,12 +4612,23 @@
           },
           "args": [
             {
-              "name": "input",
+              "name": "typeName",
               "type": {
                 "name": null,
                 "kind": "NON_NULL",
                 "ofType": {
-                  "name": "AddFieldInput",
+                  "name": "String",
+                  "kind": "SCALAR"
+                }
+              }
+            },
+            {
+              "name": "field",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "GraphQLFieldInput",
                   "kind": "INPUT_OBJECT"
                 }
               }
@@ -4759,43 +4741,6 @@
         },
         {
           "name": "getUsers",
-          "type": {
-            "name": null,
-            "kind": "NON_NULL"
-          },
-          "args": [
-            {
-              "name": "filter",
-              "type": {
-                "name": "JSON",
-                "kind": "SCALAR",
-                "ofType": null
-              }
-            }
-          ]
-        },
-        {
-          "name": "getApp",
-          "type": {
-            "name": "App",
-            "kind": "OBJECT"
-          },
-          "args": [
-            {
-              "name": "id",
-              "type": {
-                "name": null,
-                "kind": "NON_NULL",
-                "ofType": {
-                  "name": "ID",
-                  "kind": "SCALAR"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "name": "getApps",
           "type": {
             "name": null,
             "kind": "NON_NULL"
@@ -5034,6 +4979,43 @@
           ]
         },
         {
+          "name": "getProject",
+          "type": {
+            "name": "Project",
+            "kind": "OBJECT"
+          },
+          "args": [
+            {
+              "name": "id",
+              "type": {
+                "name": null,
+                "kind": "NON_NULL",
+                "ofType": {
+                  "name": "ID",
+                  "kind": "SCALAR"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "getProjects",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL"
+          },
+          "args": [
+            {
+              "name": "filter",
+              "type": {
+                "name": "JSON",
+                "kind": "SCALAR",
+                "ofType": null
+              }
+            }
+          ]
+        },
+        {
           "name": "getMyUser",
           "type": {
             "name": "User",
@@ -5042,10 +5024,10 @@
           "args": []
         },
         {
-          "name": "getMyApps",
+          "name": "getMyProject",
           "type": {
-            "name": null,
-            "kind": "NON_NULL"
+            "name": "Project",
+            "kind": "OBJECT"
           },
           "args": []
         },
