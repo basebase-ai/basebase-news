@@ -7,7 +7,6 @@ import { storyService, IStory } from "./story.service";
 import { previewService } from "./preview.service";
 import Parser from "rss-parser";
 import * as he from "he";
-import { gql } from "graphql-request";
 
 // Define enums that were previously imported from models
 enum Section {

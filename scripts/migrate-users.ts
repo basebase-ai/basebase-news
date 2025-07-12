@@ -1,9 +1,10 @@
-import { basebaseService } from "../services/basebase.service";
+// Note: basebaseService is no longer needed as services handle their own database connections
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
 import * as fs from "fs";
-import { gql } from "graphql-request";
+import { addDoc, getDocs, updateDoc, collection, doc } from "basebase";
+import { db } from "../services/basebase.service";
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -19,10 +20,6 @@ if (!process.env.BASEBASE_TOKEN) {
 }
 
 console.log("Environment variables loaded");
-
-// Set up BaseBase authentication
-basebaseService.setToken(process.env.BASEBASE_TOKEN);
-console.log("BaseBase token set");
 
 // Load source ID mapping
 const mappingFile = "source-id-mapping.json";
@@ -62,34 +59,6 @@ interface BaseBaseUser {
   };
 }
 
-// GraphQL queries and mutations
-const GET_USER_BY_PHONE = gql`
-  query GetUserByPhone($phone: String!) {
-    documents(collection: "users", filter: { phone: { eq: $phone } }) {
-      id
-      data
-    }
-  }
-`;
-
-const CREATE_USER = gql`
-  mutation CreateUser($input: JSON!) {
-    createDocument(collection: "users", data: $input) {
-      id
-      data
-    }
-  }
-`;
-
-const UPDATE_USER = gql`
-  mutation UpdateUser($id: ID!, $data: JSON!) {
-    updateDocument(collection: "users", id: $id, data: $data) {
-      id
-      data
-    }
-  }
-`;
-
 async function connectToMongo(): Promise<{ client: MongoClient; db: any }> {
   console.log("Attempting to connect to MongoDB...");
   console.log(
@@ -109,11 +78,18 @@ async function connectToMongo(): Promise<{ client: MongoClient; db: any }> {
 
 async function findUserByPhone(phone: string): Promise<BaseBaseUser | null> {
   try {
-    const response = await basebaseService.graphql<{
-      documents: BaseBaseUser[];
-    }>(GET_USER_BY_PHONE, { phone });
+    const usersCollection = collection(db, "users");
+    const usersSnap = await getDocs(usersCollection);
 
-    return response.documents.length > 0 ? response.documents[0] : null;
+    let foundUser: BaseBaseUser | null = null;
+    usersSnap.forEach((userDoc) => {
+      const userData = userDoc.data() as any;
+      if (userData.phone === phone) {
+        foundUser = { id: userDoc.id, data: userData };
+      }
+    });
+
+    return foundUser;
   } catch (error) {
     console.error(`Error finding user by phone ${phone}:`, error);
     return null;
@@ -128,11 +104,13 @@ async function createUser(userData: {
   sourceIds?: string[];
 }): Promise<BaseBaseUser> {
   try {
-    const response = await basebaseService.graphql<{
-      createDocument: BaseBaseUser;
-    }>(CREATE_USER, { input: userData });
+    const usersCollection = collection(db, "users");
+    const docRef = await addDoc(usersCollection, userData);
 
-    return response.createDocument;
+    return {
+      id: docRef.id,
+      data: userData as any,
+    };
   } catch (error) {
     console.error("Error creating user:", error);
     throw error;
@@ -144,11 +122,13 @@ async function updateUser(
   userData: any
 ): Promise<BaseBaseUser> {
   try {
-    const response = await basebaseService.graphql<{
-      updateDocument: BaseBaseUser;
-    }>(UPDATE_USER, { id: userId, data: userData });
+    const userRef = doc(db, `users/${userId}`);
+    await updateDoc(userRef, userData);
 
-    return response.updateDocument;
+    return {
+      id: userId,
+      data: userData as any,
+    };
   } catch (error) {
     console.error("Error updating user:", error);
     throw error;

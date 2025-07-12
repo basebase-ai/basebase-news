@@ -124,7 +124,7 @@ export default function SourceBox({
 
       // Update source metadata if callback provided and source data has changed
       const updatedSource = await sourceService.getSource(source._id);
-      if (onSourceUpdate && updatedSource.lastScrapedAt !== source.lastScrapedAt) {
+      if (onSourceUpdate && updatedSource && updatedSource.lastScrapedAt !== source.lastScrapedAt) {
         onSourceUpdate({
           _id: updatedSource.id || '',
           name: updatedSource.name,

@@ -7,6 +7,7 @@ const nextConfig = {
     SMTP_USER: process.env.SMTP_USER,
     SMTP_PASS: process.env.SMTP_PASS,
     SMTP_SECURE: process.env.SMTP_SECURE,
+    BASEBASE_API_KEY: process.env.BASEBASE_API_KEY,
   },
   basePath: "",
   async rewrites() {

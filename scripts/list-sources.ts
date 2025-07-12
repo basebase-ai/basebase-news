@@ -1,5 +1,5 @@
 import { sourceService } from "../services/source.service";
-import { basebaseService } from "../services/basebase.service";
+// Note: basebaseService is no longer needed as services handle their own database connections
 import dotenv from "dotenv";
 import path from "path";
 
@@ -14,7 +14,7 @@ async function listSources() {
       throw new Error("BASEBASE_TOKEN environment variable is required");
     }
     console.log("Using token:", token.substring(0, 10) + "...");
-    basebaseService.setToken(token);
+    // BaseBase authentication is now handled automatically via API key
 
     // Get all sources
     const sources = await sourceService.getSources();

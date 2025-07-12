@@ -1,5 +1,5 @@
 import { sourceService } from "../services/source.service";
-import { basebaseService } from "../services/basebase.service";
+// Note: basebaseService is no longer needed as services handle their own database connections
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
@@ -16,7 +16,7 @@ if (!process.env.BASEBASE_TOKEN) {
 }
 
 // Set up BaseBase authentication
-basebaseService.setToken(process.env.BASEBASE_TOKEN);
+// BaseBase authentication is now handled automatically via API key
 
 interface MongoSource {
   _id: string;

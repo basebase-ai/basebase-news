@@ -78,12 +78,14 @@ export default function Feed() {
         if (story.newsSource) {
           try {
             const sourceDetails = await sourceService.getSource(story.newsSource);
-            source = {
-              _id: sourceDetails.id || '',
-              name: sourceDetails.name,
-              homepageUrl: sourceDetails.homepageUrl || '',
-              imageUrl: undefined,
-            };
+            if (sourceDetails) {
+              source = {
+                _id: sourceDetails.id || '',
+                name: sourceDetails.name,
+                homepageUrl: sourceDetails.homepageUrl || '',
+                imageUrl: undefined,
+              };
+            }
           } catch (error) {
             console.error(`Failed to fetch source details for ${story.newsSource}:`, error);
           }

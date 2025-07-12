@@ -1,48 +1,13 @@
-import { gql } from "graphql-request";
-import { basebaseService } from "./basebase.service";
-
-// GraphQL Queries and Mutations
-const GET_USER_FRIENDS = gql`
-  query GetUserFriends($userId: ID!) {
-    getUser(id: $userId) {
-      id
-      friends {
-        id
-        name
-        phone
-      }
-    }
-  }
-`;
-
-const GET_MUTUAL_FRIENDS = gql`
-  query GetMutualFriends($userId: ID!) {
-    getUser(id: $userId) {
-      id
-      friends {
-        id
-        friends {
-          id
-          name
-          phone
-        }
-      }
-    }
-  }
-`;
-
-const UPDATE_USER_FRIENDS = gql`
-  mutation UpdateUserFriends($userId: ID!, $friendIds: [ID!]!) {
-    updateUser(id: $userId, input: { friends: $friendIds }) {
-      id
-      friends {
-        id
-        name
-        phone
-      }
-    }
-  }
-`;
+import {
+  doc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  collection,
+  query,
+  where,
+} from "basebase";
+import { db } from "./basebase.service";
 
 export interface IUser {
   id: string;
@@ -50,7 +15,7 @@ export interface IUser {
   email: string;
   phone: string;
   imageUrl?: string;
-  friends?: IUser[];
+  friends?: string[]; // Store as array of friend IDs
 }
 
 interface IFriend {
@@ -59,24 +24,47 @@ interface IFriend {
   email: string;
   phone: string;
   imageUrl?: string;
-  friends?: IUser[];
+  friends?: string[];
 }
 
 export class FriendsService {
-  private client: typeof basebaseService;
-
-  constructor() {
-    this.client = basebaseService;
-  }
-
   /**
    * Get all friends for a user
    * @param userId The ID of the user
    * @returns Array of friend users
    */
   async getFriends(userId: string): Promise<IUser[]> {
-    const response = await this.client.getUser(userId);
-    return response.data.friends || [];
+    try {
+      const userRef = doc(db, `users/${userId}`);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists) {
+        return [];
+      }
+
+      const userData = userSnap.data() as IUser;
+      const friendIds = userData.friends || [];
+
+      if (friendIds.length === 0) {
+        return [];
+      }
+
+      // Get all friend documents
+      const friendPromises = friendIds.map(async (friendId: string) => {
+        const friendRef = doc(db, `users/${friendId}`);
+        const friendSnap = await getDoc(friendRef);
+        if (friendSnap.exists) {
+          return { id: friendSnap.id, ...friendSnap.data() } as IUser;
+        }
+        return null;
+      });
+
+      const friends = await Promise.all(friendPromises);
+      return friends.filter((friend): friend is IUser => friend !== null);
+    } catch (error) {
+      console.error("Error getting friends:", error);
+      throw error;
+    }
   }
 
   /**
@@ -85,26 +73,41 @@ export class FriendsService {
    * @returns Array of users who have requested friendship
    */
   async getFriendRequests(userId: string): Promise<IUser[]> {
-    const response = await this.client.getUser(userId);
-    const userFriends = response.data.friends || [];
+    try {
+      const userRef = doc(db, `users/${userId}`);
+      const userSnap = await getDoc(userRef);
 
-    // Get all users who have the current user in their friends list
-    const allUsers = await this.client.getAllUsers();
-    return allUsers
-      .filter((user) => {
-        const userFriendsList = user.data.friends || [];
+      if (!userSnap.exists) {
+        return [];
+      }
+
+      const userData = userSnap.data() as IUser;
+      const userFriends = userData.friends || [];
+
+      // Get all users who have the current user in their friends list
+      const usersCollection = collection(db, "users");
+      const usersSnap = await getDocs(usersCollection);
+
+      const friendRequests: IUser[] = [];
+
+      usersSnap.forEach((doc) => {
+        const user = { id: doc.id, ...doc.data() } as IUser;
+        const userFriendsList = user.friends || [];
+
         // Return users who have current user in their friends list but aren't in current user's friends list
-        return (
-          userFriendsList.includes(userId) && !userFriends.includes(user.id)
-        );
-      })
-      .map((user) => ({
-        id: user.id,
-        name: user.data.name,
-        email: user.data.email,
-        phone: user.data.phone,
-        imageUrl: user.data.imageUrl,
-      }));
+        if (
+          userFriendsList.includes(userId) &&
+          !userFriends.includes(user.id)
+        ) {
+          friendRequests.push(user);
+        }
+      });
+
+      return friendRequests;
+    } catch (error) {
+      console.error("Error getting friend requests:", error);
+      throw error;
+    }
   }
 
   /**
@@ -113,27 +116,44 @@ export class FriendsService {
    * @returns Array of suggested users
    */
   async getSuggestedFriends(userId: string): Promise<IUser[]> {
-    const response = await this.client.getUser(userId);
-    const userFriends = response.data.friends || [];
+    try {
+      const userRef = doc(db, `users/${userId}`);
+      const userSnap = await getDoc(userRef);
 
-    // Get all users
-    const allUsers = await this.client.getAllUsers();
-    return allUsers
-      .filter((user) => {
-        if (user.id === userId) return false; // Skip current user
-        const userFriendsList = user.data.friends || [];
+      if (!userSnap.exists) {
+        return [];
+      }
+
+      const userData = userSnap.data() as IUser;
+      const userFriends = userData.friends || [];
+
+      // Get all users
+      const usersCollection = collection(db, "users");
+      const usersSnap = await getDocs(usersCollection);
+
+      const suggestedFriends: IUser[] = [];
+
+      usersSnap.forEach((doc) => {
+        const user = { id: doc.id, ...doc.data() } as IUser;
+
+        if (user.id === userId) return; // Skip current user
+
+        const userFriendsList = user.friends || [];
+
         // Return users who neither have current user in their friends list nor are in current user's friends list
-        return (
-          !userFriendsList.includes(userId) && !userFriends.includes(user.id)
-        );
-      })
-      .map((user) => ({
-        id: user.id,
-        name: user.data.name,
-        email: user.data.email,
-        phone: user.data.phone,
-        imageUrl: user.data.imageUrl,
-      }));
+        if (
+          !userFriendsList.includes(userId) &&
+          !userFriends.includes(user.id)
+        ) {
+          suggestedFriends.push(user);
+        }
+      });
+
+      return suggestedFriends;
+    } catch (error) {
+      console.error("Error getting suggested friends:", error);
+      throw error;
+    }
   }
 
   /**
@@ -142,14 +162,25 @@ export class FriendsService {
    * @param friendId The ID of the user to add as a friend
    */
   async addFriend(userId: string, friendId: string): Promise<void> {
-    // Get current friends first
-    const currentFriends = await this.getFriends(userId);
-    const currentFriendIds = currentFriends.map((f) => f.id);
+    try {
+      const userRef = doc(db, `users/${userId}`);
+      const userSnap = await getDoc(userRef);
 
-    // Add new friend if not already in list
-    if (!currentFriendIds.includes(friendId)) {
-      currentFriendIds.push(friendId);
-      await this.client.updateUserFriends(userId, currentFriendIds);
+      if (!userSnap.exists) {
+        throw new Error("User not found");
+      }
+
+      const userData = userSnap.data() as IUser;
+      const currentFriends = userData.friends || [];
+
+      // Add new friend if not already in list
+      if (!currentFriends.includes(friendId)) {
+        const updatedFriends = [...currentFriends, friendId];
+        await updateDoc(userRef, { friends: updatedFriends });
+      }
+    } catch (error) {
+      console.error("Error adding friend:", error);
+      throw error;
     }
   }
 
@@ -159,14 +190,24 @@ export class FriendsService {
    * @param friendId The ID of the user to remove from friends
    */
   async removeFriend(userId: string, friendId: string): Promise<void> {
-    // Get current friends
-    const currentFriends = await this.getFriends(userId);
-    const updatedFriendIds = currentFriends
-      .map((f) => f.id)
-      .filter((id) => id !== friendId);
+    try {
+      const userRef = doc(db, `users/${userId}`);
+      const userSnap = await getDoc(userRef);
 
-    // Update friends list without the removed friend
-    await this.client.updateUserFriends(userId, updatedFriendIds);
+      if (!userSnap.exists) {
+        throw new Error("User not found");
+      }
+
+      const userData = userSnap.data() as IUser;
+      const currentFriends = userData.friends || [];
+
+      // Remove friend from list
+      const updatedFriends = currentFriends.filter((id) => id !== friendId);
+      await updateDoc(userRef, { friends: updatedFriends });
+    } catch (error) {
+      console.error("Error removing friend:", error);
+      throw error;
+    }
   }
 
   /**
@@ -176,16 +217,30 @@ export class FriendsService {
    * @returns boolean indicating if they are mutual friends
    */
   async areMutualFriends(userId: string, friendId: string): Promise<boolean> {
-    const [userFriends, friendUser] = await Promise.all([
-      this.getFriends(userId),
-      this.client.getUser(friendId),
-    ]);
+    try {
+      const userRef = doc(db, `users/${userId}`);
+      const friendRef = doc(db, `users/${friendId}`);
 
-    const friendFriends = friendUser.data.friends || [];
-    return (
-      userFriends.some((f) => f.id === friendId) &&
-      friendFriends.includes(userId)
-    );
+      const [userSnap, friendSnap] = await Promise.all([
+        getDoc(userRef),
+        getDoc(friendRef),
+      ]);
+
+      if (!userSnap.exists || !friendSnap.exists) {
+        return false;
+      }
+
+      const userData = userSnap.data() as IUser;
+      const friendData = friendSnap.data() as IUser;
+
+      const userFriends = userData.friends || [];
+      const friendFriends = friendData.friends || [];
+
+      return userFriends.includes(friendId) && friendFriends.includes(userId);
+    } catch (error) {
+      console.error("Error checking mutual friends:", error);
+      throw error;
+    }
   }
 }
 

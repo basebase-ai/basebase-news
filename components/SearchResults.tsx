@@ -49,7 +49,9 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
           try {
             if (story.newsSource) {
               const source = await sourceService.getSource(story.newsSource);
-              sourceName = source.name;
+              if (source) {
+                sourceName = source.name;
+              }
             }
           } catch (err) {
             console.error('Failed to fetch source:', err);

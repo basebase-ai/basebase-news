@@ -48,19 +48,21 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
         await sourceService.updateSource(editingSource._id, sourceData);
         const updatedSource = await sourceService.getSource(editingSource._id);
         
-        // Transform source to match UI format
-        const transformedSource = {
-          _id: updatedSource.id || '',
-          name: updatedSource.name,
-          homepageUrl: updatedSource.homepageUrl || '',
-          rssUrl: updatedSource.rssUrl,
-          imageUrl: imageUrl,
-          lastScrapedAt: updatedSource.lastScrapedAt
-        };
+        if (updatedSource) {
+          // Transform source to match UI format
+          const transformedSource = {
+            _id: updatedSource.id || '',
+            name: updatedSource.name,
+            homepageUrl: updatedSource.homepageUrl || '',
+            rssUrl: updatedSource.rssUrl,
+            imageUrl: imageUrl,
+            lastScrapedAt: updatedSource.lastScrapedAt
+          };
 
-        setCurrentSources((prev: Source[]) => 
-          prev.map((s: Source) => s._id === editingSource._id ? transformedSource : s)
-        );
+          setCurrentSources((prev: Source[]) => 
+            prev.map((s: Source) => s._id === editingSource._id ? transformedSource : s)
+          );
+        }
       } else {
         await sourceService.addSource(sourceData);
         const sources = await sourceService.getSources();

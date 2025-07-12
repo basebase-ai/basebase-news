@@ -1,5 +1,5 @@
-import { gql } from "graphql-request";
-import { basebaseService } from "./basebase.service";
+import { doc, getDoc, getDocs, addDoc, updateDoc, collection } from "basebase";
+import { db } from "./basebase.service";
 
 // Define the Source interface based on BaseBase's NewsSource type
 export interface ISource {
@@ -16,90 +16,10 @@ export interface ISource {
   hasPaywall?: boolean;
 }
 
-// GraphQL response types
-interface GetAllNewsSourcesResponse {
-  getNewsSources: ISource[];
-}
-
-interface GetNewsSourceResponse {
-  getNewsSource: ISource;
-}
-
-interface CreateNewsSourceResponse {
-  createNewsSource: ISource;
-}
-
-interface UpdateNewsSourceResponse {
-  updateNewsSource: ISource;
-}
-
-// GraphQL Queries and Mutations
-const CREATE_SOURCE = gql`
-  mutation CreateNewsSource($input: NewsSourceInput!) {
-    createNewsSource(input: $input) {
-      id
-      name
-      creator {
-        id
-        name
-      }
-      homepageUrl
-      rssUrl
-      lastScrapedAt
-    }
-  }
-`;
-
-const UPDATE_SOURCE = gql`
-  mutation UpdateNewsSource($id: ID!, $input: NewsSourceInput!) {
-    updateNewsSource(id: $id, input: $input) {
-      id
-      name
-      creator {
-        id
-        name
-      }
-      homepageUrl
-      rssUrl
-      lastScrapedAt
-    }
-  }
-`;
-
-const GET_SOURCE = gql`
-  query GetNewsSource($id: ID!) {
-    getNewsSource(id: $id) {
-      id
-      name
-      creator {
-        id
-        name
-      }
-      homepageUrl
-      rssUrl
-      lastScrapedAt
-    }
-  }
-`;
-
-const GET_ALL_SOURCES = gql`
-  query GetNewsSources {
-    getNewsSources {
-      id
-      name
-      creator {
-        id
-        name
-      }
-      homepageUrl
-      rssUrl
-      lastScrapedAt
-    }
-  }
-`;
-
 export class SourceService {
-  constructor() {}
+  constructor() {
+    // No need to store client, use direct db import
+  }
 
   private trimSourceFields(source: ISource): Partial<ISource> {
     // Remove trailing slashes from URLs
@@ -120,45 +40,53 @@ export class SourceService {
   }
 
   public async addSource(source: ISource): Promise<void> {
-    const trimmedSource = this.trimSourceFields(source);
-
-    await basebaseService.graphql<CreateNewsSourceResponse>(CREATE_SOURCE, {
-      input: trimmedSource,
-    });
+    try {
+      const trimmedSource = this.trimSourceFields(source);
+      const sourcesCollection = collection(db, "newsSources");
+      await addDoc(sourcesCollection, trimmedSource);
+    } catch (error) {
+      console.error("Error adding source:", error);
+      throw error;
+    }
   }
 
   public async updateSource(sourceId: string, source: ISource): Promise<void> {
-    const trimmedSource = this.trimSourceFields(source);
-
     try {
-      await basebaseService.graphql<UpdateNewsSourceResponse>(UPDATE_SOURCE, {
-        id: sourceId,
-        input: trimmedSource,
-      });
+      const trimmedSource = this.trimSourceFields(source);
+      const sourceRef = doc(db, `newsSources/${sourceId}`);
+      await updateDoc(sourceRef, trimmedSource);
     } catch (error) {
+      console.error("Error updating source:", error);
       throw new Error(`Source with id ${sourceId} not found`);
     }
   }
 
-  public async getSource(id: string): Promise<ISource> {
+  public async getSource(id: string): Promise<ISource | null> {
     try {
-      const response = await basebaseService.graphql<GetNewsSourceResponse>(
-        GET_SOURCE,
-        { id }
-      );
-      return response.getNewsSource;
+      const sourceRef = doc(db, `newsSources/${id}`);
+      const sourceSnap = await getDoc(sourceRef);
+
+      if (sourceSnap.exists) {
+        return { id: sourceSnap.id, ...sourceSnap.data() } as ISource;
+      }
+      return null;
     } catch (error) {
+      console.error("Error getting source:", error);
       throw new Error(`Source with id ${id} not found`);
     }
   }
 
   public async getSources(): Promise<ISource[]> {
     try {
-      const response =
-        await basebaseService.graphql<GetAllNewsSourcesResponse>(
-          GET_ALL_SOURCES
-        );
-      return response.getNewsSources;
+      const sourcesCollection = collection(db, "newsSources");
+      const sourcesSnap = await getDocs(sourcesCollection);
+
+      const sources: ISource[] = [];
+      sourcesSnap.forEach((doc) => {
+        sources.push({ id: doc.id, ...doc.data() } as ISource);
+      });
+
+      return sources;
     } catch (error) {
       console.error("Error getting sources:", error);
       throw error;
@@ -178,9 +106,7 @@ export class SourceService {
     const trimmedQuery = query.trim().toLowerCase();
 
     // Get all sources and filter/sort in memory since BaseBase doesn't support text search yet
-    const response =
-      await basebaseService.graphql<GetAllNewsSourcesResponse>(GET_ALL_SOURCES);
-    const sources = response.getNewsSources;
+    const sources = await this.getSources();
 
     return sources
       .filter((source: ISource) =>

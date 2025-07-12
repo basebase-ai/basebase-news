@@ -19,17 +19,9 @@ import { Story, Source } from '@/types';
 import { SortableSourceBox } from './SourceBox';
 import SourceSettings from './SourceSettings';
 import LoadingSpinner from './LoadingSpinner';
-import { basebaseService } from '@/services/basebase.service';
-import { gql } from 'graphql-request';
+import { db } from '@/services/basebase.service';
+import { updateDoc, doc } from 'basebase';
 
-const UPDATE_USER_SOURCES = gql`
-  mutation UpdateUserSources($id: ID!, $data: JSON!) {
-    updateDocument(collection: "users", id: $id, data: $data) {
-      id
-      data
-    }
-  }
-`;
 
 interface SourceGridProps {
   friendsListOpen: boolean;
@@ -55,10 +47,8 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
 
       try {
         // Update source order in BaseBase
-        await basebaseService.graphql(UPDATE_USER_SOURCES, {
-          id: currentUser._id,
-          data: { sourceIds: newSourceIds }
-        });
+        const userRef = doc(db, `users/${currentUser._id}`);
+        await updateDoc(userRef, { sourceIds: newSourceIds });
       } catch (error) {
         console.error('Failed to save source order:', error);
         // Revert on error
@@ -72,10 +62,8 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
 
     try {
       const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
-      await basebaseService.graphql(UPDATE_USER_SOURCES, {
-        id: currentUser._id,
-        data: { sourceIds: updatedSourceIds }
-      });
+      const userRef = doc(db, `users/${currentUser._id}`);
+      await updateDoc(userRef, { sourceIds: updatedSourceIds });
       
       // Update local state
       setCurrentUser({

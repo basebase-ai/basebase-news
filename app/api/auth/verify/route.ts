@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { basebaseAuthService } from "@/services/basebase.auth.service";
+import { verifyCodeSMS } from "@/services/basebase.service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const token = await basebaseAuthService.verifyCode(phone, code);
+    const token = await verifyCodeSMS(phone, code);
 
     if (token) {
       return NextResponse.json({ token });
