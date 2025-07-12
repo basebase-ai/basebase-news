@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
-import { initializeApp, getBasebase, collection, addDoc } from "basebase";
+import { initializeApp, getBasebase, doc, setDoc } from "basebase";
 
 // Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -97,10 +97,12 @@ async function migrateSources() {
           imageUrl: source.imageUrl,
         };
 
-        // Add to BaseBase directly
-        const sourcesCollection = collection(db, "newsSources");
-        await addDoc(sourcesCollection, basebaseSource);
-        console.log(`✓ Successfully migrated ${source.name}`);
+        // Add to BaseBase directly using the original MongoDB ID
+        const sourceDoc = doc(db, `newsSources/${source._id}`);
+        await setDoc(sourceDoc, basebaseSource);
+        console.log(
+          `✓ Successfully migrated ${source.name} with ID: ${source._id}`
+        );
       } catch (error) {
         console.error(`✗ Failed to migrate ${source.name}:`, error);
       }
