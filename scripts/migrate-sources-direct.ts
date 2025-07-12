@@ -1,11 +1,17 @@
-import { sourceService } from "../services/source.service";
-// Note: basebaseService is no longer needed as services handle their own database connections
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
+import { initializeApp, getBasebase, collection, addDoc } from "basebase";
 
-// Load environment variables from .env.local
+// Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+
+// Debug: Check if environment variables are loaded
+console.log("Environment variables loaded:");
+console.log("MONGODB_URI:", !!process.env.MONGODB_URI);
+console.log("BASEBASE_TOKEN:", !!process.env.BASEBASE_TOKEN);
+console.log("BASEBASE_API_KEY:", !!process.env.BASEBASE_API_KEY);
+console.log("BASEBASE_PROJECT_ID:", !!process.env.BASEBASE_PROJECT_ID);
 
 // Check required environment variables
 if (!process.env.MONGODB_URI) {
@@ -14,9 +20,23 @@ if (!process.env.MONGODB_URI) {
 if (!process.env.BASEBASE_TOKEN) {
   throw new Error("BASEBASE_TOKEN environment variable is required");
 }
+if (!process.env.BASEBASE_API_KEY) {
+  throw new Error("BASEBASE_API_KEY environment variable is required");
+}
+if (!process.env.BASEBASE_PROJECT_ID) {
+  throw new Error("BASEBASE_PROJECT_ID environment variable is required");
+}
 
-// Set up BaseBase authentication
-// BaseBase authentication is now handled automatically via API key
+// Initialize BaseBase directly with JWT token for server environment
+const app = initializeApp({
+  apiKey: process.env.BASEBASE_API_KEY!,
+  projectId: process.env.BASEBASE_PROJECT_ID!,
+  token: process.env.BASEBASE_TOKEN!,
+});
+const db = getBasebase(app);
+
+// Debug: Check if token is configured
+console.log("BaseBase initialized with token:", !!process.env.BASEBASE_TOKEN);
 
 interface MongoSource {
   _id: string;
@@ -45,9 +65,9 @@ async function migrateSources() {
 
   try {
     // Connect to MongoDB and get sources
-    const { client, db } = await connectToMongo();
+    const { client, db: mongoDB } = await connectToMongo();
     mongoClient = client;
-    const rawSources = await db.collection("sources").find({}).toArray();
+    const rawSources = await mongoDB.collection("sources").find({}).toArray();
     const sources: MongoSource[] = rawSources.map((source: any) => ({
       _id: source._id.toString(),
       name: source.name as string,
@@ -73,11 +93,13 @@ async function migrateSources() {
           name: source.name,
           homepageUrl: source.homepageUrl,
           rssUrl: source.rssUrl,
-          lastScrapedAt: source.lastScrapedAt,
+          lastScrapedAt: source.lastScrapedAt || new Date().toISOString(),
           imageUrl: source.imageUrl,
         };
 
-        await sourceService.addSource(basebaseSource);
+        // Add to BaseBase directly
+        const sourcesCollection = collection(db, "newsSources");
+        await addDoc(sourcesCollection, basebaseSource);
         console.log(`✓ Successfully migrated ${source.name}`);
       } catch (error) {
         console.error(`✗ Failed to migrate ${source.name}:`, error);
