@@ -1,16 +1,4 @@
-import {
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-} from "basebase";
-import { db } from "./basebase.service";
+import { fetchApi } from "@/lib/api";
 
 // Define interfaces based on BaseBase types
 export interface IStory {
@@ -42,7 +30,7 @@ interface IStoryStatus {
 
 export class StoryService {
   constructor() {
-    // No need to store client, use direct db import
+    // Use API endpoints instead of direct BaseBase SDK calls
   }
 
   private prepareStoryData(story: IStory, sourceId: string): any {
@@ -59,8 +47,13 @@ export class StoryService {
 
   public async addStory(sourceId: string, story: IStory): Promise<IStory> {
     try {
+      const db = this.getAuthenticatedDb();
       const storyData = this.prepareStoryData(story, sourceId);
-      const storiesCollection = collection(db, "newsStories");
+      const storiesCollection = collection(
+        db,
+        "newsStories",
+        "newswithfriends"
+      );
       const storyRef = await addDoc(storiesCollection, storyData);
 
       return {
@@ -76,8 +69,13 @@ export class StoryService {
 
   public async getStories(sourceId: string): Promise<IStory[]> {
     try {
+      const db = this.getAuthenticatedDb();
       const MAX_STORIES = 25;
-      const storiesCollection = collection(db, "newsStories");
+      const storiesCollection = collection(
+        db,
+        "newsStories",
+        "newswithfriends"
+      );
       const storiesSnap = await getDocs(storiesCollection);
 
       const stories: IStory[] = [];
@@ -122,7 +120,12 @@ export class StoryService {
       const { sourceId, before, after, page = 1, limit = 20 } = options;
 
       // Get all stories and filter in memory since BaseBase doesn't support text search yet
-      const storiesCollection = collection(db, "newsStories");
+      const db = this.getAuthenticatedDb();
+      const storiesCollection = collection(
+        db,
+        "newsStories",
+        "newswithfriends"
+      );
       const storiesSnap = await getDocs(storiesCollection);
 
       let stories: IStory[] = [];

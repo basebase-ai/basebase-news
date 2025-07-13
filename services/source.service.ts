@@ -1,5 +1,4 @@
-import { doc, getDoc, getDocs, addDoc, updateDoc, collection } from "basebase";
-import { db } from "./basebase.service";
+import { fetchApi } from "@/lib/api";
 
 // Define the Source interface based on BaseBase's NewsSource type
 export interface ISource {
@@ -18,7 +17,7 @@ export interface ISource {
 
 export class SourceService {
   constructor() {
-    // No need to store client, use direct db import
+    // Use API endpoints instead of direct BaseBase SDK calls
   }
 
   private trimSourceFields(source: ISource): Partial<ISource> {
@@ -42,8 +41,14 @@ export class SourceService {
   public async addSource(source: ISource): Promise<void> {
     try {
       const trimmedSource = this.trimSourceFields(source);
-      const sourcesCollection = collection(db, "newsSources");
-      await addDoc(sourcesCollection, trimmedSource);
+      const response = await fetchApi("/api/sources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(trimmedSource),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
     } catch (error) {
       console.error("Error adding source:", error);
       throw error;
@@ -53,8 +58,14 @@ export class SourceService {
   public async updateSource(sourceId: string, source: ISource): Promise<void> {
     try {
       const trimmedSource = this.trimSourceFields(source);
-      const sourceRef = doc(db, `newsSources/${sourceId}`);
-      await updateDoc(sourceRef, trimmedSource);
+      const response = await fetchApi(`/api/sources/${sourceId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(trimmedSource),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
     } catch (error) {
       console.error("Error updating source:", error);
       throw new Error(`Source with id ${sourceId} not found`);
@@ -63,13 +74,15 @@ export class SourceService {
 
   public async getSource(id: string): Promise<ISource | null> {
     try {
-      const sourceRef = doc(db, `newsSources/${id}`);
-      const sourceSnap = await getDoc(sourceRef);
-
-      if (sourceSnap.exists) {
-        return { id: sourceSnap.id, ...sourceSnap.data() } as ISource;
+      const response = await fetchApi(`/api/sources/${id}`);
+      if (response.status === 404) {
+        return null;
       }
-      return null;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.source || null;
     } catch (error) {
       console.error("Error getting source:", error);
       throw new Error(`Source with id ${id} not found`);
@@ -78,15 +91,12 @@ export class SourceService {
 
   public async getSources(): Promise<ISource[]> {
     try {
-      const sourcesCollection = collection(db, "newsSources");
-      const sourcesSnap = await getDocs(sourcesCollection);
-
-      const sources: ISource[] = [];
-      sourcesSnap.forEach((doc) => {
-        sources.push({ id: doc.id, ...doc.data() } as ISource);
-      });
-
-      return sources;
+      const response = await fetchApi("/api/sources");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.sources || [];
     } catch (error) {
       console.error("Error getting sources:", error);
       throw error;

@@ -9,6 +9,7 @@ import { faXmark, faSearch, faSync, faPlus } from '@fortawesome/free-solid-svg-i
 import AddSourceModal from '@/components/AddSourceModal';
 import { sourceService } from '@/services/source.service';
 import { ISource } from '@/services/source.service';
+import { fetchApi } from '@/lib/api';
 
 export default function ReaderPage() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
@@ -19,9 +20,29 @@ export default function ReaderPage() {
     if (!currentUser) return;
     
     try {
-      const sources = await sourceService.getSources();
+      // Load user's sourceIds from API if not already loaded
+      if (!currentUser.sourceIds || currentUser.sourceIds.length === 0) {
+        try {
+          const response = await fetchApi('/api/users/me');
+          if (response.ok) {
+            const data = await response.json();
+            const updatedUser = { ...currentUser, sourceIds: data.user.sourceIds || [] };
+            setCurrentUser(updatedUser);
+          }
+        } catch (error) {
+          console.error('Error loading user sourceIds:', error);
+        }
+      }
+      
+      const allSources = await sourceService.getSources();
+      
+      // Filter sources to only include the user's subscribed sources
+      const userSources = allSources.filter(source => 
+        source.id && currentUser.sourceIds && currentUser.sourceIds.includes(source.id)
+      );
+      
       // Transform sources to match the UI's expected format
-      const transformedSources = sources.map(source => ({
+      const transformedSources = userSources.map(source => ({
         _id: source.id || '',
         name: source.name,
         homepageUrl: source.homepageUrl || '',
@@ -32,7 +53,7 @@ export default function ReaderPage() {
     } catch (error) {
       console.error('Failed to fetch sources:', error);
     }
-  }, [currentUser, setCurrentSources]);
+  }, [currentUser, setCurrentSources, setCurrentUser]);
 
   useEffect(() => {
     if (currentUser) {

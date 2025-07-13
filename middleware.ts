@@ -20,13 +20,23 @@ async function validateToken(token: string): Promise<boolean> {
       return false;
     }
 
-    const app = initializeApp({
-      apiKey,
-    });
+    // Initialize BaseBase with the user's token to validate it
+    // Use unique app name to avoid conflicts with existing app
+    const app = initializeApp(
+      {
+        apiKey,
+        token: token,
+      },
+      `middleware-${Date.now()}`
+    );
     const basebase = getBasebase(app);
 
-    // TODO: Implement token validation with BaseBase SDK
-    // For now, we'll assume the token is valid if we can initialize the client
+    // Try to decode the token to verify it's valid JWT format
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.userId) {
+      return false;
+    }
+
     return true;
   } catch (error) {
     console.error("Token validation error:", error);

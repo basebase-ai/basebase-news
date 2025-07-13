@@ -19,8 +19,7 @@ import { Story, Source } from '@/types';
 import { SortableSourceBox } from './SourceBox';
 import SourceSettings from './SourceSettings';
 import LoadingSpinner from './LoadingSpinner';
-import { db } from '@/services/basebase.service';
-import { updateDoc, doc } from 'basebase';
+import { fetchApi } from '@/lib/api';
 
 
 interface SourceGridProps {
@@ -46,9 +45,16 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
       setCurrentUser({ ...currentUser, sourceIds: newSourceIds });
 
       try {
-        // Update source order in BaseBase
-        const userRef = doc(db, `users/${currentUser._id}`);
-        await updateDoc(userRef, { sourceIds: newSourceIds });
+        // Update source order via API
+        const response = await fetchApi('/api/users/me/sources', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceIds: newSourceIds }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update source order');
+        }
       } catch (error) {
         console.error('Failed to save source order:', error);
         // Revert on error
@@ -62,14 +68,19 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
 
     try {
       const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
-      const userRef = doc(db, `users/${currentUser._id}`);
-      await updateDoc(userRef, { sourceIds: updatedSourceIds });
       
-      // Update local state
-      setCurrentUser({
-        ...currentUser,
-        sourceIds: updatedSourceIds
+      const response = await fetchApi('/api/users/me/sources', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceIds: updatedSourceIds }),
       });
+
+      if (response.ok) {
+        const { user } = await response.json();
+        setCurrentUser(user);
+      } else {
+        throw new Error('Failed to remove source');
+      }
     } catch (error) {
       console.error('Failed to remove source:', error);
     }
