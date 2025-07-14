@@ -2,7 +2,7 @@ import Avatar from './Avatar';
 import { User } from '@/types';
 
 interface BasicUser {
-  _id: string;
+  id: string;
   first: string;
   last: string;
   email: string;
@@ -37,7 +37,7 @@ export default function OverlappingAvatars({
       <div className="flex -space-x-2">
         {displayedUsers.map((user, index) => (
           <div 
-            key={user._id}
+            key={user.id}
             className="relative ring-2 ring-white dark:ring-gray-700 rounded-full"
             style={{ zIndex: displayedUsers.length - index }}
             title={`${user.first} ${user.last}`}

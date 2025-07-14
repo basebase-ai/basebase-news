@@ -1,17 +1,10 @@
 import {
-  initializeApp,
-  getBasebase,
   requestCode,
   verifyCode,
-  Basebase,
+  getAuthState,
+  isAuthenticated,
+  signOut,
 } from "basebase";
-
-// Initialize basebase app and database
-const app = initializeApp({
-  apiKey: process.env.BASEBASE_API_KEY!,
-});
-
-export const db: Basebase = getBasebase(app);
 
 /**
  * Request SMS verification code
@@ -70,17 +63,46 @@ export async function requestCodeSMS(
 }
 
 /**
- * Verify SMS code and get JWT token
+ * Verify SMS code - SDK handles token storage automatically
  */
 export async function verifyCodeSMS(
   phone: string,
   code: string
-): Promise<string | null> {
+): Promise<boolean> {
   try {
+    console.log("[BaseBase] Calling verifyCode with:", { phone, code });
     const result = await verifyCode(phone, code, process.env.BASEBASE_API_KEY!);
-    return result.token;
+    console.log("[BaseBase] verifyCode response:", result);
+    console.log(
+      "[BaseBase] Authentication state after verify:",
+      getAuthState()
+    );
+
+    // SDK automatically stores the token - just return success
+    return !!result.token;
   } catch (error) {
-    console.error("Error verifying code:", error);
+    console.error("[BaseBase] Error verifying code:", error);
     throw error;
   }
+}
+
+/**
+ * Check if user is authenticated
+ */
+export function isUserAuthenticated(): boolean {
+  return isAuthenticated();
+}
+
+/**
+ * Get current authentication state
+ */
+export function getAuthenticationState() {
+  return getAuthState();
+}
+
+/**
+ * Sign out user
+ */
+export function signOutUser(): void {
+  signOut();
 }

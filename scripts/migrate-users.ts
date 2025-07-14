@@ -188,18 +188,18 @@ async function migrateUsers() {
           updatedCount++;
         } else {
           console.log(
-            `  ➕ User not found in BaseBase - creating new user with ID: ${user._id}`
+            `  ➕ User not found in BaseBase - creating new user with ID: ${user.id}`
           );
 
           // Create new user in both collections using MongoDB ID
-          const basebaseUserDoc = doc(db, `users/${user._id}`, "basebase");
+          const basebaseUserDoc = doc(db, `users/${user.id}`, "basebase");
           await setDoc(basebaseUserDoc, basebaseUserData);
 
-          const newsUserDoc = doc(db, `users/${user._id}`, "newswithfriends");
+          const newsUserDoc = doc(db, `users/${user.id}`, "newswithfriends");
           await setDoc(newsUserDoc, newsWithFriendsUserData);
 
           console.log(
-            `  ✅ Successfully created user "${user.first} ${user.last}" with ID: ${user._id}`
+            `  ✅ Successfully created user "${user.first} ${user.last}" with ID: ${user.id}`
           );
           createdCount++;
         }

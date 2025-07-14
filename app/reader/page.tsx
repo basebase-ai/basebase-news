@@ -9,25 +9,28 @@ import { faXmark, faSearch, faSync, faPlus } from '@fortawesome/free-solid-svg-i
 import AddSourceModal from '@/components/AddSourceModal';
 import { sourceService } from '@/services/source.service';
 import { ISource } from '@/services/source.service';
-import { fetchApi } from '@/lib/api';
+import { userService } from '@/services/user.service';
+
 
 export default function ReaderPage() {
   const { currentUser, setCurrentUser, setCurrentSources, searchTerm, setSearchTerm } = useAppState();
   const [refreshing, setRefreshing] = useState(false);
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false);
 
-  const loadSources = useCallback(async () => {
-    if (!currentUser) return;
+  const loadSources = useCallback(async (user: any) => {
+    if (!user) return;
     
     try {
-      // Load user's sourceIds from API if not already loaded
-      if (!currentUser.sourceIds || currentUser.sourceIds.length === 0) {
+      let userToUse = user;
+      
+      // Load user's sourceIds from BaseBase if not already loaded
+      if (!user.sourceIds) {
         try {
-          const response = await fetchApi('/api/users/me');
-          if (response.ok) {
-            const data = await response.json();
-            const updatedUser = { ...currentUser, sourceIds: data.user.sourceIds || [] };
-            setCurrentUser(updatedUser);
+          const freshUser = await userService.getCurrentUser();
+          if (freshUser) {
+            const newSourceIds = freshUser.sourceIds || [];
+            // Just use the fetched sourceIds locally, don't update global user state
+            userToUse = { ...user, sourceIds: newSourceIds };
           }
         } catch (error) {
           console.error('Error loading user sourceIds:', error);
@@ -38,28 +41,22 @@ export default function ReaderPage() {
       
       // Filter sources to only include the user's subscribed sources
       const userSources = allSources.filter(source => 
-        source.id && currentUser.sourceIds && currentUser.sourceIds.includes(source.id)
+        source.id && userToUse.sourceIds && userToUse.sourceIds.includes(source.id)
       );
       
-      // Transform sources to match the UI's expected format
-      const transformedSources = userSources.map(source => ({
-        _id: source.id || '',
-        name: source.name,
-        homepageUrl: source.homepageUrl || '',
-        imageUrl: undefined,
-        lastScrapedAt: source.lastScrapedAt,
-      }));
+      // Sources are already in the correct format from the service layer
+      const transformedSources = userSources;
       setCurrentSources(transformedSources);
     } catch (error) {
       console.error('Failed to fetch sources:', error);
     }
-  }, [currentUser, setCurrentSources, setCurrentUser]);
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
-      loadSources();
+      loadSources(currentUser);
     }
-  }, [currentUser, loadSources]);
+  }, [currentUser]);
 
   const handleClearSearch = () => {
     setSearchTerm('');
@@ -70,7 +67,9 @@ export default function ReaderPage() {
     try {
       // TODO: Implement refresh functionality in BaseBase
       // For now, just reload sources
-      await loadSources();
+      if (currentUser) {
+        await loadSources(currentUser);
+      }
     } catch (err) {
       console.error(err);
     } finally {

@@ -54,7 +54,7 @@ export function SortableSourceBox(props: SourceBoxProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: props.source._id });
+  } = useSortable({ id: props.source.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -99,7 +99,7 @@ export default function SourceBox({
 
   const loadHeadlines = useCallback(async () => {
     try {
-      const stories = await storyService.getStories(source._id);
+      const stories = await storyService.getStories(source.id);
       const sortedStories = [...stories].sort((a, b) => {
         const dateA = new Date(a.publishedAt || '');
         const dateB = new Date(b.publishedAt || '');
@@ -123,22 +123,16 @@ export default function SourceBox({
       setHeadlines(transformedStories as Story[]);
 
       // Update source metadata if callback provided and source data has changed
-      const updatedSource = await sourceService.getSource(source._id);
+      const updatedSource = await sourceService.getSource(source.id);
       if (onSourceUpdate && updatedSource && updatedSource.lastScrapedAt !== source.lastScrapedAt) {
-        onSourceUpdate({
-          _id: updatedSource.id || '',
-          name: updatedSource.name,
-          homepageUrl: updatedSource.homepageUrl || '',
-          rssUrl: updatedSource.rssUrl,
-          lastScrapedAt: updatedSource.lastScrapedAt
-        });
+        onSourceUpdate(updatedSource);
       }
     } catch (error) {
-      console.error(`Error fetching stories for source ${source._id}:`, error);
+      console.error(`Error fetching stories for source ${source.id}:`, error);
     } finally {
       setIsLoading(false);
     }
-  }, [source._id, source.lastScrapedAt, onSourceUpdate, source.name, source.homepageUrl]);
+  }, [source.id, source.lastScrapedAt, onSourceUpdate, source.name, source.homepageUrl]);
 
   useEffect(() => {
     loadHeadlines();
@@ -321,7 +315,7 @@ export default function SourceBox({
                     className={`${
                       active ? 'bg-gray-50 dark:bg-gray-700' : ''
                     } flex w-full items-center px-3 py-2 text-sm text-red-600 dark:text-red-400`}
-                    onClick={() => onRemove(source._id)}
+                    onClick={() => onRemove(source.id)}
                   >
                     Remove
                   </button>

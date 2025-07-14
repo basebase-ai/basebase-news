@@ -7,6 +7,10 @@ import LoadingSpinner from './LoadingSpinner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faChevronRight, faChevronDown, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { formatTimeAgo } from '@/lib/utils';
+import { sourceService } from '@/services/source.service';
+import { storyService } from '@/services/story.service';
+import { userService } from '@/services/user.service';
+import { isUserAuthenticated } from '@/services/basebase.service';
 
 interface SourceStory {
   id: string;
@@ -49,26 +53,25 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
     }
   }, [isOpen, friend]);
 
-  const fetchFriendSources = async () => {
+    const fetchFriendSources = async () => {
     if (!friend) return;
-
+    
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/sources');
-      if (response.ok) {
-        const data = await response.json();
-        const sourcesArray = Array.isArray(data) ? data : [];
-        // Filter to only show sources that the friend follows
-        const friendSources = sourcesArray.filter((source: Source) => 
-          friend.sourceIds?.includes(source._id)
-        );
-        setSources(friendSources);
-      } else {
-        throw new Error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
+      
+      if (!isUserAuthenticated()) {
+        throw new Error('User not authenticated');
       }
+      
+      const sourcesArray = await sourceService.getSources();
+      // Filter to only show sources that the friend follows
+      const friendSources = sourcesArray.filter((source: Source) => 
+        friend.sourceIds?.includes(source.id)
+      );
+      setSources(friendSources);
     } catch (err) {
-             setError('Failed to load friend&apos;s sources');
+      setError('Failed to load friend&apos;s sources');
     } finally {
       setLoading(false);
     }
@@ -77,12 +80,26 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
   const fetchSourceStories = async (sourceId: string) => {
     setLoadingStories(prev => new Set(prev).add(sourceId));
     try {
-      const response = await fetch(`/api/sources/${sourceId}`);
-      if (response.ok) {
-        const data = await response.json();
-        const stories = data.source?.stories?.slice(0, 3) || [];
-        setSourceStories(prev => ({ ...prev, [sourceId]: stories }));
+      if (!isUserAuthenticated()) {
+        console.warn('[FriendSourcesModal] User not authenticated');
+        return;
       }
+
+      const storiesWithDetails = await storyService.getStoriesForSource(sourceId, 3);
+      
+      // Convert IStoryWithDetails to SourceStory format
+      const stories: SourceStory[] = storiesWithDetails.map(story => ({
+        id: story.id || '',
+        articleUrl: story.url,
+        fullHeadline: story.headline,
+        summary: story.summary,
+        imageUrl: story.imageUrl,
+        createdAt: story.publishedAt,
+        status: 'UNREAD' as const,
+        starred: false,
+      }));
+      
+      setSourceStories(prev => ({ ...prev, [sourceId]: stories }));
     } catch (error) {
       console.error('Failed to fetch stories for source:', error);
     } finally {
@@ -115,22 +132,22 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
         ? currentUser.sourceIds
         : [sourceId, ...currentUser.sourceIds];
 
-      const response = await fetch('/api/users/me/sources', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceIds: updatedSourceIds }),
-      });
+      if (!isUserAuthenticated()) {
+        console.warn('[FriendSourcesModal] User not authenticated');
+        return;
+      }
 
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
+      const success = await userService.updateUserSources(updatedSourceIds);
+
+      if (success) {
+        // Update local user state
+        setCurrentUser({ ...currentUser, sourceIds: updatedSourceIds });
         
-        const sourceResponse = await fetch(`/api/sources/${sourceId}`);
-        if (sourceResponse.ok) {
-          const { source } = await sourceResponse.json();
-          if (source && !currentSources?.some(s => s._id === source._id)) {
-            setCurrentSources(prev => [...(prev || []), source]);
-          }
+        // Get source details and add to current sources
+        const sources = await sourceService.getSources();
+        const source = sources.find(s => s.id === sourceId);
+        if (source && !currentSources?.some(s => s.id === source.id)) {
+          setCurrentSources(prev => [...(prev || []), source]);
         }
       } else {
         throw new Error('Failed to update user sources');
@@ -146,16 +163,17 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
     try {
       const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
 
-      const response = await fetch('/api/users/me/sources', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceIds: updatedSourceIds }),
-      });
+      if (!isUserAuthenticated()) {
+        console.warn('[FriendSourcesModal] User not authenticated');
+        return;
+      }
 
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
-        setCurrentSources(prev => prev.filter(s => s._id !== sourceId));
+      const success = await userService.updateUserSources(updatedSourceIds);
+
+      if (success) {
+        // Update local user state
+        setCurrentUser({ ...currentUser, sourceIds: updatedSourceIds });
+        setCurrentSources(prev => prev?.filter(s => s.id !== sourceId) || []);
       } else {
         throw new Error('Failed to update user sources');
       }
@@ -232,15 +250,15 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
                   </div>
                 ) : (
                   filteredSources.map(source => (
-                    <div key={source._id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
+                    <div key={source.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
                       <div className="flex items-center justify-between p-3">
                         <div className="flex items-center space-x-3">
                           <button
-                            onClick={() => toggleSourceExpansion(source._id)}
+                            onClick={() => toggleSourceExpansion(source.id)}
                             className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors"
                           >
                             <FontAwesomeIcon 
-                              icon={expandedSources.has(source._id) ? faChevronDown : faChevronRight} 
+                              icon={expandedSources.has(source.id) ? faChevronDown : faChevronRight} 
                               className="h-4 w-4" 
                             />
                           </button>
@@ -251,12 +269,12 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {isSourceAdded(source._id) ? (
-                            <button onClick={() => handleRemoveSource(source._id)} className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded-full hover:bg-red-700">
+                          {isSourceAdded(source.id) ? (
+                            <button onClick={() => handleRemoveSource(source.id)} className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded-full hover:bg-red-700">
                               Remove
                             </button>
                           ) : (
-                            <button onClick={() => handleAddSource(source._id)} className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700">
+                            <button onClick={() => handleAddSource(source.id)} className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700">
                               Add
                             </button>
                           )}
@@ -264,15 +282,15 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
                       </div>
                       
                       {/* Expanded stories section */}
-                      {expandedSources.has(source._id) && (
+                      {expandedSources.has(source.id) && (
                         <div className="border-t border-gray-200 dark:border-gray-600 bg-gray-25 dark:bg-gray-800/30">
-                          {loadingStories.has(source._id) ? (
+                          {loadingStories.has(source.id) ? (
                             <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                               Loading stories...
                             </div>
-                          ) : sourceStories[source._id]?.length > 0 ? (
+                          ) : sourceStories[source.id]?.length > 0 ? (
                             <div className="p-4 space-y-3">
-                              {sourceStories[source._id].map(story => (
+                              {sourceStories[source.id].map(story => (
                                 <div key={story.id} className="flex items-start space-x-3 group">
                                   {story.imageUrl && (
                                     <img 

@@ -7,7 +7,6 @@ import {
   query,
   where,
 } from "basebase";
-import { db } from "./basebase.service";
 
 export interface IUser {
   id: string;
@@ -35,7 +34,7 @@ export class FriendsService {
    */
   async getFriends(userId: string): Promise<IUser[]> {
     try {
-      const userRef = doc(db, `users/${userId}`);
+      const userRef = doc(`users/${userId}`);
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists) {
@@ -51,7 +50,7 @@ export class FriendsService {
 
       // Get all friend documents
       const friendPromises = friendIds.map(async (friendId: string) => {
-        const friendRef = doc(db, `users/${friendId}`);
+        const friendRef = doc(`users/${friendId}`);
         const friendSnap = await getDoc(friendRef);
         if (friendSnap.exists) {
           return { id: friendSnap.id, ...friendSnap.data() } as IUser;
@@ -74,7 +73,7 @@ export class FriendsService {
    */
   async getFriendRequests(userId: string): Promise<IUser[]> {
     try {
-      const userRef = doc(db, `users/${userId}`);
+      const userRef = doc(`users/${userId}`);
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists) {
@@ -85,7 +84,7 @@ export class FriendsService {
       const userFriends = userData.friends || [];
 
       // Get all users who have the current user in their friends list
-      const usersCollection = collection(db, "users");
+      const usersCollection = collection("users");
       const usersSnap = await getDocs(usersCollection);
 
       const friendRequests: IUser[] = [];
@@ -117,7 +116,7 @@ export class FriendsService {
    */
   async getSuggestedFriends(userId: string): Promise<IUser[]> {
     try {
-      const userRef = doc(db, `users/${userId}`);
+      const userRef = doc(`users/${userId}`);
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists) {
@@ -128,7 +127,7 @@ export class FriendsService {
       const userFriends = userData.friends || [];
 
       // Get all users
-      const usersCollection = collection(db, "users");
+      const usersCollection = collection("users");
       const usersSnap = await getDocs(usersCollection);
 
       const suggestedFriends: IUser[] = [];
@@ -163,7 +162,7 @@ export class FriendsService {
    */
   async addFriend(userId: string, friendId: string): Promise<void> {
     try {
-      const userRef = doc(db, `users/${userId}`);
+      const userRef = doc(`users/${userId}`);
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists) {
@@ -191,7 +190,7 @@ export class FriendsService {
    */
   async removeFriend(userId: string, friendId: string): Promise<void> {
     try {
-      const userRef = doc(db, `users/${userId}`);
+      const userRef = doc(`users/${userId}`);
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists) {
@@ -218,8 +217,8 @@ export class FriendsService {
    */
   async areMutualFriends(userId: string, friendId: string): Promise<boolean> {
     try {
-      const userRef = doc(db, `users/${userId}`);
-      const friendRef = doc(db, `users/${friendId}`);
+      const userRef = doc(`users/${userId}`);
+      const friendRef = doc(`users/${friendId}`);
 
       const [userSnap, friendSnap] = await Promise.all([
         getDoc(userRef),

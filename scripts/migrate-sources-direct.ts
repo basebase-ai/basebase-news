@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
-import { initializeApp, getBasebase, doc, setDoc } from "basebase";
+import { doc, setDoc } from "basebase";
 
 // Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -26,14 +26,6 @@ if (!process.env.BASEBASE_API_KEY) {
 if (!process.env.BASEBASE_PROJECT_ID) {
   throw new Error("BASEBASE_PROJECT_ID environment variable is required");
 }
-
-// Initialize BaseBase directly with JWT token for server environment
-const app = initializeApp({
-  apiKey: process.env.BASEBASE_API_KEY!,
-  projectId: process.env.BASEBASE_PROJECT_ID!,
-  token: process.env.BASEBASE_TOKEN!,
-});
-const db = getBasebase(app);
 
 // Debug: Check if token is configured
 console.log("BaseBase initialized with token:", !!process.env.BASEBASE_TOKEN);
@@ -69,7 +61,7 @@ async function migrateSources() {
     mongoClient = client;
     const rawSources = await mongoDB.collection("sources").find({}).toArray();
     const sources: MongoSource[] = rawSources.map((source: any) => ({
-      _id: source._id.toString(),
+      _id: source.id.toString(),
       name: source.name as string,
       homepageUrl: source.homepageUrl as string,
       rssUrl: source.rssUrl as string | undefined,
@@ -98,7 +90,7 @@ async function migrateSources() {
         };
 
         // Add to BaseBase directly using the original MongoDB ID
-        const sourceDoc = doc(db, `newsSources/${source._id}`);
+        const sourceDoc = doc(`newsSources/${source._id}`);
         await setDoc(sourceDoc, basebaseSource);
         console.log(
           `✓ Successfully migrated ${source.name} with ID: ${source._id}`

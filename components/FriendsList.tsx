@@ -8,7 +8,7 @@ import LoadingSpinner from './LoadingSpinner';
 import FriendSourcesModal from './FriendSourcesModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faUserPlus, faSearch, faEye } from '@fortawesome/free-solid-svg-icons';
-import { fetchApi } from '@/lib/api';
+import { friendsService } from '@/services/friends.service';
 
 interface Connection extends User {
   // Can be extended with connection-specific details if needed
@@ -23,52 +23,57 @@ export default function FriendsList() {
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const [friendSourcesModalOpen, setFriendSourcesModalOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    if (!currentUser) return;
+  const fetchData = useCallback(async (user: any) => {
+    if (!user) return;
 
     try {
       setLoading(true);
-      const [requestsRes, suggestionsRes] = await Promise.all([
-        fetchApi('/api/connections?status=REQUESTED'),
-        fetchApi('/api/connections?status=SUGGESTED'),
-      ]);
+      // TODO: Implement friends/connections API endpoints
+      // Temporarily disabled to prevent 404 errors
+      // const [requestsRes, suggestionsRes] = await Promise.all([
+      //   fetchApi('/api/connections?status=REQUESTED'),
+      //   fetchApi('/api/connections?status=SUGGESTED'),
+      // ]);
 
-      if (requestsRes.ok) {
-        const data = await requestsRes.json();
-        setRequests(data.connections || []);
-      }
-      if (suggestionsRes.ok) {
-        const data = await suggestionsRes.json();
-        setSuggestions(data.connections || []);
-      }
+      // if (requestsRes.ok) {
+      //   const data = await requestsRes.json();
+      //   setRequests(data.connections || []);
+      // }
+      // if (suggestionsRes.ok) {
+      //   const data = await suggestionsRes.json();
+      //   setSuggestions(data.connections || []);
+      // }
+      
+      // Set empty arrays for now
+      setRequests([]);
+      setSuggestions([]);
     } catch (error) {
       console.error('Failed to fetch connections:', error);
+      // Set empty arrays to stop repeated attempts
+      setRequests([]);
+      setSuggestions([]);
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (currentUser) {
+      fetchData(currentUser);
+    }
+  }, [currentUser, fetchData]);
 
   const handleAddFriend = async (targetUserId: string) => {
     try {
-      const response = await fetchApi('/api/connections', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId }),
-      });
-      if (response.ok) {
-        // Refresh all data to reflect the new connection status
-        fetchData();
-        // Also refresh friends in central state
-        const friendsRes = await fetchApi('/api/connections?status=CONNECTED');
-        if (friendsRes.ok) {
-          const data = await friendsRes.json();
-          setFriends(data.connections || []);
-        }
+      if (!currentUser) return;
+      
+      await friendsService.addFriend(currentUser.id, targetUserId);
+      
+      // Refresh all data to reflect the new connection status
+      if (currentUser) {
+        fetchData(currentUser);
       }
+      // TODO: Also refresh friends in central state when API is implemented
     } catch (error) {
       console.error('Failed to add friend:', error);
     }
@@ -80,7 +85,7 @@ export default function FriendsList() {
   };
 
   const renderUserCard = (user: User, type: 'friend' | 'request' | 'suggestion') => (
-    <div key={user._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+    <div key={user.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Avatar user={user} size="md" />
@@ -100,7 +105,7 @@ export default function FriendsList() {
           )}
           {type === 'request' && (
             <button 
-              onClick={() => handleAddFriend(user._id)} 
+              onClick={() => handleAddFriend(user.id)} 
               className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
             >
               <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
@@ -109,7 +114,7 @@ export default function FriendsList() {
           )}
           {type === 'suggestion' && (
             <button 
-              onClick={() => handleAddFriend(user._id)} 
+              onClick={() => handleAddFriend(user.id)} 
               className="px-3 py-1.5 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
             >
               <FontAwesomeIcon icon={faUserPlus} className="h-4 w-4" />

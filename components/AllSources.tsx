@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Source, User } from '@/types';
 import { useAppState } from '@/lib/state/AppContext';
 import LoadingSpinner from './LoadingSpinner';
 import OverlappingAvatars from './OverlappingAvatars';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faCog, faSearch, faChevronRight, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
-import SourceSettings from './SourceSettings';
-import { fetchApi } from '@/lib/api';
+// import SourceSettings from './SourceSettings'; // Component no longer exists
+
+import { isUserAuthenticated } from '@/services/basebase.service';
+import { getCurrentUser, subscribeToSource, unsubscribeFromSource } from '@/services/user.service';
+import { getSources } from '@/services/source.service';
+import { storyService } from '@/services/story.service';
 import { formatTimeAgo } from '@/lib/utils';
 
 interface SourceStory {
@@ -35,40 +39,92 @@ export default function AllSources() {
   const [sourceStories, setSourceStories] = useState<Record<string, SourceStory[]>>({});
   const [loadingStories, setLoadingStories] = useState<Set<string>>(new Set());
 
+  const loadUserData = useCallback(async () => {
+    try {
+      if (!isUserAuthenticated()) {
+        console.warn('[AllSources] User not authenticated');
+        return;
+      }
+
+      const user = await getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+      }
+    } catch (error) {
+      console.error('[AllSources] Error loading user data:', error);
+    }
+  }, []);
+
+  const loadSources = useCallback(async () => {
+    try {
+      if (!isUserAuthenticated()) {
+        console.warn('[AllSources] User not authenticated');
+        return;
+      }
+
+      const sources = await getSources();
+      setSources(sources);
+    } catch (error) {
+      console.error('[AllSources] Error loading sources:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchSources = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetchApi('/api/sources');
-        if (response.ok) {
-          const data = await response.json();
-          const sourcesArray = Array.isArray(data) ? data : [];
-          setSources(sourcesArray);
-        } else {
-          throw new Error(`Failed to fetch sources: ${response.status} ${response.statusText}`);
+        
+        if (!isUserAuthenticated()) {
+          console.warn('[AllSources] User not authenticated');
+          return;
         }
-      } catch (err) {
+        
+        const sourcesData = await getSources();
+        const sourcesArray = Array.isArray(sourcesData) ? sourcesData : [];
+        // Map ISource to Source format with id
+        const sources = sourcesArray.map(source => ({
+          ...source,
+          id: source.id || '',
+        }));
+        
+        setSources(sources);
+      } catch (error) {
+        console.error('[AllSources] Error loading sources:', error);
         setError('Failed to load sources');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSources();
-  }, [sourceListVersion]);
+    loadData();
+  }, []);
 
   const fetchSourceStories = async (sourceId: string) => {
     if (!isSourceAdded(sourceId)) return;
     
     setLoadingStories(prev => new Set(prev).add(sourceId));
     try {
-      const response = await fetchApi(`/api/sources/${sourceId}`);
-      if (response.ok) {
-        const data = await response.json();
-        const stories = data.source?.stories?.slice(0, 3) || [];
-        setSourceStories(prev => ({ ...prev, [sourceId]: stories }));
+      if (!isUserAuthenticated()) {
+        console.warn('[AllSources] User not authenticated');
+        return;
       }
+
+      const storiesWithDetails = await storyService.getStoriesForSource(sourceId, 3);
+      
+      // Convert IStoryWithDetails to SourceStory format
+      const stories: SourceStory[] = storiesWithDetails.map(story => ({
+        id: story.id || '',
+        articleUrl: story.url,
+        fullHeadline: story.headline,
+        summary: story.summary,
+        imageUrl: story.imageUrl,
+        createdAt: story.publishedAt,
+        status: 'UNREAD' as const,
+        starred: false,
+      }));
+      
+      setSourceStories(prev => ({ ...prev, [sourceId]: stories }));
     } catch (error) {
       console.error('Failed to fetch stories for source:', error);
     } finally {
@@ -93,36 +149,51 @@ export default function AllSources() {
     setExpandedSources(newExpanded);
   };
 
+  const handleSourceToggle = async (sourceId: string, isSubscribed: boolean) => {
+    try {
+      if (!isUserAuthenticated()) {
+        console.warn('[AllSources] User not authenticated');
+        return;
+      }
+
+      if (isSubscribed) {
+        await unsubscribeFromSource(sourceId);
+      } else {
+        await subscribeToSource(sourceId);
+      }
+      
+      // Reload user data to get updated subscriptions
+      await loadUserData();
+    } catch (error) {
+      console.error('[AllSources] Error toggling source:', error);
+    }
+  };
+
   const handleAddSource = async (sourceId: string) => {
     if (!currentUser) return;
 
     try {
-      const updatedSourceIds = currentUser.sourceIds.includes(sourceId)
-        ? currentUser.sourceIds
-        : [sourceId, ...currentUser.sourceIds];
+      if (!isUserAuthenticated()) {
+        console.warn('[AllSources] User not authenticated');
+        return;
+      }
 
-      const response = await fetchApi('/api/users/me/sources', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceIds: updatedSourceIds }),
-      });
-
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
-        
-        const sourceResponse = await fetchApi(`/api/sources/${sourceId}`);
-        if (sourceResponse.ok) {
-          const { source } = await sourceResponse.json();
-          if (source && !currentSources?.some(s => s._id === source._id)) {
-            setCurrentSources(prev => [...(prev || []), source]);
-          }
-        }
-      } else {
-        throw new Error('Failed to update user sources');
+      // Add source using userService directly
+      await subscribeToSource(sourceId);
+      
+      // Update local state
+      const updatedSourceIds = [...currentUser.sourceIds, sourceId];
+      setCurrentUser({ ...currentUser, sourceIds: updatedSourceIds });
+      
+      // Get the source details using sourceService
+      const allSources = await getSources();
+      const source = allSources.find(s => s.id === sourceId);
+      if (source && source.id && !currentSources?.some(s => s.id === source.id)) {
+        const sourceWithId = { ...source, id: source.id } as Source;
+        setCurrentSources([...(currentSources || []), sourceWithId]);
       }
     } catch (error) {
-      console.error('Failed to add source:', error);
+      console.error('[AllSources] Failed to add source:', error);
     }
   };
 
@@ -130,34 +201,23 @@ export default function AllSources() {
     if (!currentUser) return;
 
     try {
-      const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
-
-      const response = await fetchApi('/api/users/me/sources', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceIds: updatedSourceIds }),
-      });
-
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
-        setCurrentSources(prev => prev.filter(s => s._id !== sourceId));
-        // Clear cached stories for removed source
-        setSourceStories(prev => {
-          const { [sourceId]: removed, ...rest } = prev;
-          return rest;
-        });
-        // Collapse if expanded
-        setExpandedSources(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(sourceId);
-          return newSet;
-        });
-      } else {
-        throw new Error('Failed to update user sources');
+      if (!isUserAuthenticated()) {
+        console.warn('[AllSources] User not authenticated');
+        return;
       }
+
+      // Remove source using userService directly
+      await unsubscribeFromSource(sourceId);
+      
+      // Update local state
+      const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
+      setCurrentUser({ ...currentUser, sourceIds: updatedSourceIds });
+      
+      // Update current sources
+      const updatedSources = currentSources?.filter(s => s.id !== sourceId);
+      setCurrentSources(updatedSources || []);
     } catch (error) {
-      console.error('Failed to remove source:', error);
+      console.error('[AllSources] Failed to remove source:', error);
     }
   };
 
@@ -241,21 +301,21 @@ export default function AllSources() {
       {!loading && !error && (
         <div className="space-y-2">
           {filteredSources.map(source => (
-            <div key={source._id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
+            <div key={source.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between p-3">
                 <div className="flex items-center space-x-3 flex-1">
-                  {isSourceAdded(source._id) && (
+                  {isSourceAdded(source.id) && (
                     <button
-                      onClick={() => toggleSourceExpansion(source._id)}
+                      onClick={() => toggleSourceExpansion(source.id)}
                       className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors"
                     >
                       <FontAwesomeIcon 
-                        icon={expandedSources.has(source._id) ? faChevronDown : faChevronRight} 
+                        icon={expandedSources.has(source.id) ? faChevronDown : faChevronRight} 
                         className="h-4 w-4" 
                       />
                     </button>
                   )}
-                  {!isSourceAdded(source._id) && <div className="w-6" />}
+                  {!isSourceAdded(source.id) && <div className="w-6" />}
                   {source.imageUrl && <img src={source.imageUrl} alt={source.name} className="w-8 h-8 object-contain" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
@@ -264,7 +324,7 @@ export default function AllSources() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">{source.homepageUrl}</p>
                       </div>
                       <div className="ml-4">
-                        {renderFriendAvatars(source._id)}
+                        {renderFriendAvatars(source.id)}
                       </div>
                     </div>
                   </div>
@@ -275,12 +335,12 @@ export default function AllSources() {
                       <FontAwesomeIcon icon={faCog} className="h-5 w-5" />
                     </button>
                   )}
-                  {isSourceAdded(source._id) ? (
-                    <button onClick={() => handleRemoveSource(source._id)} className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded-full hover:bg-red-700">
+                  {isSourceAdded(source.id) ? (
+                    <button onClick={() => handleRemoveSource(source.id)} className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded-full hover:bg-red-700">
                       Remove
                     </button>
                   ) : (
-                    <button onClick={() => handleAddSource(source._id)} className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700">
+                    <button onClick={() => handleAddSource(source.id)} className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700">
                       Add
                     </button>
                   )}
@@ -288,15 +348,15 @@ export default function AllSources() {
               </div>
               
               {/* Expanded stories section */}
-              {expandedSources.has(source._id) && isSourceAdded(source._id) && (
+              {expandedSources.has(source.id) && isSourceAdded(source.id) && (
                 <div className="border-t border-gray-200 dark:border-gray-600 bg-gray-25 dark:bg-gray-800/30">
-                  {loadingStories.has(source._id) ? (
+                  {loadingStories.has(source.id) ? (
                     <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                       Loading stories...
                     </div>
-                  ) : sourceStories[source._id]?.length > 0 ? (
+                  ) : sourceStories[source.id]?.length > 0 ? (
                     <div className="p-4 space-y-3">
-                      {sourceStories[source._id].map(story => (
+                      {sourceStories[source.id].map(story => (
                         <div key={story.id} className="flex items-start space-x-3 group">
                           {story.imageUrl && (
                             <img 
@@ -352,15 +412,7 @@ export default function AllSources() {
         </div>
       )}
 
-      <SourceSettings
-        isOpen={sourceSettingsOpen}
-        onClose={() => {
-          setSourceSettingsOpen(false);
-          setEditingSource(null);
-        }}
-        editingSource={editingSource}
-        onSourceSave={handleSourceSave}
-      />
+      {/* SourceSettings component no longer exists */}
     </>
   );
 } 

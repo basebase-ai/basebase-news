@@ -1,114 +1,64 @@
-import { fetchApi } from "@/lib/api";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  addDoc,
+} from "basebase";
+import { Source } from "@/types";
 
-// Define the Source interface based on BaseBase's NewsSource type
-export interface ISource {
-  id?: string;
-  creator?: string;
-  name: string;
-  homepageUrl?: string;
-  rssUrl?: string;
-  lastScrapedAt?: string;
-  includeSelector?: string;
-  excludeSelector?: string;
-  tags?: string[];
-  biasScore?: number;
-  hasPaywall?: boolean;
-}
+export interface ISource extends Source {}
 
 export class SourceService {
-  constructor() {
-    // Use API endpoints instead of direct BaseBase SDK calls
-  }
-
-  private trimSourceFields(source: ISource): Partial<ISource> {
-    // Remove trailing slashes from URLs
-    const homepageUrl = source.homepageUrl?.trim().replace(/\/+$/, "");
-    const rssUrl = source.rssUrl?.trim().replace(/\/+$/, "");
-
-    return {
-      name: source.name?.trim(),
-      homepageUrl,
-      rssUrl,
-      includeSelector: source.includeSelector?.trim(),
-      excludeSelector: source.excludeSelector?.trim(),
-      tags: source.tags?.map((tag: string) => tag.trim()),
-      biasScore: source.biasScore,
-      hasPaywall: source.hasPaywall,
-      lastScrapedAt: new Date().toISOString(), // Add required lastScrapedAt field
-    };
-  }
-
-  public async addSource(source: ISource): Promise<void> {
+  async getSources(): Promise<Source[]> {
     try {
-      const trimmedSource = this.trimSourceFields(source);
-      const response = await fetchApi("/api/sources", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(trimmedSource),
+      console.log("[SourceService] Getting all sources");
+
+      const sourcesCollection = collection("newsSources", "newswithfriends");
+      const sourcesSnap = await getDocs(sourcesCollection);
+
+      const sources: Source[] = [];
+      sourcesSnap.forEach((docSnap) => {
+        sources.push({
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as Source);
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+
+      return sources;
     } catch (error) {
-      console.error("Error adding source:", error);
+      console.error("[SourceService] Error getting sources:", error);
       throw error;
     }
   }
 
-  public async updateSource(sourceId: string, source: ISource): Promise<void> {
+  async getSource(id: string): Promise<Source | null> {
     try {
-      const trimmedSource = this.trimSourceFields(source);
-      const response = await fetchApi(`/api/sources/${sourceId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(trimmedSource),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Error updating source:", error);
-      throw new Error(`Source with id ${sourceId} not found`);
-    }
-  }
+      console.log("[SourceService] Getting source:", id);
 
-  public async getSource(id: string): Promise<ISource | null> {
-    try {
-      const response = await fetchApi(`/api/sources/${id}`);
-      if (response.status === 404) {
-        return null;
-      }
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.source || null;
+      const sourcesCollection = collection("newsSources", "newswithfriends");
+      const sourcesSnap = await getDocs(sourcesCollection);
+
+      let foundSource: Source | null = null;
+      sourcesSnap.forEach((docSnap) => {
+        if (docSnap.id === id) {
+          foundSource = {
+            id: docSnap.id,
+            ...docSnap.data(),
+          } as Source;
+        }
+      });
+
+      return foundSource;
     } catch (error) {
-      console.error("Error getting source:", error);
+      console.error("[SourceService] Error getting source:", error);
       throw new Error(`Source with id ${id} not found`);
     }
   }
 
-  public async getSources(): Promise<ISource[]> {
-    try {
-      const response = await fetchApi("/api/sources");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.sources || [];
-    } catch (error) {
-      console.error("Error getting sources:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Search for sources by name. If the query is empty, all sources will be returned.
-   * @param query The search term to match against the source name.
-   * @returns A list of matching sources, sorted by relevance.
-   */
-  public async searchSources(query: string | null): Promise<ISource[]> {
+  async searchSources(query: string | null): Promise<Source[]> {
     if (!query || query.trim().length === 0) {
       return this.getSources();
     }
@@ -119,10 +69,10 @@ export class SourceService {
     const sources = await this.getSources();
 
     return sources
-      .filter((source: ISource) =>
+      .filter((source: Source) =>
         source.name.toLowerCase().includes(trimmedQuery)
       )
-      .sort((a: ISource, b: ISource) => {
+      .sort((a: Source, b: Source) => {
         const aName = a.name.toLowerCase();
         const bName = b.name.toLowerCase();
 
@@ -141,6 +91,54 @@ export class SourceService {
       })
       .slice(0, 20); // Limit to 20 results
   }
+
+  async addSource(sourceData: Omit<Source, "id">): Promise<Source> {
+    try {
+      console.log("[SourceService] Adding source:", sourceData.name);
+
+      const sourcesCollection = collection("newsSources", "newswithfriends");
+      const docRef = await addDoc(sourcesCollection, sourceData);
+
+      return {
+        id: docRef.id,
+        ...sourceData,
+      };
+    } catch (error) {
+      console.error("[SourceService] Error adding source:", error);
+      throw error;
+    }
+  }
+
+  async updateSource(
+    id: string,
+    sourceData: Partial<Source>
+  ): Promise<Source | null> {
+    try {
+      console.log("[SourceService] Updating source:", id);
+
+      const sourceRef = doc(`newsSources/${id}`, "newswithfriends");
+      await updateDoc(sourceRef, sourceData);
+
+      // Return the updated source
+      return await this.getSource(id);
+    } catch (error) {
+      console.error("[SourceService] Error updating source:", error);
+      throw error;
+    }
+  }
 }
 
 export const sourceService = new SourceService();
+
+// Keep the standalone functions for backward compatibility
+export async function getSources(): Promise<Source[]> {
+  return sourceService.getSources();
+}
+
+export async function getSource(id: string): Promise<Source | null> {
+  return sourceService.getSource(id);
+}
+
+export async function searchSources(query: string | null): Promise<Source[]> {
+  return sourceService.searchSources(query);
+}

@@ -1,5 +1,5 @@
 export interface User {
-  _id: string;
+  id: string;
   first: string;
   last: string;
   phone?: string;
@@ -12,7 +12,7 @@ export interface User {
 }
 
 export interface Source {
-  _id: string;
+  id: string;
   name: string;
   homepageUrl: string;
   rssUrl?: string;
@@ -22,6 +22,7 @@ export interface Source {
   tags?: string[];
   imageUrl?: string;
   lastScrapedAt?: string;
+  hasPaywall?: boolean;
 }
 
 export interface Story {

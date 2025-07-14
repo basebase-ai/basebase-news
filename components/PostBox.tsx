@@ -8,15 +8,18 @@ import OverlappingAvatars from './OverlappingAvatars';
 import StoryReactionModal from './StoryReactionModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane, faStar } from '@fortawesome/free-solid-svg-icons';
-import { fetchApi } from '@/lib/api';
+import { userService } from '@/services/user.service';
+import { sourceService } from '@/services/source.service';
+import { storyService } from '@/services/story.service';
+import { isUserAuthenticated } from '@/services/basebase.service';
 
 interface CommentData {
-  _id: string;
+  id: string;
   text: string;
   createdAt: string;
   updatedAt: string;
   userId: {
-    _id: string;
+    id: string;
     first: string;
     last: string;
     email: string;
@@ -25,21 +28,21 @@ interface CommentData {
 }
 
 interface StoryData {
-  _id: string;
+  id: string;
   fullHeadline: string;
   articleUrl: string;
   summary?: string;
   imageUrl?: string;
   publishedAt?: string;
   source: {
-    _id: string;
+    id: string;
     name: string;
     homepageUrl: string;
     imageUrl?: string;
   };
   starCount: number;
   starredBy: {
-    _id: string;
+    id: string;
     first: string;
     last: string;
     email: string;
@@ -72,22 +75,22 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
         ? currentUser.sourceIds
         : [sourceId, ...currentUser.sourceIds];
 
-      const response = await fetchApi('/api/users/me/sources', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceIds: updatedSourceIds }),
-      });
+      if (!isUserAuthenticated()) {
+        console.warn('[PostBox] User not authenticated');
+        return;
+      }
 
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
+      const success = await userService.updateUserSources(updatedSourceIds);
+      
+      if (success) {
+        // Update local user state
+        setCurrentUser({ ...currentUser, sourceIds: updatedSourceIds });
         
-        const sourceResponse = await fetchApi(`/api/sources/${sourceId}`);
-        if (sourceResponse.ok) {
-          const { source } = await sourceResponse.json();
-          if (source && !currentSources?.some(s => s._id === source._id)) {
-            setCurrentSources(prev => [...(prev || []), source]);
-          }
+        // Get source details and add to current sources
+        const sources = await sourceService.getSources();
+        const source = sources.find(s => s.id === sourceId);
+        if (source && !currentSources?.some(s => s.id === source.id)) {
+          setCurrentSources(prev => [...(prev || []), source]);
         }
       } else {
         throw new Error('Failed to update user sources');
@@ -111,22 +114,17 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
   };
 
   const handleSubmitComment = async (): Promise<void> => {
-    if (!commentText.trim() || isSubmitting) return;
+    if (!commentText.trim() || isSubmitting || !currentUser) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetchApi('/api/comments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          storyId: story._id,
-          text: commentText.trim(),
-        }),
-      });
+      const comment = await storyService.addComment(
+        story.id,
+        commentText.trim(),
+        currentUser.id
+      );
 
-      if (response.ok) {
+      if (comment) {
         setCommentText('');
         if (onCommentAdded) {
           onCommentAdded();
@@ -180,21 +178,16 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
   };
 
   const handleRecommend = async (comment?: string) => {
-    if (!reactionStory) return;
+    if (!reactionStory || !currentUser) return;
     
     try {
-      const response = await fetchApi('/api/users/me/stories/star', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          storyId: reactionStory._id,
-          comment 
-        }),
-      });
+      const success = await storyService.starStory(
+        reactionStory.id,
+        currentUser.id,
+        comment
+      );
       
-      if (response.ok) {
+      if (success) {
         // Could update UI state here if needed
         console.log('Story recommended successfully');
       }
@@ -226,7 +219,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
           articleUrl={story.articleUrl}
           showFullImage={true}
           publishedAt={story.publishedAt}
-          storyId={story._id}
+          storyId={story.id}
           onStoryClick={handleStoryClick}
         />
         <div className="flex items-center justify-between pt-2">
@@ -236,9 +229,9 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
             )}
             <span className="text-xs text-gray-500 dark:text-gray-400">{story.source.name}</span>
           </div>
-          {!isSourceAdded(story.source._id) && (
+          {!isSourceAdded(story.source.id) && (
             <button
-              onClick={() => handleAddSource(story.source._id)}
+              onClick={() => handleAddSource(story.source.id)}
               className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-full hover:bg-green-700"
             >
               Add
@@ -255,7 +248,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
           </h4>
           <div className="space-y-2">
             {story.comments.map((comment) => (
-              <div key={comment._id} className="flex items-start space-x-2">
+              <div key={comment.id} className="flex items-start space-x-2">
                 {/* Comment author avatar */}
                 {comment.userId.imageUrl ? (
                   <img
@@ -321,7 +314,7 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
       {showReactionModal && reactionStory && (
         <StoryReactionModal
           story={{
-            id: reactionStory._id,
+            id: reactionStory.id,
             articleUrl: reactionStory.articleUrl,
             fullHeadline: reactionStory.fullHeadline,
             sourceName: reactionStory.source.name,

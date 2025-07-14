@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
-import { initializeApp, getBasebase, doc, setDoc } from "basebase";
+import { doc, setDoc } from "basebase";
 
 // Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -31,29 +31,13 @@ if (!process.env.BASEBASE_PROJECT_ID) {
 
 console.log("Environment variables loaded");
 
-// Initialize BaseBase
-const app = initializeApp({
-  apiKey: process.env.BASEBASE_API_KEY!,
-  projectId: process.env.BASEBASE_PROJECT_ID!,
-  token: process.env.BASEBASE_TOKEN!,
-});
-
-const bb = getBasebase(app);
-
-// In your code, before making the query
-console.log("BaseBase instance:", {
-  baseUrl: bb.baseUrl,
-  projectId: bb.projectId,
-  apiKey: bb.apiKey,
-});
-
 // Debug: Check if token is configured
 console.log("BaseBase initialized with token:", !!process.env.BASEBASE_TOKEN);
 
 // Test BaseBase connection by trying to get a document
 console.log("Testing BaseBase connection...");
 try {
-  const testDoc = doc(bb, "test/test", "newswithfriends");
+  const testDoc = doc("test/test", "newswithfriends");
   console.log("✓ BaseBase connection test passed");
 } catch (error) {
   console.error("✗ BaseBase connection test failed:", error);
@@ -75,19 +59,9 @@ interface MongoStory {
 }
 
 async function connectToMongo(): Promise<{ client: MongoClient; db: any }> {
-  console.log("Attempting to connect to MongoDB...");
-  console.log(
-    "Using MongoDB URI:",
-    process.env.MONGODB_URI!.replace(
-      /mongodb(\+srv)?:\/\/[^:]+:[^@]+@/,
-      "mongodb$1://****:****@"
-    )
-  );
-  const client = await MongoClient.connect(process.env.MONGODB_URI!);
-  console.log("Connected successfully to MongoDB");
-
-  const db = client.db();
-  console.log("Database selected:", db.databaseName);
+  const client = new MongoClient(process.env.MONGODB_URI!);
+  await client.connect();
+  const db = client.db("newsWithFriends");
   return { client, db };
 }
 
@@ -192,56 +166,50 @@ async function migrateStories() {
         // });
 
         // Create story in newsStories collection, preserving MongoDB ObjectId
-        const storyRef = doc(bb, `newsStories/${story._id}`);
+        const storyRef = doc(`newsStories/${story._id}`);
         await setDoc(storyRef, basebaseStory);
         // console.log(`  ✅ Story created successfully`);
         // console.log(
         //   `[${progress}%] ✓ Successfully migrated "${story.fullHeadline}"`
         // );
+
         successCount++;
-      } catch (error: any) {
+      } catch (error) {
         console.error(
-          `[${progress}%] ❌ Failed to migrate "${story.fullHeadline}"`
+          `[${progress}%] ✗ Error migrating story "${story.fullHeadline}":`,
+          error
         );
-        console.error(`  🔥 Error type: ${error.constructor.name}`);
-        console.error(`  💬 Error message: ${error.message}`);
-        if (error.response) {
-          console.error(`  📡 HTTP Status: ${error.response.status}`);
-          console.error(`  📄 Response headers:`, error.response.headers);
-        }
-        if (error.request) {
-          console.error(`  📨 Request details:`, {
-            query: error.request.query?.substring(0, 100) + "...",
-            variables: error.request.variables,
-          });
-        }
-        console.error(`  📍 Full error:`, error);
         errorCount++;
-        process.exit(1);
       }
     }
 
-    console.log("\n🏁 MIGRATION SUMMARY:");
-    console.log(`📊 Total stories found: ${stories.length}`);
-    console.log(`✅ Successfully migrated: ${successCount}`);
-    console.log(`⏭️  Skipped: ${skipCount}`);
-    console.log(`❌ Failed: ${errorCount}`);
+    console.log(`\n📊 Final Migration Results:`);
+    console.log(`✅ Successfully migrated: ${successCount} stories`);
+    console.log(`⏭️  Skipped: ${skipCount} stories`);
+    console.log(`❌ Failed: ${errorCount} stories`);
+    console.log(`📈 Total processed: ${stories.length} stories`);
+
+    // Performance summary
+    const totalTime = Date.now() - (global as any).startTime;
+    console.log(`⏱️  Total time: ${(totalTime / 1000).toFixed(2)}s`);
     console.log(
-      `📈 Success rate: ${((successCount / stories.length) * 100).toFixed(1)}%`
+      `⚡ Average: ${(totalTime / stories.length).toFixed(2)}ms per story`
     );
   } catch (error) {
-    console.error("\nMigration failed:", error);
+    console.error("Migration failed:", error);
     process.exit(1);
   } finally {
-    // Close MongoDB connection
     if (mongoClient) {
-      console.log("\nClosing MongoDB connection");
       await mongoClient.close();
-      console.log("MongoDB connection closed");
     }
   }
 }
 
+// Set start time for performance tracking
+(global as any).startTime = Date.now();
+
 // Run the migration
-console.log("Starting migration process...");
-migrateStories();
+migrateStories().then(() => {
+  console.log("\n🎉 Migration completed successfully!");
+  process.exit(0);
+});

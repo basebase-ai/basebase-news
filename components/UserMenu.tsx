@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
+import { userService } from '@/services/user.service';
+import { signOutUser, isUserAuthenticated } from '@/services/basebase.service';
 import type { User } from '@/types';
 import Avatar from './Avatar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -40,31 +42,38 @@ export default function UserMenu({ sidebarMinimized = false }: UserMenuProps) {
 
   const handleSignOut = async () => {
     try {
-      const response = await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        setCurrentUser(null);
-        window.location.reload();
-      }
+      console.log('[UserMenu] Signing out user...');
+      signOutUser();
+      setCurrentUser(null);
+      console.log('[UserMenu] User signed out successfully');
+      
+      // Redirect to sign in page
+      window.location.href = '/auth/signin';
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('[UserMenu] Error signing out:', error);
+      // Still redirect even if there's an error
+      window.location.href = '/auth/signin';
     }
   };
 
   const updateUserPreferences = async (preferences: UserPreferences) => {
     try {
-      const response = await fetch('/api/users/me/preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(preferences),
-      });
+      if (!isUserAuthenticated()) {
+        console.warn('[UserMenu] User not authenticated');
+        return;
+      }
 
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
+      const success = await userService.updateUserPreferences(preferences);
+
+      if (success) {
+        // Update local user state
+        if (currentUser) {
+          setCurrentUser({
+            ...currentUser,
+            denseMode: preferences.denseMode ?? currentUser.denseMode,
+            darkMode: preferences.darkMode ?? currentUser.darkMode,
+          });
+        }
         if (preferences.denseMode !== undefined) setDenseMode(preferences.denseMode);
         if (preferences.darkMode !== undefined) setDarkMode(preferences.darkMode);
       }

@@ -17,9 +17,11 @@ import {
 import { useAppState } from '@/lib/state/AppContext';
 import { Story, Source } from '@/types';
 import { SortableSourceBox } from './SourceBox';
-import SourceSettings from './SourceSettings';
+import SourceSettings from '@/components/SourceSettings';
 import LoadingSpinner from './LoadingSpinner';
-import { fetchApi } from '@/lib/api';
+
+import { isUserAuthenticated } from '@/services/basebase.service';
+import { getCurrentUser, subscribeToSource, unsubscribeFromSource, updateUserSources } from '@/services/user.service';
 
 
 interface SourceGridProps {
@@ -33,6 +35,22 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   const [editingSource, setEditingSource] = useState<Source | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
 
+  const loadUserData = useCallback(async () => {
+    try {
+      if (!isUserAuthenticated()) {
+        console.warn('[SourceGrid] User not authenticated');
+        return;
+      }
+
+      const user = await getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+      }
+    } catch (error) {
+      console.error('[SourceGrid] Error loading user data:', error);
+    }
+  }, []);
+
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
@@ -45,15 +63,9 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
       setCurrentUser({ ...currentUser, sourceIds: newSourceIds });
 
       try {
-        // Update source order via API
-        const response = await fetchApi('/api/users/me/sources', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourceIds: newSourceIds }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to update source order');
+        // Update source order via userService directly
+        if (isUserAuthenticated()) {
+          await updateUserSources(newSourceIds);
         }
       } catch (error) {
         console.error('Failed to save source order:', error);
@@ -67,20 +79,14 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
     if (!currentUser) return;
 
     try {
-      const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
-      
-      const response = await fetchApi('/api/users/me/sources', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceIds: updatedSourceIds }),
-      });
-
-      if (response.ok) {
-        const { user } = await response.json();
-        setCurrentUser(user);
-      } else {
-        throw new Error('Failed to remove source');
+      // Remove source using userService directly
+      if (isUserAuthenticated()) {
+        await unsubscribeFromSource(sourceId);
       }
+      
+      // Update local state
+      const updatedSourceIds = currentUser.sourceIds.filter(id => id !== sourceId);
+      setCurrentUser({ ...currentUser, sourceIds: updatedSourceIds });
     } catch (error) {
       console.error('Failed to remove source:', error);
     }
@@ -98,9 +104,29 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
 
   const handleSourceUpdate = useCallback((updatedSource: Source) => {
     setCurrentSources(prev => 
-      prev.map(s => s._id === updatedSource._id ? updatedSource : s)
+      prev.map(s => s.id === updatedSource.id ? updatedSource : s)
     );
   }, [setCurrentSources]);
+
+  const handleSourceToggle = async (sourceId: string, isSubscribed: boolean) => {
+    try {
+      if (!isUserAuthenticated()) {
+        console.warn('[SourceGrid] User not authenticated');
+        return;
+      }
+
+      if (isSubscribed) {
+        await unsubscribeFromSource(sourceId);
+      } else {
+        await subscribeToSource(sourceId);
+      }
+      
+      // Reload user data to get updated subscriptions
+      await loadUserData();
+    } catch (error) {
+      console.error('[SourceGrid] Error toggling source:', error);
+    }
+  };
 
   if (error) {
     return <div className="text-red-500 text-center">{error}</div>;
@@ -123,7 +149,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
         >
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {currentUser.sourceIds.map(sourceId => {
-              const source = currentSources?.find(s => s._id === sourceId);
+              const source = currentSources?.find(s => s.id === sourceId);
 
               if (!source) return null;
 

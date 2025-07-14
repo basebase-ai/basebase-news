@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import GlobalNavigationBar from '@/components/GlobalNavigationBar';
 import SideBar from '@/components/SideBar';
 import { useAppState } from '@/lib/state/AppContext';
-import SourceSettings from './SourceSettings';
+import SourceSettings from '@/components/SourceSettings';
 import SignInModal from './SignInModal';
 import { Source } from '@/types';
-import { fetchApi } from '@/lib/api';
+
 import LoadingSpinner from './LoadingSpinner';
-import { tokenService } from '@/lib/token.service';
+import { getAuthenticationState, isUserAuthenticated } from '@/services/basebase.service';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sourceListVersion, setSourceListVersion] = useState(0);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  // Load user data from token when the app starts
+  // Load user data from BaseBase SDK when the app starts
   useEffect(() => {
     const loadUser = async () => {
       if (currentUser) {
@@ -27,48 +27,51 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const token = tokenService.getToken();
-      if (!token) {
+      if (!isUserAuthenticated()) {
         setIsLoadingUser(false);
         return;
       }
 
       try {
-        // Decode JWT to get user info
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userId = payload.userId;
-        const userName = payload.name || '';
-        const userPhone = payload.phone || '';
+        const authState = getAuthenticationState();
+        if (authState.isAuthenticated && authState.user) {
+          const baseUser = authState.user;
+          
+          // Parse the name into first and last
+          const nameParts = baseUser.name?.split(' ') || [];
+          const first = nameParts[0] || '';
+          const last = nameParts.slice(1).join(' ') || '';
 
-        // Parse the name into first and last
-        const nameParts = userName.split(' ');
-        const first = nameParts[0] || '';
-        const last = nameParts.slice(1).join(' ') || '';
+          // Create user object from BaseBase auth state
+          const user = {
+            id: baseUser.id,
+            first,
+            last,
+            phone: baseUser.phone || '',
+            email: '', // BaseBase SDK doesn't provide email in auth state
+            imageUrl: undefined,
+            isAdmin: false,
+            sourceIds: [], // Will be loaded separately
+            denseMode: false,
+            darkMode: false,
+          };
 
-        // Create user object from token
-        const user = {
-          _id: userId,
-          first,
-          last,
-          phone: userPhone,
-          email: payload.email || '',
-          imageUrl: payload.imageUrl,
-          isAdmin: false,
-          sourceIds: [], // Will be loaded separately
-          denseMode: false,
-          darkMode: false,
-        };
-
-        setCurrentUser(user);
+          setCurrentUser(user);
+        }
       } catch (error) {
-        console.error('Error loading user from token:', error);
+        console.error('Error loading user from BaseBase SDK:', error);
       } finally {
         setIsLoadingUser(false);
       }
     };
 
-    loadUser();
-  }, [currentUser, setCurrentUser]);
+    // Only run once on mount, not when currentUser changes
+    if (!currentUser) {
+      loadUser();
+    } else {
+      setIsLoadingUser(false);
+    }
+  }, []); // Empty dependency array to prevent infinite loops
 
   const handleToggleSidebar = () => {
     setSidebarOpen(!isSidebarOpen);

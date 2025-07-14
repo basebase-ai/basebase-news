@@ -1,4 +1,15 @@
-import { fetchApi } from "@/lib/api";
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  addDoc,
+  updateDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+} from "basebase";
 
 // Define interfaces based on BaseBase types
 export interface IStory {
@@ -28,9 +39,42 @@ interface IStoryStatus {
   updatedAt: string;
 }
 
+export interface IComment {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: {
+    id: string;
+    first: string;
+    last: string;
+    email: string;
+    imageUrl?: string;
+  };
+  storyId: string;
+}
+
+export interface IStoryWithDetails extends IStory {
+  starCount: number;
+  starredBy: {
+    id: string;
+    first: string;
+    last: string;
+    email: string;
+    imageUrl?: string;
+  }[];
+  comments: IComment[];
+  source: {
+    id: string;
+    name: string;
+    homepageUrl: string;
+    imageUrl?: string;
+  };
+}
+
 export class StoryService {
   constructor() {
-    // Use API endpoints instead of direct BaseBase SDK calls
+    // Use BaseBase SDK calls
   }
 
   private prepareStoryData(story: IStory, sourceId: string): any {
@@ -47,19 +91,14 @@ export class StoryService {
 
   public async addStory(sourceId: string, story: IStory): Promise<IStory> {
     try {
-      const db = this.getAuthenticatedDb();
       const storyData = this.prepareStoryData(story, sourceId);
-      const storiesCollection = collection(
-        db,
-        "newsStories",
-        "newswithfriends"
-      );
-      const storyRef = await addDoc(storiesCollection, storyData);
+      const storiesCollection = collection("stories", "newswithfriends");
+      const docRef = await addDoc(storiesCollection, storyData);
 
       return {
-        id: storyRef.id,
-        ...storyData,
-        newsSource: sourceId,
+        ...story,
+        id: docRef.id,
+        createdAt: storyData.createdAt,
       };
     } catch (error) {
       console.error("Error adding story:", error);
@@ -69,39 +108,230 @@ export class StoryService {
 
   public async getStories(sourceId: string): Promise<IStory[]> {
     try {
-      const db = this.getAuthenticatedDb();
-      const MAX_STORIES = 25;
-      const storiesCollection = collection(
-        db,
-        "newsStories",
-        "newswithfriends"
+      console.log("getStories called for sourceId:", sourceId);
+
+      const storiesCollection = collection("stories", "newswithfriends");
+      const q = query(
+        storiesCollection,
+        where("newsSource", "==", sourceId),
+        orderBy("publishedAt", "desc"),
+        limit(20)
       );
-      const storiesSnap = await getDocs(storiesCollection);
 
+      const storiesSnap = await getDocs(q);
       const stories: IStory[] = [];
-      storiesSnap.forEach((doc) => {
-        const storyData = doc.data();
-        if (storyData.newsSource === sourceId) {
-          stories.push({ id: doc.id, ...storyData } as IStory);
-        }
+
+      storiesSnap.forEach((docSnap) => {
+        stories.push({
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as IStory);
       });
 
-      // Sort by date
-      stories.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.publishedAt).getTime();
-        const dateB = new Date(b.createdAt || b.publishedAt).getTime();
-        return dateB - dateA;
-      });
-
-      return stories.slice(0, MAX_STORIES);
+      return stories;
     } catch (error) {
       console.error("Error getting stories:", error);
+      return [];
+    }
+  }
+
+  public async getStoriesForSource(
+    sourceId: string,
+    limitCount: number = 3
+  ): Promise<IStoryWithDetails[]> {
+    try {
+      console.log("getStoriesForSource called for sourceId:", sourceId);
+
+      const storiesCollection = collection("stories", "newswithfriends");
+      const q = query(
+        storiesCollection,
+        where("newsSource", "==", sourceId),
+        orderBy("publishedAt", "desc"),
+        limit(limitCount)
+      );
+
+      const storiesSnap = await getDocs(q);
+      const stories: IStoryWithDetails[] = [];
+
+      // Get source info
+      const sourceDoc = await getDoc(
+        doc(`newsSources/${sourceId}`, "newswithfriends")
+      );
+      const sourceData = sourceDoc.exists ? sourceDoc.data() : null;
+
+      for (const docSnap of storiesSnap.docs) {
+        const storyData = docSnap.data();
+
+        // Get comments for this story
+        const commentsCollection = collection("comments", "newswithfriends");
+        const commentsQuery = query(
+          commentsCollection,
+          where("storyId", "==", docSnap.id),
+          orderBy("createdAt", "desc")
+        );
+        const commentsSnap = await getDocs(commentsQuery);
+
+        const comments: IComment[] = [];
+        for (const commentDoc of commentsSnap.docs) {
+          const commentData = commentDoc.data();
+          // Get user info for comment
+          const userDoc = await getDoc(
+            doc(`users/${commentData.userId}`, "basebase")
+          );
+          const userNewsDoc = await getDoc(
+            doc(`users/${commentData.userId}`, "newswithfriends")
+          );
+          const userData = userDoc.exists ? userDoc.data() : null;
+
+          if (userData) {
+            const nameParts = userData.name.split(" ");
+            comments.push({
+              id: commentDoc.id,
+              text: commentData.text,
+              createdAt: commentData.createdAt,
+              updatedAt: commentData.updatedAt,
+              userId: {
+                id: commentData.userId,
+                first: nameParts[0] || "",
+                last: nameParts.slice(1).join(" ") || "",
+                email: userData.email || "",
+                imageUrl: userData.imageUrl,
+              },
+              storyId: docSnap.id,
+            });
+          }
+        }
+
+        // Get starred by info
+        const starredCollection = collection(
+          "starredStories",
+          "newswithfriends"
+        );
+        const starredQuery = query(
+          starredCollection,
+          where("storyId", "==", docSnap.id)
+        );
+        const starredSnap = await getDocs(starredQuery);
+
+        const starredBy: any[] = [];
+        for (const starDoc of starredSnap.docs) {
+          const starData = starDoc.data();
+          const userDoc = await getDoc(
+            doc(`users/${starData.userId}`, "basebase")
+          );
+          const userData = userDoc.exists ? userDoc.data() : null;
+
+          if (userData) {
+            const nameParts = userData.name.split(" ");
+            starredBy.push({
+              id: starData.userId,
+              first: nameParts[0] || "",
+              last: nameParts.slice(1).join(" ") || "",
+              email: userData.email || "",
+              imageUrl: userData.imageUrl,
+            });
+          }
+        }
+
+        stories.push({
+          id: docSnap.id,
+          headline: storyData.headline,
+          summary: storyData.summary,
+          url: storyData.url,
+          imageUrl: storyData.imageUrl,
+          newsSource: storyData.newsSource,
+          publishedAt: storyData.publishedAt,
+          createdAt: storyData.createdAt,
+          starCount: starredBy.length,
+          starredBy,
+          comments,
+          source: {
+            id: sourceId,
+            name: sourceData?.name || "Unknown Source",
+            homepageUrl: sourceData?.homepageUrl || "",
+            imageUrl: sourceData?.imageUrl,
+          },
+        });
+      }
+
+      return stories;
+    } catch (error) {
+      console.error("Error getting stories for source:", error);
+      return [];
+    }
+  }
+
+  public async addComment(
+    storyId: string,
+    text: string,
+    userId: string
+  ): Promise<IComment | null> {
+    try {
+      const commentData = {
+        storyId,
+        text,
+        userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const commentsCollection = collection("comments", "newswithfriends");
+      const docRef = await addDoc(commentsCollection, commentData);
+
+      // Get user info
+      const userDoc = await getDoc(doc(`users/${userId}`, "basebase"));
+      const userData = userDoc.exists ? userDoc.data() : null;
+
+      if (userData) {
+        const nameParts = userData.name.split(" ");
+        return {
+          id: docRef.id,
+          text,
+          createdAt: commentData.createdAt,
+          updatedAt: commentData.updatedAt,
+          userId: {
+            id: userId,
+            first: nameParts[0] || "",
+            last: nameParts.slice(1).join(" ") || "",
+            email: userData.email || "",
+            imageUrl: userData.imageUrl,
+          },
+          storyId,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error adding comment:", error);
       throw error;
     }
   }
 
+  public async starStory(
+    storyId: string,
+    userId: string,
+    comment?: string
+  ): Promise<boolean> {
+    try {
+      const starData = {
+        storyId,
+        userId,
+        comment: comment || "",
+        createdAt: new Date().toISOString(),
+      };
+
+      const starredCollection = collection("starredStories", "newswithfriends");
+      await addDoc(starredCollection, starData);
+
+      return true;
+    } catch (error) {
+      console.error("Error starring story:", error);
+      return false;
+    }
+  }
+
   public async searchStories(
-    query: string | null,
+    searchQuery: string | null,
     options: {
       sourceId?: string;
       before?: Date;
@@ -117,71 +347,56 @@ export class StoryService {
     limit: number;
   }> {
     try {
-      const { sourceId, before, after, page = 1, limit = 20 } = options;
-
-      // Get all stories and filter in memory since BaseBase doesn't support text search yet
-      const db = this.getAuthenticatedDb();
-      const storiesCollection = collection(
-        db,
-        "newsStories",
-        "newswithfriends"
+      console.log(
+        "searchStories called with query:",
+        searchQuery,
+        "options:",
+        options
       );
-      const storiesSnap = await getDocs(storiesCollection);
 
-      let stories: IStory[] = [];
-      storiesSnap.forEach((doc) => {
-        stories.push({ id: doc.id, ...doc.data() } as IStory);
+      const storiesCollection = collection("stories", "newswithfriends");
+
+      // Build query constraints
+      const constraints = [];
+
+      if (options.sourceId) {
+        constraints.push(where("newsSource", "==", options.sourceId));
+      }
+
+      constraints.push(orderBy("publishedAt", "desc"));
+
+      if (options.limit) {
+        constraints.push(limit(options.limit));
+      }
+
+      const q = query(storiesCollection, ...constraints);
+
+      const storiesSnap = await getDocs(q);
+      const stories: IStory[] = [];
+
+      storiesSnap.forEach((docSnap) => {
+        stories.push({
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as IStory);
       });
-
-      // Apply filters
-      if (sourceId) {
-        stories = stories.filter((story) => story.newsSource === sourceId);
-      }
-
-      if (before) {
-        stories = stories.filter((story) => {
-          const storyDate = new Date(story.createdAt || story.publishedAt);
-          return storyDate < before;
-        });
-      }
-
-      if (after) {
-        stories = stories.filter((story) => {
-          const storyDate = new Date(story.createdAt || story.publishedAt);
-          return storyDate > after;
-        });
-      }
-
-      if (query) {
-        const searchTerms = query.toLowerCase().split(" ");
-        stories = stories.filter((story) => {
-          const searchText = `${story.headline} ${story.summary}`.toLowerCase();
-          return searchTerms.every((term) => searchText.includes(term));
-        });
-      }
-
-      // Sort by date
-      stories.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.publishedAt).getTime();
-        const dateB = new Date(b.createdAt || b.publishedAt).getTime();
-        return dateB - dateA;
-      });
-
-      const totalCount = stories.length;
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const paginatedStories = stories.slice(startIndex, endIndex);
 
       return {
-        stories: paginatedStories,
-        totalCount,
-        hasMore: endIndex < totalCount,
-        page,
-        limit,
+        stories,
+        totalCount: stories.length,
+        hasMore: false,
+        page: options.page || 1,
+        limit: options.limit || 20,
       };
     } catch (error) {
       console.error("Error searching stories:", error);
-      throw error;
+      return {
+        stories: [],
+        totalCount: 0,
+        hasMore: false,
+        page: options.page || 1,
+        limit: options.limit || 20,
+      };
     }
   }
 }

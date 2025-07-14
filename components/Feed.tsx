@@ -10,12 +10,12 @@ import { sourceService } from '@/services/source.service';
 import { IStory } from '@/services/story.service';
 
 interface CommentData {
-  _id: string;
+  id: string;
   text: string;
   createdAt: string;
   updatedAt: string;
   userId: {
-    _id: string;
+    id: string;
     first: string;
     last: string;
     email: string;
@@ -24,21 +24,21 @@ interface CommentData {
 }
 
 interface StoryData {
-  _id: string;
+  id: string;
   fullHeadline: string;
   articleUrl: string;
   summary?: string;
   imageUrl?: string;
   createdAt?: string;
   source: {
-    _id: string;
+    id: string;
     name: string;
     homepageUrl: string;
     imageUrl?: string;
   };
   starCount: number;
   starredBy: {
-    _id: string;
+    id: string;
     first: string;
     last: string;
     email: string;
@@ -68,10 +68,10 @@ export default function Feed() {
       // Transform stories to match the UI's expected format
       const transformedStories = await Promise.all(result.stories.map(async story => {
         let source = {
-          _id: story.newsSource || '',
+          id: story.newsSource || '',
           name: '', // Default value
           homepageUrl: '',
-          imageUrl: undefined,
+          imageUrl: undefined as string | undefined,
         };
 
         // Fetch source details if we have a source ID
@@ -80,10 +80,10 @@ export default function Feed() {
             const sourceDetails = await sourceService.getSource(story.newsSource);
             if (sourceDetails) {
               source = {
-                _id: sourceDetails.id || '',
+                id: sourceDetails.id,
                 name: sourceDetails.name,
-                homepageUrl: sourceDetails.homepageUrl || '',
-                imageUrl: undefined,
+                homepageUrl: sourceDetails.homepageUrl,
+                imageUrl: sourceDetails.imageUrl,
               };
             }
           } catch (error) {
@@ -92,7 +92,7 @@ export default function Feed() {
         }
 
         return {
-          _id: story.id || '',
+          id: story.id || '',
           fullHeadline: story.headline,
           articleUrl: story.url || '',
           summary: story.summary,
@@ -160,7 +160,7 @@ export default function Feed() {
               return dateB - dateA; // Most recent first
             })
             .map((story) => (
-              <PostBox key={story._id} story={story} onCommentAdded={fetchStories} />
+              <PostBox key={story.id} story={story} onCommentAdded={fetchStories} />
             ))}
         </div>
       )}

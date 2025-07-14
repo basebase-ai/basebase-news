@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { tokenService } from '@/lib/token.service';
+import { verifyCodeSMS } from '@/services/basebase.service';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function VerifyPage() {
@@ -48,27 +48,16 @@ export default function VerifyPage() {
 
       try {
         console.log('[Verify] Verifying code');
-        const response = await fetch(`/api/auth/verify?phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}`);
-        const data = await response.json();
+        const success = await verifyCodeSMS(phone, code);
         
-        if (response.ok && data.token) {
-          console.log('[Verify] Token received, storing');
-          tokenService.setToken(data.token);
-          
-          // Verify token was actually stored
-          const storedToken = tokenService.getToken();
-          console.log('[Verify] Token verification:', {
-            stored: !!storedToken,
-            matches: storedToken === data.token,
-            storedLength: storedToken?.length || 0
-          });
-          
+        if (success) {
+          console.log('[Verify] Verification successful - BaseBase SDK handled token storage');
           setMessage('Successfully signed in! Redirecting...');
           console.log('[Verify] Redirecting to /reader');
           router.push('/reader');
         } else {
-          console.error('[Verify] Verification failed:', data.error);
-          throw new Error(data.error || 'Verification failed. Please try again.');
+          console.error('[Verify] Verification failed');
+          throw new Error('Verification failed. Please try again.');
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';

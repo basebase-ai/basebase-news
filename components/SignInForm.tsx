@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faPhone, faEnvelopeOpen, faChevronDown } from '@fortawesome/free-solid-svg-icons';
-import { tokenService } from '@/lib/token.service';
+import { requestCodeSMS, verifyCodeSMS } from '@/services/basebase.service';
 
 interface SignInFormProps {
   onSuccess?: () => void;
@@ -47,11 +47,11 @@ export default function SignInForm({
         return;
       }
 
-      const response = await fetch(`/api/auth/verify?phone=${encodeURIComponent(phone)}&code=${encodeURIComponent(code)}`);
-      const data = await response.json();
+      const success = await verifyCodeSMS(phone, code);
 
-      if (response.ok && data.token) {
-        tokenService.setToken(data.token);
+      if (success) {
+        // BaseBase SDK automatically stores the token - no manual storage needed
+        console.log('[SignInForm] Authentication successful, SDK handled token storage');
         
         if (variant === 'page') {
           router.push('/reader');
@@ -59,7 +59,7 @@ export default function SignInForm({
           onSuccess?.();
         }
       } else {
-        handleError(data.error || 'Invalid verification code. Please try again.');
+        handleError('Invalid verification code. Please try again.');
       }
     } catch (error) {
       handleError('Something went wrong. Please try again.');
@@ -101,20 +101,14 @@ export default function SignInForm({
         return;
       }
 
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const success = await requestCodeSMS(payload.name, payload.phone);
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (success) {
         setPhone(phoneValue);
         setName(payload.name);
         setShowConfirmation(true);
       } else {
-        handleError(data.error || 'Something went wrong. Please try again.');
+        handleError('Something went wrong. Please try again.');
       }
     } catch (error) {
       handleError('Network error. Please check your connection and try again.');

@@ -5,7 +5,9 @@ import { Story } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import LinkPreview from './LinkPreview';
-import { fetchApi } from '@/lib/api';
+import { storyService } from '@/services/story.service';
+import { isUserAuthenticated } from '@/services/basebase.service';
+import { useAppState } from '@/lib/state/AppContext';
 
 interface PostComposerProps {
   story?: Story;
@@ -13,6 +15,7 @@ interface PostComposerProps {
 }
 
 export default function PostComposer({ story, onClose }: PostComposerProps) {
+  const { currentUser } = useAppState();
   const [text, setText] = useState<string>('');
   const [isPosting, setIsPosting] = useState<boolean>(false);
 
@@ -23,32 +26,33 @@ export default function PostComposer({ story, onClose }: PostComposerProps) {
   const handlePost = async () => {
     console.log('[PostComposer] handlePost called.');
 
-    if (!story || isPosting) {
-      console.log('[PostComposer] Exiting handlePost early.', { hasStory: !!story, isPosting });
+    if (!story || isPosting || !currentUser) {
+      console.log('[PostComposer] Exiting handlePost early.', { hasStory: !!story, isPosting, hasCurrentUser: !!currentUser });
       return;
     }
 
     console.log('[PostComposer] Proceeding with post. Story ID:', story.id);
     setIsPosting(true);
     try {
-      const response = await fetchApi('/api/users/me/stories/star', {
-        method: 'POST',
-        body: JSON.stringify({
-          storyId: story.id,
-          comment: text.trim(),
-        }),
-      });
+      if (!isUserAuthenticated()) {
+        console.warn('[PostComposer] User not authenticated');
+        return;
+      }
 
-      console.log('[PostComposer] API response status:', response.status);
-      const responseData = await response.json();
-      console.log('[PostComposer] API response data:', responseData);
+      const success = await storyService.starStory(
+        story.id,
+        currentUser.id,
+        text.trim()
+      );
 
-      if (response.ok) {
+      console.log('[PostComposer] Story starring success:', success);
+
+      if (success) {
         console.log('[PostComposer] Post successful. Closing modal.');
         onClose();
       } else {
-        console.error('Failed to recommend story:', responseData);
-        alert(`Failed to recommend story: ${responseData.message || 'Unknown error'}`);
+        console.error('Failed to recommend story');
+        alert('Failed to recommend story');
       }
     } catch (error) {
       console.error('Error recommending story:', error);

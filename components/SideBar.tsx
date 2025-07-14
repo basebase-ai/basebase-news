@@ -5,10 +5,12 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
-import { fetchApi } from '@/lib/api';
+import { userService } from '@/services/user.service';
+
 import Avatar from '@/components/Avatar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight, faGear, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { signOutUser } from '@/services/basebase.service';
 
   const menuItems = [
     { href: '/reader', icon: 'ri-compass-3-line', text: 'My News' },
@@ -41,37 +43,33 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
 
   const handleSignOut = async () => {
     try {
-      const response = await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        setCurrentUser(null);
-        window.location.reload();
-      }
+      console.log('[SideBar] Signing out user...');
+      signOutUser();
+      console.log('[SideBar] User signed out successfully');
+      
+      // Redirect to sign in page
+      window.location.href = '/auth/signin';
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('[SideBar] Error signing out:', error);
+      // Still redirect even if there's an error
+      window.location.href = '/auth/signin';
     }
   };
 
   const updateUserPreferences = async (preferences: { denseMode?: boolean; darkMode?: boolean }) => {
     try {
       console.log('Updating preferences:', preferences);
-      const response = await fetchApi('/api/users/me/preferences', {
-        method: 'PUT',
-        body: JSON.stringify(preferences),
-      });
-
-      if (response.ok) {
-        const { user } = await response.json();
-        console.log('Updated user:', user);
-        setCurrentUser(user);
-        if (preferences.denseMode !== undefined) setDenseMode(preferences.denseMode);
-        if (preferences.darkMode !== undefined) setDarkMode(preferences.darkMode);
-      } else {
-        console.error('Failed to update preferences:', response.status, response.statusText);
+      
+      // Update preferences using userService directly
+      await userService.updateUserPreferences(preferences);
+      
+      // Update local state
+      if (currentUser) {
+        const updatedUser = { ...currentUser, ...preferences };
+        setCurrentUser(updatedUser);
       }
+      if (preferences.denseMode !== undefined) setDenseMode(preferences.denseMode);
+      if (preferences.darkMode !== undefined) setDarkMode(preferences.darkMode);
     } catch (error) {
       console.error('Failed to update preferences:', error);
     }

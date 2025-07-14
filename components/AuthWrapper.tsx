@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { tokenService } from '@/lib/token.service';
+import { isUserAuthenticated } from '@/services/basebase.service';
 import LoadingSpinner from './LoadingSpinner';
 import AppLayout from './AppLayout';
 
@@ -20,28 +20,27 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         return;
       }
 
-      // Small delay to ensure token is stored
+      // Small delay to ensure authentication state is ready
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const token = tokenService.getToken();
+      const isAuthenticated = isUserAuthenticated();
       console.log('[AuthWrapper] Checking auth:', {
         pathname,
-        hasToken: !!token,
-        tokenLength: token?.length || 0
+        isAuthenticated
       });
       
       const isAuthRoute = AUTH_ROUTES.includes(pathname);
 
-      if (!token) {
-        // No token - show homepage or allow auth routes
+      if (!isAuthenticated) {
+        // Not authenticated - show homepage or allow auth routes
         if (!isAuthRoute && pathname !== '/') {
-          console.log('[AuthWrapper] No token, redirecting to homepage');
+          console.log('[AuthWrapper] Not authenticated, redirecting to homepage');
           router.replace('/');
         }
       } else {
-        // Has token - redirect to reader if on homepage or auth routes
+        // Authenticated - redirect to reader if on homepage or auth routes
         if (isAuthRoute || pathname === '/') {
-          console.log('[AuthWrapper] Has token, redirecting to reader');
+          console.log('[AuthWrapper] Authenticated, redirecting to reader');
           router.replace('/reader');
         }
       }
@@ -56,11 +55,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     return <LoadingSpinner />;
   }
 
-  const token = tokenService.getToken();
+  const isAuthenticated = isUserAuthenticated();
   const isAuthRoute = pathname ? AUTH_ROUTES.includes(pathname) : false;
 
-  // If we have a token and are not on auth routes, use AppLayout
-  if (token && !isAuthRoute && pathname !== '/') {
+  // If authenticated and not on auth routes, use AppLayout
+  if (isAuthenticated && !isAuthRoute && pathname !== '/') {
     return <AppLayout>{children}</AppLayout>;
   }
 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction } from 'react';
 import type { User, Source, Story } from '@/types';
-import { fetchApi } from '@/lib/api';
+
 
 interface AppState {
   currentUser: User | null;
@@ -72,14 +72,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const response = await fetchApi('/api/connections?status=CONNECTED');
-        if (response.ok) {
-          const data = await response.json();
-          const friendsArray = data.connections || [];
-          setState(prev => ({ ...prev, friends: friendsArray }));
-        }
+        // TODO: Implement friends/connections API endpoints
+        // Temporarily disabled to prevent 404 errors
+        // const response = await fetchApi('/api/connections?status=CONNECTED');
+        // if (response.ok) {
+        //   const data = await response.json();
+        //   const friendsArray = data.connections || [];
+        //   setState(prev => ({ ...prev, friends: friendsArray }));
+        // }
+        
+        // Set empty friends array for now
+        setState(prev => ({ ...prev, friends: [] }));
       } catch (error) {
         console.error('Failed to fetch friends:', error);
+        setState(prev => ({ ...prev, friends: [] }));
       }
     };
 
