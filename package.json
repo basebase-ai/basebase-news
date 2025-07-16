@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "migrate-stories": "npx ts-node scripts/migrate-stories.ts",
+    "migrate-sources": "npx ts-node scripts/migrate-sources.ts",
+    "migrate-users": "npx ts-node scripts/migrate-users.ts",
     "introspect-schema": "npx ts-node scripts/introspect-schema.ts",
     "build-source-mapping": "npx ts-node scripts/build-source-mapping.ts",
     "list-sources": "npx ts-node scripts/list-sources.ts",

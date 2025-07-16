@@ -1,14 +1,14 @@
-// Note: basebaseService is no longer needed as services handle their own database connections
 import { MongoClient } from "mongodb";
-import dotenv from "dotenv";
-import path from "path";
+import * as dotenv from "dotenv";
+import * as path from "path";
 import {
-  initializeApp,
-  getBasebase,
+  getDatabase,
   doc,
   setDoc,
+  updateDoc,
   getDocs,
   collection,
+  QueryDocumentSnapshot,
 } from "basebase";
 
 // Load environment variables from .env.local FIRST
@@ -35,13 +35,8 @@ if (!process.env.BASEBASE_PROJECT_ID) {
   throw new Error("BASEBASE_PROJECT_ID environment variable is required");
 }
 
-// Initialize BaseBase directly with JWT token for server environment
-const app = initializeApp({
-  apiKey: process.env.BASEBASE_API_KEY!,
-  projectId: process.env.BASEBASE_PROJECT_ID!,
-  token: process.env.BASEBASE_TOKEN!,
-});
-const db = getBasebase(app);
+// Create database instance with JWT token for server environment
+const db = getDatabase(process.env.BASEBASE_TOKEN!);
 
 // Debug: Check if token is configured
 console.log("BaseBase initialized with token:", !!process.env.BASEBASE_TOKEN);
@@ -69,6 +64,8 @@ interface BaseBaseUser {
 interface NewsWithFriendsUser {
   sourceIds: string[];
   friends: string[];
+  denseMode?: boolean;
+  darkMode?: boolean;
 }
 
 async function connectToMongo(): Promise<{ client: MongoClient; db: any }> {
@@ -81,18 +78,23 @@ async function connectToMongo(): Promise<{ client: MongoClient; db: any }> {
 async function buildPhoneToIdMapping(): Promise<Map<string, string>> {
   try {
     console.log("Building phone-to-ID mapping from existing BaseBase users...");
-    const usersCollection = collection(db, "users", "basebase");
+    const usersCollection = collection(db, "basebase/users");
     const usersSnap = await getDocs(usersCollection);
+    console.log("Got users:", usersSnap.docs.length);
 
     const phoneToIdMap = new Map<string, string>();
-    usersSnap.forEach((userDoc) => {
+    usersSnap.docs.forEach((userDoc: QueryDocumentSnapshot) => {
       const userData = userDoc.data() as any;
+      console.log("User data:", userData);
       if (userData.phone) {
         phoneToIdMap.set(userData.phone, userDoc.id);
       }
     });
 
-    console.log(`Found ${phoneToIdMap.size} existing users in BaseBase`);
+    console.log(
+      `Found ${phoneToIdMap.size} existing users in BaseBase`,
+      phoneToIdMap
+    );
     return phoneToIdMap;
   } catch (error) {
     console.error("Error building phone-to-ID mapping:", error);
@@ -115,7 +117,6 @@ async function migrateUsers() {
 
     console.log(`Found ${users.length} users to migrate`);
 
-    // Build phone-to-ID mapping for existing BaseBase users
     const phoneToIdMap = await buildPhoneToIdMapping();
 
     let successCount = 0;
@@ -147,19 +148,22 @@ async function migrateUsers() {
 
         // Check if user exists in BaseBase users collection
         const existingUserId = phoneToIdMap.get(user.phone);
+        const userId = existingUserId || user._id;
 
-        // Prepare BaseBase user data (shared across apps)
+        // Prepare BaseBase user data (name, phone, email, imageUrl)
         const basebaseUserData: BaseBaseUser = {
           name: `${user.first} ${user.last}`,
           phone: user.phone,
-          email: user.email || undefined,
-          imageUrl: user.imageUrl || undefined,
+          email: user.email,
+          imageUrl: user.imageUrl,
         };
 
-        // Prepare NewsWithFriends user data (app-specific)
+        // Prepare NewsWithFriends user data (sourceIds, friends, preferences)
         const newsWithFriendsUserData: NewsWithFriendsUser = {
           sourceIds: (user.sourceIds || []).map((id) => id.toString()),
-          friends: [], // Initialize empty friends array
+          friends: [], // Initialize with empty friends array
+          denseMode: user.denseMode || false,
+          darkMode: user.darkMode || false,
         };
 
         if (existingUserId) {
@@ -168,17 +172,12 @@ async function migrateUsers() {
           );
 
           // Update existing user in both collections
-          const basebaseUserDoc = doc(
-            db,
-            `users/${existingUserId}`,
-            "basebase"
-          );
-          await setDoc(basebaseUserDoc, basebaseUserData);
+          const basebaseUserDoc = doc(db, `basebase/users/${existingUserId}`);
+          await updateDoc(basebaseUserDoc, basebaseUserData);
 
           const newsUserDoc = doc(
             db,
-            `users/${existingUserId}`,
-            "newswithfriends"
+            `newswithfriends/users/${existingUserId}`
           );
           await setDoc(newsUserDoc, newsWithFriendsUserData);
 
@@ -188,18 +187,18 @@ async function migrateUsers() {
           updatedCount++;
         } else {
           console.log(
-            `  ➕ User not found in BaseBase - creating new user with ID: ${user.id}`
+            `  ➕ User not found in BaseBase - creating new user with ID: ${user._id}`
           );
 
           // Create new user in both collections using MongoDB ID
-          const basebaseUserDoc = doc(db, `users/${user.id}`, "basebase");
+          const basebaseUserDoc = doc(db, `basebase/users/${user._id}`);
           await setDoc(basebaseUserDoc, basebaseUserData);
 
-          const newsUserDoc = doc(db, `users/${user.id}`, "newswithfriends");
+          const newsUserDoc = doc(db, `newswithfriends/users/${user._id}`);
           await setDoc(newsUserDoc, newsWithFriendsUserData);
 
           console.log(
-            `  ✅ Successfully created user "${user.first} ${user.last}" with ID: ${user.id}`
+            `  ✅ Successfully created user "${user.first} ${user.last}" with ID: ${user._id}`
           );
           createdCount++;
         }

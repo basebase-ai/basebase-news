@@ -24,39 +24,68 @@ export default function ReaderPage() {
       let userToUse = user;
       
       // Load user's sourceIds from BaseBase if not already loaded
-      if (!user.sourceIds) {
+      if (!user.sourceIds || user.sourceIds.length === 0) {
+        console.log('[Reader] User sourceIds not loaded or empty, fetching from BaseBase...');
         try {
           const freshUser = await userService.getCurrentUser();
+          console.log('[Reader] Got fresh user from BaseBase:', freshUser);
           if (freshUser) {
             const newSourceIds = freshUser.sourceIds || [];
-            // Just use the fetched sourceIds locally, don't update global user state
-            userToUse = { ...user, sourceIds: newSourceIds };
+            console.log(`[Reader] Fresh user has ${newSourceIds.length} sourceIds:`, newSourceIds);
+            // Update global user state with fresh sourceIds
+            const updatedUser = { ...user, sourceIds: newSourceIds };
+            setCurrentUser(updatedUser);
+            userToUse = updatedUser;
+          } else {
+            console.warn('[Reader] No fresh user returned from BaseBase');
           }
         } catch (error) {
           console.error('Error loading user sourceIds:', error);
         }
+      } else {
+        console.log(`[Reader] User already has ${user.sourceIds.length} sourceIds loaded:`, user.sourceIds);
       }
       
+      // Load all sources and create a map keyed by ID
       const allSources = await sourceService.getSources();
+      console.log(`[Reader] Loaded ${allSources.length} total sources`);
       
-      // Filter sources to only include the user's subscribed sources
-      const userSources = allSources.filter(source => 
-        source.id && userToUse.sourceIds && userToUse.sourceIds.includes(source.id)
-      );
+      const sourcesMap = new Map<string, ISource>();
       
-      // Sources are already in the correct format from the service layer
-      const transformedSources = userSources;
-      setCurrentSources(transformedSources);
+      allSources.forEach(source => {
+        if (source.id) {
+          sourcesMap.set(source.id, source);
+        }
+      });
+      
+      // Look up user's subscribed sources from the map
+      const userSources: ISource[] = [];
+      console.log(`[Reader] User has ${userToUse.sourceIds?.length || 0} sourceIds:`, userToUse.sourceIds);
+      
+      if (userToUse.sourceIds) {
+        userToUse.sourceIds.forEach((sourceId: string) => {
+          const source = sourcesMap.get(sourceId);
+          if (source) {
+            console.log(`[Reader] Found source for ID ${sourceId}:`, source.name);
+            userSources.push(source);
+          } else {
+            console.warn(`[Reader] No source found for ID ${sourceId}`);
+          }
+        });
+      }
+      
+      console.log(`[Reader] Setting ${userSources.length} user sources`);
+      setCurrentSources(userSources);
     } catch (error) {
       console.error('Failed to fetch sources:', error);
     }
-  }, []);
+  }, [setCurrentSources, setCurrentUser]);
 
   useEffect(() => {
     if (currentUser) {
       loadSources(currentUser);
     }
-  }, [currentUser]);
+  }, [currentUser?.id, loadSources]); // Only depend on user ID, not the entire user object
 
   const handleClearSearch = () => {
     setSearchTerm('');

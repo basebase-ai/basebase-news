@@ -122,17 +122,14 @@ export default function SourceBox({
 
       setHeadlines(transformedStories as Story[]);
 
-      // Update source metadata if callback provided and source data has changed
-      const updatedSource = await sourceService.getSource(source.id);
-      if (onSourceUpdate && updatedSource && updatedSource.lastScrapedAt !== source.lastScrapedAt) {
-        onSourceUpdate(updatedSource);
-      }
+      // Skip source metadata update to prevent infinite loop
+      // The source data is already up-to-date from the parent component
     } catch (error) {
       console.error(`Error fetching stories for source ${source.id}:`, error);
     } finally {
       setIsLoading(false);
     }
-  }, [source.id, source.lastScrapedAt, onSourceUpdate, source.name, source.homepageUrl]);
+  }, [source.id]); // Only depend on source.id to prevent infinite loop
 
   useEffect(() => {
     loadHeadlines();

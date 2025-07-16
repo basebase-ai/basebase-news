@@ -136,6 +136,8 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
     return <LoadingSpinner message="Loading sources..." />;
   }
 
+
+
   return (
     <div className="w-full">
       <DndContext

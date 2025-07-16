@@ -1,20 +1,14 @@
-import {
-  requestCode,
-  verifyCode,
-  getAuthState,
-  isAuthenticated,
-  signOut,
-} from "basebase";
+import { requestCode, verifyCode, getAuthState, signOut, db } from "basebase";
 
 /**
  * Request SMS verification code
  */
 export async function requestCodeSMS(
-  name: string,
+  username: string,
   phone: string
 ): Promise<boolean> {
   try {
-    console.log("[BaseBase] Calling requestCode with:", { name, phone });
+    console.log("[BaseBase] Calling requestCode with:", { username, phone });
     console.log(
       "[BaseBase] API Key configured:",
       !!process.env.BASEBASE_API_KEY
@@ -24,7 +18,7 @@ export async function requestCodeSMS(
       process.env.BASEBASE_API_KEY?.length || 0
     );
 
-    const response = await requestCode(name, phone);
+    const response = await requestCode(username, phone);
     console.log("[BaseBase] requestCode response:", response);
     console.log("[BaseBase] response type:", typeof response);
     console.log("[BaseBase] response keys:", Object.keys(response || {}));
@@ -90,7 +84,7 @@ export async function verifyCodeSMS(
  * Check if user is authenticated
  */
 export function isUserAuthenticated(): boolean {
-  return isAuthenticated();
+  return getAuthState().isAuthenticated;
 }
 
 /**

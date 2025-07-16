@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner, faPhone, faEnvelopeOpen, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { requestCodeSMS, verifyCodeSMS } from '@/services/basebase.service';
+import { normalizePhoneNumber } from '@/lib/utils';
 
 interface SignInFormProps {
   onSuccess?: () => void;
@@ -86,14 +87,16 @@ export default function SignInForm({
       const email = formData.get('email') as string;
       
       if (phoneValue && phoneValue.trim()) {
-        payload.phone = phoneValue;
+        try {
+          payload.phone = normalizePhoneNumber(phoneValue);
+        } catch (error) {
+          handleError(error instanceof Error ? error.message : 'Invalid phone number format');
+          return;
+        }
         // If phone is provided, email becomes optional but still included if provided
         if (email && email.trim()) {
           payload.email = email;
-        } else {
-          // Generate a placeholder email for phone-only signups
-          payload.email = `phone_${phoneValue.replace(/\D/g, '')}@temp.placeholder`;
-        }
+        } 
       } else if (email && email.trim()) {
         payload.email = email;
       } else {
@@ -104,7 +107,7 @@ export default function SignInForm({
       const success = await requestCodeSMS(payload.name, payload.phone);
 
       if (success) {
-        setPhone(phoneValue);
+        setPhone(payload.phone); // Store normalized phone number
         setName(payload.name);
         setShowConfirmation(true);
       } else {
@@ -222,12 +225,12 @@ export default function SignInForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Full Name
+          Username
         </label>
         <input
           type="text"
           name="name"
-          placeholder="Your full name"
+          placeholder="Your username"
           required
           disabled={isLoading}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"

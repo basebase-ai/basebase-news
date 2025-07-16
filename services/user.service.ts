@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc, getUser } from "basebase";
+import { doc, getDoc, updateDoc, getAuthState, db } from "basebase";
 import { User } from "@/types";
 
 interface BaseBaseUser {
@@ -26,8 +26,8 @@ function getUserIdFromToken(token: string): string {
 }
 
 function getCurrentUserId(): string | null {
-  const user = getUser();
-  return user?.id || null;
+  const authState = getAuthState();
+  return authState.user?.id || null;
 }
 
 export class UserService {
@@ -41,10 +41,22 @@ export class UserService {
         return null;
       }
 
+      console.log(`[UserService] Using userId: ${userId}`);
+
       // Fetch user data from both collections
+      const basebaseUserPath = `users/${userId}`;
+      const newsUserPath = `users/${userId}`;
+
+      console.log(
+        `[UserService] Requesting BaseBase doc path: ${basebaseUserPath} (collection: basebase)`
+      );
+      console.log(
+        `[UserService] Requesting NewsWithFriends doc path: ${newsUserPath} (collection: newswithfriends)`
+      );
+
       const [basebaseUserRef, newsUserRef] = [
-        doc(`users/${userId}`, "basebase"),
-        doc(`users/${userId}`, "newswithfriends"),
+        doc(db, `basebase/${basebaseUserPath}`),
+        doc(db, `newswithfriends/${newsUserPath}`),
       ];
 
       const [basebaseUserSnap, newsUserSnap] = await Promise.all([
@@ -52,14 +64,32 @@ export class UserService {
         getDoc(newsUserRef),
       ]);
 
+      console.log(
+        `[UserService] BaseBase doc exists: ${basebaseUserSnap.exists}`
+      );
+      console.log(
+        `[UserService] NewsWithFriends doc exists: ${newsUserSnap.exists}`
+      );
+
       if (!basebaseUserSnap.exists) {
+        console.error(
+          `[UserService] BaseBase user document does not exist for userId: ${userId}`
+        );
         return null;
       }
 
       const basebaseUser = basebaseUserSnap.data() as BaseBaseUser;
+      console.log(`[UserService] BaseBase user data:`, basebaseUser);
+
       const newsUser = newsUserSnap.exists
         ? (newsUserSnap.data() as NewsWithFriendsUser)
         : { sourceIds: [], friends: [] };
+
+      console.log(`[UserService] NewsWithFriends user data:`, newsUser);
+      console.log(
+        `[UserService] User sourceIds from NewsWithFriends: ${newsUser.sourceIds?.length || 0} sources:`,
+        newsUser.sourceIds
+      );
 
       // Parse the name into first and last
       const nameParts = basebaseUser.name.split(" ");
@@ -80,6 +110,10 @@ export class UserService {
         darkMode: newsUser.darkMode || false,
       };
 
+      console.log(
+        `[UserService] Returning user object with ${user.sourceIds.length} sourceIds:`,
+        user.sourceIds
+      );
       return user;
     } catch (error) {
       console.error("[UserService] Error getting current user:", error);
@@ -97,7 +131,7 @@ export class UserService {
         return false;
       }
 
-      const userRef = doc(`users/${userId}`, "newswithfriends");
+      const userRef = doc(db, `newswithfriends/users/${userId}`);
       await updateDoc(userRef, { sourceIds });
       return true;
     } catch (error) {
@@ -116,7 +150,7 @@ export class UserService {
         return false;
       }
 
-      const userRef = doc(`users/${userId}`, "newswithfriends");
+      const userRef = doc(db, `newswithfriends/users/${userId}`);
 
       const updateData: Record<string, any> = {};
       if (preferences.denseMode !== undefined)
@@ -143,7 +177,7 @@ export class UserService {
       }
 
       // Get current sources
-      const userRef = doc(`users/${userId}`, "newswithfriends");
+      const userRef = doc(db, `newswithfriends/users/${userId}`);
       const userSnap = await getDoc(userRef);
 
       const currentSourceIds = userSnap.exists
@@ -174,7 +208,7 @@ export class UserService {
       }
 
       // Get current sources
-      const userRef = doc(`users/${userId}`, "newswithfriends");
+      const userRef = doc(db, `newswithfriends/users/${userId}`);
       const userSnap = await getDoc(userRef);
 
       const currentSourceIds = userSnap.exists

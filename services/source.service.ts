@@ -6,6 +6,7 @@ import {
   setDoc,
   updateDoc,
   addDoc,
+  db,
 } from "basebase";
 import { Source } from "@/types";
 
@@ -16,7 +17,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Getting all sources");
 
-      const sourcesCollection = collection("newsSources", "newswithfriends");
+      const sourcesCollection = collection(db, "newswithfriends/newsSources");
       const sourcesSnap = await getDocs(sourcesCollection);
 
       const sources: Source[] = [];
@@ -38,7 +39,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Getting source:", id);
 
-      const sourcesCollection = collection("newsSources", "newswithfriends");
+      const sourcesCollection = collection(db, "newswithfriends/newsSources");
       const sourcesSnap = await getDocs(sourcesCollection);
 
       let foundSource: Source | null = null;
@@ -96,7 +97,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Adding source:", sourceData.name);
 
-      const sourcesCollection = collection("newsSources", "newswithfriends");
+      const sourcesCollection = collection(db, "newswithfriends/newsSources");
       const docRef = await addDoc(sourcesCollection, sourceData);
 
       return {
@@ -116,7 +117,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Updating source:", id);
 
-      const sourceRef = doc(`newsSources/${id}`, "newswithfriends");
+      const sourceRef = doc(db, `newswithfriends/newsSources/${id}`);
       await updateDoc(sourceRef, sourceData);
 
       // Return the updated source

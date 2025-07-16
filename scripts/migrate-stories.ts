@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
-import { doc, setDoc } from "basebase";
+import { doc, setDoc, db } from "basebase";
 
 // Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -37,7 +37,7 @@ console.log("BaseBase initialized with token:", !!process.env.BASEBASE_TOKEN);
 // Test BaseBase connection by trying to get a document
 console.log("Testing BaseBase connection...");
 try {
-  const testDoc = doc("test/test", "newswithfriends");
+  const testDoc = doc(db, "newswithfriends/test/test");
   console.log("✓ BaseBase connection test passed");
 } catch (error) {
   console.error("✗ BaseBase connection test failed:", error);
@@ -166,7 +166,7 @@ async function migrateStories() {
         // });
 
         // Create story in newsStories collection, preserving MongoDB ObjectId
-        const storyRef = doc(`newsStories/${story._id}`);
+        const storyRef = doc(db, `newswithfriends/newsStories/${story._id}`);
         await setDoc(storyRef, basebaseStory);
         // console.log(`  ✅ Story created successfully`);
         // console.log(

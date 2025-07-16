@@ -9,6 +9,7 @@ import {
   where,
   orderBy,
   limit,
+  db,
 } from "basebase";
 
 // Define interfaces based on BaseBase types
@@ -92,7 +93,7 @@ export class StoryService {
   public async addStory(sourceId: string, story: IStory): Promise<IStory> {
     try {
       const storyData = this.prepareStoryData(story, sourceId);
-      const storiesCollection = collection("stories", "newswithfriends");
+      const storiesCollection = collection(db, "newswithfriends/stories");
       const docRef = await addDoc(storiesCollection, storyData);
 
       return {
@@ -110,7 +111,7 @@ export class StoryService {
     try {
       console.log("getStories called for sourceId:", sourceId);
 
-      const storiesCollection = collection("stories", "newswithfriends");
+      const storiesCollection = collection(db, "newswithfriends/stories");
       const q = query(
         storiesCollection,
         where("newsSource", "==", sourceId),
@@ -118,7 +119,7 @@ export class StoryService {
         limit(20)
       );
 
-      const storiesSnap = await getDocs(q);
+      const storiesSnap = await q.get();
       const stories: IStory[] = [];
 
       storiesSnap.forEach((docSnap) => {
@@ -142,7 +143,7 @@ export class StoryService {
     try {
       console.log("getStoriesForSource called for sourceId:", sourceId);
 
-      const storiesCollection = collection("stories", "newswithfriends");
+      const storiesCollection = collection(db, "newswithfriends/stories");
       const q = query(
         storiesCollection,
         where("newsSource", "==", sourceId),
@@ -150,12 +151,12 @@ export class StoryService {
         limit(limitCount)
       );
 
-      const storiesSnap = await getDocs(q);
+      const storiesSnap = await q.get();
       const stories: IStoryWithDetails[] = [];
 
       // Get source info
       const sourceDoc = await getDoc(
-        doc(`newsSources/${sourceId}`, "newswithfriends")
+        doc(db, `newswithfriends/newsSources/${sourceId}`)
       );
       const sourceData = sourceDoc.exists ? sourceDoc.data() : null;
 
@@ -163,23 +164,23 @@ export class StoryService {
         const storyData = docSnap.data();
 
         // Get comments for this story
-        const commentsCollection = collection("comments", "newswithfriends");
+        const commentsCollection = collection(db, "newswithfriends/comments");
         const commentsQuery = query(
           commentsCollection,
           where("storyId", "==", docSnap.id),
           orderBy("createdAt", "desc")
         );
-        const commentsSnap = await getDocs(commentsQuery);
+        const commentsSnap = await commentsQuery.get();
 
         const comments: IComment[] = [];
         for (const commentDoc of commentsSnap.docs) {
           const commentData = commentDoc.data();
           // Get user info for comment
           const userDoc = await getDoc(
-            doc(`users/${commentData.userId}`, "basebase")
+            doc(db, `basebase/users/${commentData.userId}`)
           );
           const userNewsDoc = await getDoc(
-            doc(`users/${commentData.userId}`, "newswithfriends")
+            doc(db, `newswithfriends/users/${commentData.userId}`)
           );
           const userData = userDoc.exists ? userDoc.data() : null;
 
@@ -204,20 +205,20 @@ export class StoryService {
 
         // Get starred by info
         const starredCollection = collection(
-          "starredStories",
-          "newswithfriends"
+          db,
+          `newswithfriends/stories/${docSnap.id}/starred`
         );
         const starredQuery = query(
           starredCollection,
           where("storyId", "==", docSnap.id)
         );
-        const starredSnap = await getDocs(starredQuery);
+        const starredSnap = await starredQuery.get();
 
         const starredBy: any[] = [];
         for (const starDoc of starredSnap.docs) {
           const starData = starDoc.data();
           const userDoc = await getDoc(
-            doc(`users/${starData.userId}`, "basebase")
+            doc(db, `basebase/users/${starData.userId}`)
           );
           const userData = userDoc.exists ? userDoc.data() : null;
 
@@ -275,11 +276,11 @@ export class StoryService {
         updatedAt: new Date().toISOString(),
       };
 
-      const commentsCollection = collection("comments", "newswithfriends");
+      const commentsCollection = collection(db, "newswithfriends/comments");
       const docRef = await addDoc(commentsCollection, commentData);
 
       // Get user info
-      const userDoc = await getDoc(doc(`users/${userId}`, "basebase"));
+      const userDoc = await getDoc(doc(db, `basebase/users/${userId}`));
       const userData = userDoc.exists ? userDoc.data() : null;
 
       if (userData) {
@@ -320,7 +321,10 @@ export class StoryService {
         createdAt: new Date().toISOString(),
       };
 
-      const starredCollection = collection("starredStories", "newswithfriends");
+      const starredCollection = collection(
+        db,
+        `newswithfriends/stories/${storyId}/starred`
+      );
       await addDoc(starredCollection, starData);
 
       return true;
@@ -354,7 +358,7 @@ export class StoryService {
         options
       );
 
-      const storiesCollection = collection("stories", "newswithfriends");
+      const storiesCollection = collection(db, "newswithfriends/stories");
 
       // Build query constraints
       const constraints = [];
@@ -371,7 +375,7 @@ export class StoryService {
 
       const q = query(storiesCollection, ...constraints);
 
-      const storiesSnap = await getDocs(q);
+      const storiesSnap = await q.get();
       const stories: IStory[] = [];
 
       storiesSnap.forEach((docSnap) => {
