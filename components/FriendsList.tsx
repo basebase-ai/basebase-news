@@ -28,28 +28,41 @@ export default function FriendsList() {
 
     try {
       setLoading(true);
-      // TODO: Implement friends/connections API endpoints
-      // Temporarily disabled to prevent 404 errors
-      // const [requestsRes, suggestionsRes] = await Promise.all([
-      //   fetchApi('/api/connections?status=REQUESTED'),
-      //   fetchApi('/api/connections?status=SUGGESTED'),
-      // ]);
+      console.log('[FriendsList] Fetching connections for user:', user.id);
 
-      // if (requestsRes.ok) {
-      //   const data = await requestsRes.json();
-      //   setRequests(data.connections || []);
-      // }
-      // if (suggestionsRes.ok) {
-      //   const data = await suggestionsRes.json();
-      //   setSuggestions(data.connections || []);
-      // }
-      
-      // Set empty arrays for now
-      setRequests([]);
-      setSuggestions([]);
+      // Fetch friend requests and suggestions using the friendsService
+      const [requestsData, suggestionsData] = await Promise.all([
+        friendsService.getFriendRequests(user.id),
+        friendsService.getSuggestedFriends(user.id),
+      ]);
+
+      console.log(`[FriendsList] Found ${requestsData.length} friend requests`);
+      console.log(`[FriendsList] Found ${suggestionsData.length} suggested friends`);
+
+      // Convert IUser[] to User[] format for the UI
+      const convertToUser = (iUser: any): User => {
+        const nameParts = iUser.name?.split(' ') || [];
+        return {
+          id: iUser.id,
+          first: nameParts[0] || '',
+          last: nameParts.slice(1).join(' ') || '',
+          phone: iUser.phone || '',
+          email: iUser.email || '',
+          imageUrl: iUser.imageUrl,
+          sourceIds: [], // Not needed for friends UI
+          denseMode: false,
+          darkMode: false,
+        };
+      };
+
+      const requestsArray = requestsData.map(convertToUser);
+      const suggestionsArray = suggestionsData.map(convertToUser);
+
+      setRequests(requestsArray);
+      setSuggestions(suggestionsArray);
     } catch (error) {
       console.error('Failed to fetch connections:', error);
-      // Set empty arrays to stop repeated attempts
+      // Set empty arrays on error
       setRequests([]);
       setSuggestions([]);
     } finally {
@@ -73,7 +86,28 @@ export default function FriendsList() {
       if (currentUser) {
         fetchData(currentUser);
       }
-      // TODO: Also refresh friends in central state when API is implemented
+      
+      // Refresh friends in central state
+      try {
+        const updatedFriendsData = await friendsService.getFriends(currentUser.id);
+        const updatedFriends: User[] = updatedFriendsData.map(friend => {
+          const nameParts = friend.name.split(' ');
+          return {
+            id: friend.id,
+            first: nameParts[0] || '',
+            last: nameParts.slice(1).join(' ') || '',
+            phone: friend.phone,
+            email: friend.email || '',
+            imageUrl: friend.imageUrl,
+            sourceIds: [],
+            denseMode: false,
+            darkMode: false,
+          };
+        });
+        setFriends(updatedFriends);
+      } catch (error) {
+        console.error('Failed to refresh central friends state:', error);
+      }
     } catch (error) {
       console.error('Failed to add friend:', error);
     }

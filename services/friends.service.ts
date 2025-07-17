@@ -1,70 +1,16 @@
-import {
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  collection,
-  query,
-  where,
-  db,
-} from "basebase-js";
+import { connectionsService } from "./connections.service";
+import type { IUser } from "./connections.service";
 
-export interface IUser {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  imageUrl?: string;
-  friends?: string[]; // Store as array of friend IDs
-}
-
-interface IFriend {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  imageUrl?: string;
-  friends?: string[];
-}
+export { IUser };
 
 export class FriendsService {
   /**
-   * Get all friends for a user
+   * Get all mutual friends for a user
    * @param userId The ID of the user
    * @returns Array of friend users
    */
   async getFriends(userId: string): Promise<IUser[]> {
-    try {
-      const userRef = doc(db, `newswithfriends/users/${userId}`);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists) {
-        return [];
-      }
-
-      const userData = userSnap.data() as IUser;
-      const friendIds = userData.friends || [];
-
-      if (friendIds.length === 0) {
-        return [];
-      }
-
-      // Get all friend documents
-      const friendPromises = friendIds.map(async (friendId: string) => {
-        const friendRef = doc(db, `newswithfriends/users/${friendId}`);
-        const friendSnap = await getDoc(friendRef);
-        if (friendSnap.exists) {
-          return { id: friendSnap.id, ...friendSnap.data() } as IUser;
-        }
-        return null;
-      });
-
-      const friends = await Promise.all(friendPromises);
-      return friends.filter((friend): friend is IUser => friend !== null);
-    } catch (error) {
-      console.error("Error getting friends:", error);
-      throw error;
-    }
+    return await connectionsService.getMutualFriends(userId);
   }
 
   /**
@@ -73,41 +19,7 @@ export class FriendsService {
    * @returns Array of users who have requested friendship
    */
   async getFriendRequests(userId: string): Promise<IUser[]> {
-    try {
-      const userRef = doc(db, `newswithfriends/users/${userId}`);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists) {
-        return [];
-      }
-
-      const userData = userSnap.data() as IUser;
-      const userFriends = userData.friends || [];
-
-      // Get all users who have the current user in their friends list
-      const usersCollection = collection(db, "newswithfriends/users");
-      const usersSnap = await getDocs(usersCollection);
-
-      const friendRequests: IUser[] = [];
-
-      usersSnap.forEach((doc) => {
-        const user = { id: doc.id, ...doc.data() } as IUser;
-        const userFriendsList = user.friends || [];
-
-        // Return users who have current user in their friends list but aren't in current user's friends list
-        if (
-          userFriendsList.includes(userId) &&
-          !userFriends.includes(user.id)
-        ) {
-          friendRequests.push(user);
-        }
-      });
-
-      return friendRequests;
-    } catch (error) {
-      console.error("Error getting friend requests:", error);
-      throw error;
-    }
+    return await connectionsService.getFriendRequests(userId);
   }
 
   /**
@@ -116,44 +28,7 @@ export class FriendsService {
    * @returns Array of suggested users
    */
   async getSuggestedFriends(userId: string): Promise<IUser[]> {
-    try {
-      const userRef = doc(db, `newswithfriends/users/${userId}`);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists) {
-        return [];
-      }
-
-      const userData = userSnap.data() as IUser;
-      const userFriends = userData.friends || [];
-
-      // Get all users
-      const usersCollection = collection(db, "newswithfriends/users");
-      const usersSnap = await getDocs(usersCollection);
-
-      const suggestedFriends: IUser[] = [];
-
-      usersSnap.forEach((doc) => {
-        const user = { id: doc.id, ...doc.data() } as IUser;
-
-        if (user.id === userId) return; // Skip current user
-
-        const userFriendsList = user.friends || [];
-
-        // Return users who neither have current user in their friends list nor are in current user's friends list
-        if (
-          !userFriendsList.includes(userId) &&
-          !userFriends.includes(user.id)
-        ) {
-          suggestedFriends.push(user);
-        }
-      });
-
-      return suggestedFriends;
-    } catch (error) {
-      console.error("Error getting suggested friends:", error);
-      throw error;
-    }
+    return await connectionsService.getSuggestedFriends(userId);
   }
 
   /**
@@ -162,26 +37,7 @@ export class FriendsService {
    * @param friendId The ID of the user to add as a friend
    */
   async addFriend(userId: string, friendId: string): Promise<void> {
-    try {
-      const userRef = doc(db, `newswithfriends/users/${userId}`);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists) {
-        throw new Error("User not found");
-      }
-
-      const userData = userSnap.data() as IUser;
-      const currentFriends = userData.friends || [];
-
-      // Add new friend if not already in list
-      if (!currentFriends.includes(friendId)) {
-        const updatedFriends = [...currentFriends, friendId];
-        await updateDoc(userRef, { friends: updatedFriends });
-      }
-    } catch (error) {
-      console.error("Error adding friend:", error);
-      throw error;
-    }
+    return await connectionsService.addFriend(userId, friendId);
   }
 
   /**
@@ -190,24 +46,7 @@ export class FriendsService {
    * @param friendId The ID of the user to remove from friends
    */
   async removeFriend(userId: string, friendId: string): Promise<void> {
-    try {
-      const userRef = doc(db, `newswithfriends/users/${userId}`);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists) {
-        throw new Error("User not found");
-      }
-
-      const userData = userSnap.data() as IUser;
-      const currentFriends = userData.friends || [];
-
-      // Remove friend from list
-      const updatedFriends = currentFriends.filter((id) => id !== friendId);
-      await updateDoc(userRef, { friends: updatedFriends });
-    } catch (error) {
-      console.error("Error removing friend:", error);
-      throw error;
-    }
+    return await connectionsService.removeFriend(userId, friendId);
   }
 
   /**
@@ -217,30 +56,26 @@ export class FriendsService {
    * @returns boolean indicating if they are mutual friends
    */
   async areMutualFriends(userId: string, friendId: string): Promise<boolean> {
-    try {
-      const userRef = doc(db, `newswithfriends/users/${userId}`);
-      const friendRef = doc(db, `newswithfriends/users/${friendId}`);
+    return await connectionsService.areMutualFriends(userId, friendId);
+  }
 
-      const [userSnap, friendSnap] = await Promise.all([
-        getDoc(userRef),
-        getDoc(friendRef),
-      ]);
+  /**
+   * Block a user (removes friendship and prevents future connections)
+   * @param userId The ID of the user doing the blocking
+   * @param blockedUserId The ID of the user to block
+   */
+  async blockUser(userId: string, blockedUserId: string): Promise<void> {
+    return await connectionsService.blockUser(userId, blockedUserId);
+  }
 
-      if (!userSnap.exists || !friendSnap.exists) {
-        return false;
-      }
-
-      const userData = userSnap.data() as IUser;
-      const friendData = friendSnap.data() as IUser;
-
-      const userFriends = userData.friends || [];
-      const friendFriends = friendData.friends || [];
-
-      return userFriends.includes(friendId) && friendFriends.includes(userId);
-    } catch (error) {
-      console.error("Error checking mutual friends:", error);
-      throw error;
-    }
+  /**
+   * Check if a user is blocked
+   * @param userId The ID of the user checking
+   * @param blockedUserId The ID of the potentially blocked user
+   * @returns boolean indicating if the user is blocked
+   */
+  async isUserBlocked(userId: string, blockedUserId: string): Promise<boolean> {
+    return await connectionsService.isUserBlocked(userId, blockedUserId);
   }
 }
 

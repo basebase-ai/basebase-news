@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, Dispatch, SetStateAction } from 'react';
 import type { User, Source, Story } from '@/types';
+import { friendsService } from '@/services/friends.service';
 
 
 interface AppState {
@@ -70,17 +71,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        // TODO: Implement friends/connections API endpoints
-        // Temporarily disabled to prevent 404 errors
-        // const response = await fetchApi('/api/connections?status=CONNECTED');
-        // if (response.ok) {
-        //   const data = await response.json();
-        //   const friendsArray = data.connections || [];
-        //   setState(prev => ({ ...prev, friends: friendsArray }));
-        // }
+        console.log('[AppContext] Fetching friends for user:', state.currentUser.id);
+        const friendsData = await friendsService.getFriends(state.currentUser.id);
         
-        // Set empty friends array for now
-        setState(prev => ({ ...prev, friends: [] }));
+        // Convert IUser[] to User[] format for the app context
+        const friendsArray: User[] = friendsData.map(friend => {
+          const nameParts = friend.name.split(' ');
+          return {
+            id: friend.id,
+            first: nameParts[0] || '',
+            last: nameParts.slice(1).join(' ') || '',
+            phone: friend.phone,
+            email: friend.email || '',
+            imageUrl: friend.imageUrl,
+            sourceIds: [], // Friends' source IDs not needed in main context
+            denseMode: false,
+            darkMode: false,
+          };
+        });
+        
+        console.log(`[AppContext] Found ${friendsArray.length} friends`);
+        setState(prev => ({ ...prev, friends: friendsArray }));
       } catch (error) {
         console.error('Failed to fetch friends:', error);
         setState(prev => ({ ...prev, friends: [] }));

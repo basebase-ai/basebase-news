@@ -10,7 +10,6 @@ interface BaseBaseUser {
 
 interface NewsWithFriendsUser {
   sourceIds: string[];
-  friends: string[];
   denseMode?: boolean;
   darkMode?: boolean;
 }
@@ -83,7 +82,7 @@ export class UserService {
 
       const newsUser = newsUserSnap.exists
         ? (newsUserSnap.data() as NewsWithFriendsUser)
-        : { sourceIds: [], friends: [] };
+        : { sourceIds: [], denseMode: false, darkMode: false };
 
       console.log(`[UserService] NewsWithFriends user data:`, newsUser);
       console.log(

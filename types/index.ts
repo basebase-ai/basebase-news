@@ -10,6 +10,18 @@ export interface User {
   darkMode: boolean;
 }
 
+export interface UserConnection {
+  from: string; // User ID who initiated the connection
+  to: string; // User ID being connected to
+  type: "friend" | "follow" | "block"; // Connection type
+  createdAt: string; // When connection was created
+  metadata?: {
+    // Optional app-specific data
+    app: string; // Which app created this connection
+    [key: string]: any; // Flexible metadata per app
+  };
+}
+
 export interface Source {
   id: string;
   name: string;
