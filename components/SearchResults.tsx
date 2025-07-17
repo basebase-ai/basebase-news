@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatTimeAgo } from '@/lib/utils';
 import LoadingSpinner from './LoadingSpinner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons';
 import { storyService, IStory } from '@/services/story.service';
 import { sourceService } from '@/services/source.service';
+import { useAppState } from '@/lib/state/AppContext';
 
 interface SearchStory {
   id: string;
@@ -26,6 +27,7 @@ interface SearchResultsProps {
 }
 
 export default function SearchResults({ searchTerm }: SearchResultsProps) {
+  const { currentUser } = useAppState();
   const [stories, setStories] = useState<SearchStory[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,8 +89,17 @@ export default function SearchResults({ searchTerm }: SearchResultsProps) {
   }, [searchTerm]);
 
   const handleStoryClick = async (story: SearchStory) => {
-    // TODO: Implement read tracking in BaseBase
-    // For now, just open the URL
+    // Mark story as read if user is logged in
+    if (currentUser) {
+      try {
+        await storyService.markStoryAsRead(currentUser.id, story.id);
+        console.log('Story marked as read:', story.id);
+      } catch (error) {
+        console.error('Failed to mark story as read:', error);
+      }
+    }
+    
+    // Open the URL
     window.open(story.url, '_blank');
   };
 

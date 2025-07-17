@@ -164,6 +164,15 @@ export default function PostBox({ story, onCommentAdded }: PostBoxProps) {
   };
 
   const handleStoryClick = (storyId: string) => {
+    // Mark story as read if user is logged in
+    if (currentUser) {
+      storyService.markStoryAsRead(currentUser.id, storyId).then(() => {
+        console.log('Story marked as read:', storyId);
+      }).catch((error) => {
+        console.error('Failed to mark story as read:', error);
+      });
+    }
+    
     setReactionStory(story);
     
     // Show reaction modal when user returns to tab

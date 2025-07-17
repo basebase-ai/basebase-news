@@ -85,18 +85,23 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
         return;
       }
 
-      const storiesWithDetails = await storyService.getStoriesForSource(sourceId, 3);
+      // Use the new efficient method that handles caching and status fetching
+      const storiesWithStatus = await storyService.getStoriesWithStatus(
+        sourceId,
+        currentUser?.id,
+        3
+      );
       
-      // Convert IStoryWithDetails to SourceStory format
-      const stories: SourceStory[] = storiesWithDetails.map(story => ({
+      // Convert to SourceStory format
+      const stories: SourceStory[] = storiesWithStatus.map(story => ({
         id: story.id || '',
         articleUrl: story.url,
         fullHeadline: story.headline,
         summary: story.summary,
         imageUrl: story.imageUrl,
         createdAt: story.publishedAt,
-        status: 'UNREAD' as const,
-        starred: false,
+        status: story.status || 'UNREAD',
+        starred: story.starred || false,
       }));
       
       setSourceStories(prev => ({ ...prev, [sourceId]: stories }));
@@ -305,6 +310,30 @@ export default function FriendSourcesModal({ isOpen, onClose, friend }: FriendSo
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="block group-hover:text-primary"
+                                      onClick={async (e) => {
+                                        e.preventDefault();
+                                        
+                                        // Mark story as read if user is logged in
+                                        if (currentUser) {
+                                          try {
+                                            await storyService.markStoryAsRead(currentUser.id, story.id);
+                                            console.log('Story marked as read:', story.id);
+                                            
+                                            // Update local state to reflect read status
+                                            setSourceStories(prev => ({
+                                              ...prev,
+                                              [source.id]: prev[source.id]?.map(s => 
+                                                s.id === story.id ? { ...s, status: 'READ' as const } : s
+                                              ) || []
+                                            }));
+                                          } catch (error) {
+                                            console.error('Failed to mark story as read:', error);
+                                          }
+                                        }
+                                        
+                                        // Open the URL
+                                        window.open(story.articleUrl, '_blank');
+                                      }}
                                     >
                                       <h4 className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 leading-5">
                                         {story.fullHeadline}

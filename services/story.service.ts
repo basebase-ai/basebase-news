@@ -5,12 +5,14 @@ import {
   collection,
   addDoc,
   updateDoc,
+  setDoc,
   query,
   where,
   orderBy,
   limit,
   db,
 } from "basebase-js";
+import type { IStoryStatus } from "../types";
 
 // Define interfaces based on BaseBase types
 export interface IStory {
@@ -26,18 +28,6 @@ export interface IStory {
   newsSource: string;
   publishedAt: string;
   createdAt?: string;
-}
-
-interface IStoryStatus {
-  userId: string;
-  storyId: string;
-  status: "READ" | "UNREAD";
-  starred: boolean;
-  newsSource: {
-    id: string;
-  };
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface IComment {
@@ -74,8 +64,69 @@ export interface IStoryWithDetails extends IStory {
 }
 
 export class StoryService {
+  private storyCache = new Map<
+    string,
+    { stories: IStory[]; timestamp: number }
+  >();
+  private statusCache = new Map<
+    string,
+    { status: IStoryStatus | null; timestamp: number }
+  >();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   constructor() {
     // Use BaseBase SDK calls
+  }
+
+  private isCacheValid(timestamp: number): boolean {
+    return Date.now() - timestamp < this.CACHE_TTL;
+  }
+
+  private getCachedStories(sourceId: string): IStory[] | null {
+    const cached = this.storyCache.get(sourceId);
+    if (cached && this.isCacheValid(cached.timestamp)) {
+      return cached.stories;
+    }
+    return null;
+  }
+
+  private setCachedStories(sourceId: string, stories: IStory[]): void {
+    this.storyCache.set(sourceId, {
+      stories,
+      timestamp: Date.now(),
+    });
+  }
+
+  private getCachedStatus(
+    userId: string,
+    storyId: string
+  ): IStoryStatus | null | undefined {
+    const key = `${userId}-${storyId}`;
+    const cached = this.statusCache.get(key);
+    if (cached && this.isCacheValid(cached.timestamp)) {
+      return cached.status;
+    }
+    return undefined; // undefined means not cached, null means no status exists
+  }
+
+  private setCachedStatus(
+    userId: string,
+    storyId: string,
+    status: IStoryStatus | null
+  ): void {
+    const key = `${userId}-${storyId}`;
+    this.statusCache.set(key, {
+      status,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Clear all caches (useful for testing or forced refresh)
+   */
+  public clearCache(): void {
+    this.storyCache.clear();
+    this.statusCache.clear();
   }
 
   private prepareStoryData(story: IStory, sourceId: string): any {
@@ -83,7 +134,7 @@ export class StoryService {
       headline: story.headline,
       summary: story.summary || "No summary available",
       url: story.url,
-      imageUrl: story.imageUrl || "https://via.placeholder.com/300",
+      imageUrl: story.imageUrl,
       sourceId: sourceId,
       publishedAt: story.publishedAt,
       createdAt: new Date().toISOString(),
@@ -107,9 +158,20 @@ export class StoryService {
     }
   }
 
+  /**
+   * Get basic stories for a source (cached)
+   * @deprecated Use getStoriesWithStatus() for better performance with user data
+   */
   public async getStories(sourceId: string): Promise<IStory[]> {
     try {
       console.log("getStories called for sourceId:", sourceId);
+
+      // Check cache first
+      const cached = this.getCachedStories(sourceId);
+      if (cached) {
+        console.log("Returning cached stories for", sourceId);
+        return cached;
+      }
 
       const storiesCollection = collection(db, "newswithfriends/newsStories");
 
@@ -139,6 +201,9 @@ export class StoryService {
         } as IStory);
       });
 
+      // Cache the results
+      this.setCachedStories(sourceId, storyList);
+
       return storyList;
     } catch (error) {
       console.error("Error getting stories:", error);
@@ -146,23 +211,75 @@ export class StoryService {
     }
   }
 
-  public async getStoriesForSource(
+  /**
+   * Get stories with user status efficiently (recommended method)
+   * Bulk fetches statuses for better performance
+   */
+  public async getStoriesWithStatus(
+    sourceId: string,
+    userId?: string,
+    limitCount: number = 50
+  ): Promise<(IStory & { status?: "READ" | "UNREAD"; starred?: boolean })[]> {
+    try {
+      // Get basic stories (cached)
+      const stories = await this.getStories(sourceId);
+      const limitedStories = stories.slice(0, limitCount);
+
+      if (!userId) {
+        return limitedStories.map((story) => ({
+          ...story,
+          status: "UNREAD" as const,
+          starred: false,
+        }));
+      }
+
+      // Bulk fetch statuses for better performance
+      const statusPromises = limitedStories.map(async (story) => {
+        const cached = this.getCachedStatus(userId, story.id || "");
+        if (cached !== undefined) {
+          return cached;
+        }
+
+        try {
+          const status = await this.getStoryStatus(userId, story.id || "");
+          this.setCachedStatus(userId, story.id || "", status);
+          return status;
+        } catch (error) {
+          console.error(`Error fetching status for story ${story.id}:`, error);
+          return null;
+        }
+      });
+
+      const statuses = await Promise.all(statusPromises);
+
+      return limitedStories.map((story, index) => {
+        const status = statuses[index];
+        return {
+          ...story,
+          status: status?.read ? ("READ" as const) : ("UNREAD" as const),
+          starred: status?.starred || false,
+        };
+      });
+    } catch (error) {
+      console.error("Error getting stories with status:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get stories with full social context (comments, stars, etc.)
+   * Renamed from getStoriesForSource for clarity
+   */
+  public async getStoriesWithSocialContext(
     sourceId: string,
     limitCount: number = 3
   ): Promise<IStoryWithDetails[]> {
     try {
-      console.log("getStoriesForSource called for sourceId:", sourceId);
+      console.log("getStoriesWithSocialContext called for sourceId:", sourceId);
 
-      const storiesCollection = collection(db, "newswithfriends/newsStories");
-      const q = query(
-        storiesCollection,
-        where("sourceId", "==", sourceId),
-        orderBy("publishedAt", "desc"),
-        limit(limitCount)
-      );
-
-      const storiesSnap = await q.get();
-      const stories: IStoryWithDetails[] = [];
+      // Use cached stories as base
+      const baseStories = await this.getStories(sourceId);
+      const limitedStories = baseStories.slice(0, limitCount);
 
       // Get source info
       const sourceDoc = await getDoc(
@@ -170,14 +287,14 @@ export class StoryService {
       );
       const sourceData = sourceDoc.exists ? sourceDoc.data() : null;
 
-      for (const docSnap of storiesSnap.docs) {
-        const storyData = docSnap.data();
+      const storiesWithDetails: IStoryWithDetails[] = [];
 
+      for (const story of limitedStories) {
         // Get comments for this story
         const commentsCollection = collection(db, "newswithfriends/comments");
         const commentsQuery = query(
           commentsCollection,
-          where("storyId", "==", docSnap.id),
+          where("storyId", "==", story.id),
           orderBy("createdAt", "desc")
         );
         const commentsSnap = await commentsQuery.get();
@@ -188,9 +305,6 @@ export class StoryService {
           // Get user info for comment
           const userDoc = await getDoc(
             doc(db, `basebase/users/${commentData.userId}`)
-          );
-          const userNewsDoc = await getDoc(
-            doc(db, `newswithfriends/users/${commentData.userId}`)
           );
           const userData = userDoc.exists ? userDoc.data() : null;
 
@@ -208,7 +322,7 @@ export class StoryService {
                 email: userData.email || "",
                 imageUrl: userData.imageUrl,
               },
-              storyId: docSnap.id,
+              storyId: story.id || "",
             });
           }
         }
@@ -216,11 +330,11 @@ export class StoryService {
         // Get starred by info
         const starredCollection = collection(
           db,
-          `newswithfriends/stories/${docSnap.id}/starred`
+          `newswithfriends/stories/${story.id}/starred`
         );
         const starredQuery = query(
           starredCollection,
-          where("storyId", "==", docSnap.id)
+          where("storyId", "==", story.id)
         );
         const starredSnap = await starredQuery.get();
 
@@ -244,15 +358,8 @@ export class StoryService {
           }
         }
 
-        stories.push({
-          id: docSnap.id,
-          headline: storyData.headline,
-          summary: storyData.summary,
-          url: storyData.url,
-          imageUrl: storyData.imageUrl,
-          newsSource: storyData.newsSource,
-          publishedAt: storyData.publishedAt,
-          createdAt: storyData.createdAt,
+        storiesWithDetails.push({
+          ...story,
           starCount: starredBy.length,
           starredBy,
           comments,
@@ -265,11 +372,24 @@ export class StoryService {
         });
       }
 
-      return stories;
+      return storiesWithDetails;
     } catch (error) {
-      console.error("Error getting stories for source:", error);
+      console.error("Error getting stories with social context:", error);
       return [];
     }
+  }
+
+  /**
+   * @deprecated Use getStoriesWithSocialContext() instead
+   */
+  public async getStoriesForSource(
+    sourceId: string,
+    limitCount: number = 3
+  ): Promise<IStoryWithDetails[]> {
+    console.warn(
+      "getStoriesForSource is deprecated, use getStoriesWithSocialContext instead"
+    );
+    return this.getStoriesWithSocialContext(sourceId, limitCount);
   }
 
   public async addComment(
@@ -419,6 +539,172 @@ export class StoryService {
         page: options.page || 1,
         limit: options.limit || 20,
       };
+    }
+  }
+
+  /**
+   * Mark a story as read by a user
+   * Creates a story status record with read=true, starred=false
+   * Uses composite document ID for uniqueness: userId-storyId
+   */
+  public async markStoryAsRead(
+    userId: string,
+    storyId: string
+  ): Promise<boolean> {
+    try {
+      const statusId = `${userId}-${storyId}`;
+      const now = new Date().toISOString();
+
+      // Check if status already exists
+      const statusDoc = doc(db, `newswithfriends/storyStatus/${statusId}`);
+      const existingStatus = await getDoc(statusDoc);
+
+      if (existingStatus.exists) {
+        // Update existing status to mark as read
+        await updateDoc(statusDoc, {
+          read: true,
+          updatedAt: now,
+        });
+      } else {
+        // Create new status record
+        const statusData: IStoryStatus = {
+          userId,
+          storyId,
+          read: true,
+          starred: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await setDoc(statusDoc, statusData);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error marking story as read:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Toggle star status for a story
+   * Creates or updates story status record with starred=true/false
+   */
+  public async toggleStoryStarred(
+    userId: string,
+    storyId: string,
+    starred: boolean
+  ): Promise<boolean> {
+    try {
+      const statusId = `${userId}-${storyId}`;
+      const now = new Date().toISOString();
+
+      // Check if status already exists
+      const statusDoc = doc(db, `newswithfriends/storyStatus/${statusId}`);
+      const existingStatus = await getDoc(statusDoc);
+
+      if (existingStatus.exists) {
+        // Update existing status
+        await updateDoc(statusDoc, {
+          starred,
+          updatedAt: now,
+        });
+      } else {
+        // Create new status record (story is being starred without being read first)
+        const statusData: IStoryStatus = {
+          userId,
+          storyId,
+          read: false, // Not read yet, just starred
+          starred,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await setDoc(statusDoc, statusData);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error toggling story starred status:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Get story status for a specific user and story
+   * Returns null if no status exists (presumed unread and unstarred)
+   */
+  public async getStoryStatus(
+    userId: string,
+    storyId: string
+  ): Promise<IStoryStatus | null> {
+    try {
+      const statusId = `${userId}-${storyId}`;
+      const statusDoc = doc(db, `newswithfriends/storyStatus/${statusId}`);
+      const statusSnap = await getDoc(statusDoc);
+
+      if (statusSnap.exists) {
+        return statusSnap.data() as IStoryStatus;
+      }
+
+      return null; // No status = unread and unstarred
+    } catch (error) {
+      console.error("Error getting story status:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get all story statuses for a user
+   * Useful for getting read/starred status across multiple stories
+   */
+  public async getUserStoryStatuses(userId: string): Promise<IStoryStatus[]> {
+    try {
+      const statusCollection = collection(db, "newswithfriends/storyStatus");
+      const q = query(
+        statusCollection,
+        where("userId", "==", userId),
+        orderBy("updatedAt", "desc")
+      );
+
+      const statusSnap = await getDocs(q);
+      const statuses: IStoryStatus[] = [];
+
+      statusSnap.forEach((docSnap: any) => {
+        statuses.push(docSnap.data() as IStoryStatus);
+      });
+
+      return statuses;
+    } catch (error) {
+      console.error("Error getting user story statuses:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all starred stories for a user
+   */
+  public async getStarredStories(userId: string): Promise<IStoryStatus[]> {
+    try {
+      const statusCollection = collection(db, "newswithfriends/storyStatus");
+      const q = query(
+        statusCollection,
+        where("userId", "==", userId),
+        where("starred", "==", true),
+        orderBy("updatedAt", "desc")
+      );
+
+      const statusSnap = await getDocs(q);
+      const statuses: IStoryStatus[] = [];
+
+      statusSnap.forEach((docSnap: any) => {
+        statuses.push(docSnap.data() as IStoryStatus);
+      });
+
+      return statuses;
+    } catch (error) {
+      console.error("Error getting starred stories:", error);
+      return [];
     }
   }
 }

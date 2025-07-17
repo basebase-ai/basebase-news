@@ -19,6 +19,8 @@ const nextConfig = {
     ];
   },
   images: {
+    // Disable image optimization for external domains to avoid issues
+    unoptimized: true,
     domains: ["firebasestorage.googleapis.com"],
   },
 };

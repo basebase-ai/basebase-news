@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Menu } from '@headlessui/react';
@@ -86,7 +86,7 @@ export default function SourceBox({
   dragHandleAttributes,
   dragHandleListeners
 }: SourceBoxInternalProps) {
-  const { sourceHeadlines, setSourceHeadlines } = useAppState();
+  const { sourceHeadlines, setSourceHeadlines, currentUser } = useAppState();
   const [headlines, setHeadlines] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -98,23 +98,25 @@ export default function SourceBox({
   const [hoverTimer, setHoverTimer] = useState<NodeJS.Timeout | null>(null);
   const [showReactionModal, setShowReactionModal] = useState<boolean>(false);
   const [reactionStory, setReactionStory] = useState<Story | null>(null);
+  const loadingRef = useRef<boolean>(false);
 
   const loadHeadlines = useCallback(async (forceRefresh: boolean = false) => {
+    // Prevent multiple simultaneous loads
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+
     try {
-      // Check cache first unless forcing refresh
-      const cachedStories = sourceHeadlines.get(source.id);
-      if (!forceRefresh && cachedStories && cachedStories.length > 0) {
-        setHeadlines(cachedStories);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(!forceRefresh); // Don't show loading if refreshing
-
-      const stories = await storyService.getStories(source.id);
+      setIsLoading(!forceRefresh);
       
-      // Transform stories to match UI format
-      const transformedStories: Story[] = stories.map(story => ({
+      // Use the new efficient method that handles caching and status fetching
+      const storiesWithStatus = await storyService.getStoriesWithStatus(
+        source.id,
+        currentUser?.id,
+        50
+      );
+      
+      // Transform to UI format
+      const transformedStories: Story[] = storiesWithStatus.map(story => ({
         id: story.id || '',
         articleUrl: story.url || '',
         fullHeadline: story.headline,
@@ -122,8 +124,8 @@ export default function SourceBox({
         sourceUrl: source.homepageUrl,
         summary: story.summary,
         imageUrl: story.imageUrl,
-        status: 'UNREAD' as const,
-        starred: false,
+        status: story.status || 'UNREAD',
+        starred: story.starred || false,
         publishedAt: story.publishedAt || '',
       }));
 
@@ -135,18 +137,20 @@ export default function SourceBox({
       });
 
       setHeadlines(sortedStories);
-      
-      // Update cache
-      const newCache = new Map(sourceHeadlines);
-      newCache.set(source.id, sortedStories);
-      setSourceHeadlines(newCache);
 
     } catch (error) {
       console.error(`Error fetching stories for source ${source.id}:`, error);
     } finally {
       setIsLoading(false);
+      loadingRef.current = false;
     }
-  }, [source.id, source.name, source.homepageUrl]);
+  }, [source.id, source.name, source.homepageUrl, currentUser?.id]);
+
+  const updateCache = useCallback((stories: Story[]) => {
+    const newCache = new Map(sourceHeadlines);
+    newCache.set(source.id, stories);
+    setSourceHeadlines(newCache);
+  }, [sourceHeadlines, setSourceHeadlines, source.id]);
 
   useEffect(() => {
     loadHeadlines();
@@ -163,38 +167,115 @@ export default function SourceBox({
     }
   };
 
-  const markAsRead = async (storyId: string) => {
-    // TODO: Implement read tracking in BaseBase
-    console.log('Story marked as read:', storyId);
-    const updatedHeadlines = headlines.map(story => {
-      if (story.id === storyId) {
-        return { ...story, status: 'READ' as const };
-      }
-      return story;
-    });
-    setHeadlines(updatedHeadlines);
-  };
+  const markAsRead = useCallback(async (storyId: string) => {
+    if (!currentUser) {
+      console.log('No user logged in, cannot mark story as read');
+      return;
+    }
 
-  const handleStar = async (e: React.MouseEvent, story: Story) => {
+    try {
+      // Call the actual service method to save to Basebase
+      const success = await storyService.markStoryAsRead(currentUser.id, storyId);
+      
+      if (success) {
+        console.log('Story marked as read:', storyId);
+        
+        // Update local state
+        setHeadlines(prevHeadlines => 
+          prevHeadlines.map(story => {
+            if (story.id === storyId) {
+              return { ...story, status: 'READ' as const };
+            }
+            return story;
+          })
+        );
+
+        // Update cache using functional setState
+        updateCache(prevCache => {
+          const newCache = new Map(prevCache);
+          const cachedStories = newCache.get(source.id);
+          if (cachedStories) {
+            const updatedStories = cachedStories.map(story => {
+              if (story.id === storyId) {
+                return { ...story, status: 'read' as const };
+              }
+              return story;
+            });
+            newCache.set(source.id, updatedStories);
+          }
+          return newCache;
+        });
+      }
+    } catch (error) {
+      console.error('Error marking story as read:', error);
+    }
+  }, [currentUser?.id, source.id, updateCache]);
+
+  const handleStar = useCallback(async (e: React.MouseEvent, story: Story) => {
     e.preventDefault();
     e.stopPropagation();
-    // TODO: Implement starring in BaseBase
-    console.log('Story starred:', story.id);
-  };
+    
+    if (!currentUser) {
+      console.log('No user logged in, cannot star story');
+      return;
+    }
 
-  const handleShare = async (e: React.MouseEvent, story: Story) => {
+    try {
+      const newStarredState = !story.starred;
+      const success = await storyService.toggleStoryStarred(currentUser.id, story.id, newStarredState);
+      
+      if (success) {
+        console.log('Story starred:', story.id, newStarredState);
+        
+        // Update local state
+        setHeadlines(prevHeadlines => 
+          prevHeadlines.map(s => {
+            if (s.id === story.id) {
+              return { ...s, starred: newStarredState };
+            }
+            return s;
+          })
+        );
+
+        // Update cache using functional setState
+        updateCache(prevCache => {
+          const newCache = new Map(prevCache);
+          const cachedStories = newCache.get(source.id);
+          if (cachedStories) {
+            const updatedStories = cachedStories.map(s => {
+              if (s.id === story.id) {
+                return { ...s, starred: newStarredState };
+              }
+              return s;
+            });
+            newCache.set(source.id, updatedStories);
+          }
+          return newCache;
+        });
+      }
+    } catch (error) {
+      console.error('Error starring story:', error);
+    }
+  }, [currentUser?.id, source.id, updateCache]);
+
+  const handleShare = useCallback(async (e: React.MouseEvent, story: Story) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedStory(story);
     setShowPostComposer(true);
-  };
+  }, []);
 
-  const handleClosePostComposer = () => {
+  const handleClosePostComposer = useCallback(() => {
     setShowPostComposer(false);
     setSelectedStory(null);
-  };
+  }, []);
 
-  const handleMouseEnter = (e: React.MouseEvent, story: Story) => {
+  const handleMouseEnter = useCallback((e: React.MouseEvent, story: Story) => {
+    // Clear any existing timer to prevent multiple tooltips
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+    }
+    
     setHoveredStory(story);
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     setTooltipPosition({
@@ -207,32 +288,32 @@ export default function SourceBox({
     }, 500);
 
     setHoverTimer(timer);
-  };
+  }, [hoverTimer]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (hoverTimer) {
       clearTimeout(hoverTimer);
       setHoverTimer(null);
     }
     setShowTooltip(false);
     setHoveredStory(null);
-  };
+  }, [hoverTimer]);
 
-  const handleStoryClick = async (story: Story) => {
+  const handleStoryClick = useCallback(async (story: Story) => {
     // Mark as read
     await markAsRead(story.id);
     
     // Open in new tab
     window.open(story.articleUrl, '_blank');
-  };
+  }, [markAsRead]);
 
-  const handleRecommend = async (comment?: string) => {
+  const handleRecommend = useCallback(async (comment?: string) => {
     // TODO: Implement recommendations in BaseBase
     console.log('Story recommended:', selectedStory?.id, comment);
     handleClosePostComposer();
-  };
+  }, [selectedStory?.id, handleClosePostComposer]);
 
-  const filteredHeadlines = filterHeadlines(headlines, searchTerm);
+  const filteredHeadlines = useMemo(() => filterHeadlines(headlines, searchTerm), [headlines, searchTerm]);
 
   return (
     <>
@@ -353,7 +434,9 @@ export default function SourceBox({
               {filteredHeadlines.map(headline => (
                 <article 
                   key={headline.id} 
-                  className={`pl-3 pr-2 ${denseMode ? 'pt-1 pb-0' : 'py-2'} hover:bg-gray-50 dark:hover:bg-gray-700/50 group relative`}
+                  className={`pl-3 pr-2 ${denseMode ? 'pt-1 pb-0' : 'py-2'} hover:bg-gray-50 dark:hover:bg-gray-700/50 group relative ${
+                    headline.status === 'READ' ? 'opacity-60' : ''
+                  }`}
                   onMouseEnter={(e) => handleMouseEnter(e, headline)}
                   onMouseLeave={handleMouseLeave}
                 >
@@ -365,42 +448,37 @@ export default function SourceBox({
                       e.preventDefault();
                       handleStoryClick(headline);
                     }}
-                    className="block group-hover:text-primary"
+                                          className={`block group-hover:text-primary ${
+                        headline.status === 'READ' ? 'text-gray-500 dark:text-gray-400' : ''
+                      }`}
                   >
-                    <div 
-                      className={`flex items-start justify-between gap-4 ${headline.status === 'READ' ? 'opacity-50' : ''}`}
-                    >
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {!denseMode && headline.imageUrl && (
-                          <img 
-                            src={headline.imageUrl} 
-                            alt=""
-                            className="w-16 h-16 object-cover rounded shrink-0"
-                          />
+                    <div className="flex justify-between items-start gap-3">
+                      {/* Story image - only show if available and not in dense mode */}
+                      {!denseMode && headline.imageUrl && (
+                        <img 
+                          src={headline.imageUrl} 
+                          alt=""
+                          className="w-16 h-16 object-cover rounded shrink-0"
+                        />
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`text-sm font-medium ${denseMode ? 'leading-snug' : 'leading-normal'} line-clamp-2 mb-1 ${
+                          headline.status === 'READ' 
+                            ? 'text-gray-500 dark:text-gray-400' 
+                            : 'text-gray-900 dark:text-white'
+                        }`}>
+                          {headline.fullHeadline}
+                        </h3>
+                        {!denseMode && headline.summary && (
+                          <p className={`text-xs line-clamp-2 mb-1 ${
+                            headline.status === 'READ'
+                              ? 'text-gray-400 dark:text-gray-500'
+                              : 'text-gray-600 dark:text-gray-300'
+                          }`}>
+                            {headline.summary}
+                          </p>
                         )}
-                        <div className="flex-1 min-w-0">
-                          {denseMode ? (
-                            <p className="text-sm text-gray-800 dark:text-gray-100 truncate">
-                              <span className="font-medium">{headline.fullHeadline}</span>
-                              {headline.summary && (
-                                <span className="text-gray-500 dark:text-gray-400">
-                                  {' - '}{headline.summary}
-                                </span>
-                              )}
-                            </p>
-                          ) : (
-                            <>
-                              <h3 className={`font-medium text-base text-gray-800 dark:text-gray-100 leading-tight mb-1`}>
-                                {headline.fullHeadline}
-                              </h3>
-                              {headline.summary && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                                  {headline.summary}
-                                </p>
-                              )}
-                            </>
-                          )}
-                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -409,17 +487,17 @@ export default function SourceBox({
                             {formatDate(headline.publishedAt)}
                           </div>
                         )}
-                        {headline.status === 'READ' && (
-                          <button
-                            onClick={(e) => handleShare(e, headline)}
-                            className="text-gray-400 hover:text-yellow-500 dark:text-gray-500 dark:hover:text-yellow-500 transition-colors"
-                          >
-                            <FontAwesomeIcon 
-                              icon={headline.starred ? faStar : faStarRegular} 
-                              className={headline.starred ? "text-yellow-500" : ""}
-                            />
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => handleStar(e, headline)}
+                          className={`text-gray-400 hover:text-yellow-500 dark:text-gray-500 dark:hover:text-yellow-500 transition-colors ${
+                            headline.starred ? 'text-yellow-500' : ''
+                          }`}
+                        >
+                          <FontAwesomeIcon 
+                            icon={headline.starred ? faStar : faStarRegular} 
+                            className={headline.starred ? "text-yellow-500" : ""}
+                          />
+                        </button>
                       </div>
                     </div>
                   </a>

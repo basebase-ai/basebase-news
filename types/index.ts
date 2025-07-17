@@ -37,3 +37,12 @@ export interface Story {
   starred?: boolean;
   publishedAt?: string;
 }
+
+export interface IStoryStatus {
+  userId: string;
+  storyId: string;
+  read: boolean;
+  starred: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

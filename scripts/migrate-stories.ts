@@ -169,7 +169,7 @@ async function migrateStories(): Promise<void> {
           headline: story.fullHeadline,
           summary: story.summary || "No summary available",
           url: story.articleUrl,
-          imageUrl: story.imageUrl || "https://via.placeholder.com/300",
+          imageUrl: story.imageUrl,
           section: story.section || null,
           type: story.type || null,
           inPageRank: story.inPageRank || null,
