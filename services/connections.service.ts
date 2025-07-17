@@ -99,6 +99,43 @@ export class ConnectionsService {
   }
 
   /**
+   * Get outgoing pending friend requests (people I friended but who haven't friended me back)
+   */
+  async getOutgoingPendingRequests(userId: string): Promise<IUser[]> {
+    try {
+      // Get users I've friended
+      const myConnectionsQuery = query(
+        collection(db, "public/user_connections"),
+        where("from", "==", userId),
+        where("type", "==", "friend")
+      );
+      const myConnections = await getDocs(myConnectionsQuery);
+
+      // Get users who've friended me
+      const incomingConnectionsQuery = query(
+        collection(db, "public/user_connections"),
+        where("to", "==", userId),
+        where("type", "==", "friend")
+      );
+      const incomingConnections = await getDocs(incomingConnectionsQuery);
+
+      const theirFriendIds = new Set(
+        incomingConnections.docs.map((doc) => doc.data().from)
+      );
+
+      // Find users I friended but who haven't friended me back
+      const pendingUserIds = myConnections.docs
+        .map((doc) => doc.data().to)
+        .filter((userId) => !theirFriendIds.has(userId));
+
+      return await this.getUsersByIds(pendingUserIds);
+    } catch (error) {
+      console.error("Error getting outgoing pending requests:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get suggested friends (users who are not connected to current user)
    */
   async getSuggestedFriends(userId: string): Promise<IUser[]> {
@@ -175,9 +212,7 @@ export class ConnectionsService {
         to: toUserId,
         type: "friend",
         createdAt: new Date().toISOString(),
-        metadata: {
-          app: "newswithfriends",
-        },
+        projectId: "newswithfriends",
       };
 
       await addDoc(collection(db, "public/user_connections"), connectionData);
@@ -206,6 +241,29 @@ export class ConnectionsService {
     } catch (error) {
       console.error("Error removing friend:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Check if we've sent a friend request to someone
+   */
+  async hasSentFriendRequest(
+    fromUserId: string,
+    toUserId: string
+  ): Promise<boolean> {
+    try {
+      const connectionQuery = query(
+        collection(db, "public/user_connections"),
+        where("from", "==", fromUserId),
+        where("to", "==", toUserId),
+        where("type", "==", "friend")
+      );
+      const connection = await getDocs(connectionQuery);
+
+      return connection.docs.length > 0;
+    } catch (error) {
+      console.error("Error checking sent friend request:", error);
+      return false;
     }
   }
 
@@ -254,9 +312,7 @@ export class ConnectionsService {
         to: toUserId,
         type: "block",
         createdAt: new Date().toISOString(),
-        metadata: {
-          app: "newswithfriends",
-        },
+        projectId: "newswithfriends",
       };
 
       await addDoc(collection(db, "public/user_connections"), blockData);

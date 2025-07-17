@@ -17,6 +17,7 @@ interface Connection extends User {
 export default function FriendsList() {
   const { currentUser, friends, setFriends } = useAppState();
   const [requests, setRequests] = useState<Connection[]>([]);
+  const [outgoingPending, setOutgoingPending] = useState<User[]>([]);
   const [suggestions, setSuggestions] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -30,13 +31,15 @@ export default function FriendsList() {
       setLoading(true);
       console.log('[FriendsList] Fetching connections for user:', user.id);
 
-      // Fetch friend requests and suggestions using the friendsService
-      const [requestsData, suggestionsData] = await Promise.all([
+      // Fetch friend requests, outgoing pending, and suggestions using the friendsService
+      const [requestsData, outgoingPendingData, suggestionsData] = await Promise.all([
         friendsService.getFriendRequests(user.id),
+        friendsService.getOutgoingPendingRequests(user.id),
         friendsService.getSuggestedFriends(user.id),
       ]);
 
       console.log(`[FriendsList] Found ${requestsData.length} friend requests`);
+      console.log(`[FriendsList] Found ${outgoingPendingData.length} outgoing pending requests`);
       console.log(`[FriendsList] Found ${suggestionsData.length} suggested friends`);
 
       // Convert IUser[] to User[] format for the UI
@@ -56,14 +59,17 @@ export default function FriendsList() {
       };
 
       const requestsArray = requestsData.map(convertToUser);
+      const outgoingPendingArray = outgoingPendingData.map(convertToUser);
       const suggestionsArray = suggestionsData.map(convertToUser);
 
       setRequests(requestsArray);
+      setOutgoingPending(outgoingPendingArray);
       setSuggestions(suggestionsArray);
     } catch (error) {
       console.error('Failed to fetch connections:', error);
       // Set empty arrays on error
       setRequests([]);
+      setOutgoingPending([]);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -82,10 +88,8 @@ export default function FriendsList() {
       
       await friendsService.addFriend(currentUser.id, targetUserId);
       
-      // Refresh all data to reflect the new connection status
-      if (currentUser) {
-        fetchData(currentUser);
-      }
+      // Refresh all data to show updated state
+      await fetchData(currentUser);
       
       // Refresh friends in central state
       try {
@@ -118,7 +122,7 @@ export default function FriendsList() {
     setFriendSourcesModalOpen(true);
   };
 
-  const renderUserCard = (user: User, type: 'friend' | 'request' | 'suggestion') => (
+  const renderUserCard = (user: User, type: 'friend' | 'request' | 'suggestion' | 'pending') => (
     <div key={user.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -145,6 +149,12 @@ export default function FriendsList() {
               <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
               <span>Accept</span>
             </button>
+          )}
+          {type === 'pending' && (
+            <div className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center space-x-2">
+              <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
+              <span>Request Sent</span>
+            </div>
           )}
           {type === 'suggestion' && (
             <button 
@@ -215,6 +225,14 @@ export default function FriendsList() {
                 </div>
               </section>
             )}
+            {outgoingPending.length > 0 && (
+              <section className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Pending Requests</h3>
+                <div className="space-y-3">
+                  {filterUsers(outgoingPending).map(user => renderUserCard(user, 'pending'))}
+                </div>
+              </section>
+            )}
             {suggestions.length > 0 && (
               <section className="mb-8">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Suggested Friends</h3>
@@ -223,7 +241,7 @@ export default function FriendsList() {
                 </div>
               </section>
             )}
-            {!friends.length && !requests.length && !suggestions.length && (
+            {!friends.length && !requests.length && !outgoingPending.length && !suggestions.length && (
               <p className="text-gray-500 dark:text-gray-400 text-sm">No new friend suggestions.</p>
             )}
           </>

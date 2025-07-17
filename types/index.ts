@@ -15,11 +15,7 @@ export interface UserConnection {
   to: string; // User ID being connected to
   type: "friend" | "follow" | "block"; // Connection type
   createdAt: string; // When connection was created
-  metadata?: {
-    // Optional app-specific data
-    app: string; // Which app created this connection
-    [key: string]: any; // Flexible metadata per app
-  };
+  projectId: string; // Project identifier for this connection
 }
 
 export interface Source {

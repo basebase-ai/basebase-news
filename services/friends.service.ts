@@ -23,6 +23,15 @@ export class FriendsService {
   }
 
   /**
+   * Get outgoing pending friend requests (people you friended but who haven't friended you back)
+   * @param userId The ID of the user
+   * @returns Array of users with pending outgoing requests
+   */
+  async getOutgoingPendingRequests(userId: string): Promise<IUser[]> {
+    return await connectionsService.getOutgoingPendingRequests(userId);
+  }
+
+  /**
    * Get suggested friends for a user (users who are not friends and haven't requested friendship)
    * @param userId The ID of the user
    * @returns Array of suggested users
