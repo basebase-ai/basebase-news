@@ -50,7 +50,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             phone: baseUser.phone || '',
             email: '', // BaseBase SDK doesn't provide email in auth state
             imageUrl: undefined,
-            isAdmin: false,
             sourceIds: [], // Will be loaded separately
             denseMode: false,
             darkMode: false,

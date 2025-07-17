@@ -5,7 +5,6 @@ export interface User {
   phone?: string;
   imageUrl?: string;
   email: string;
-  isAdmin: boolean;
   sourceIds: string[];
   denseMode: boolean;
   darkMode: boolean;

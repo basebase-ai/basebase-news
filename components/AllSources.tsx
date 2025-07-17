@@ -13,6 +13,7 @@ import { isUserAuthenticated } from '@/services/basebase.service';
 import { getCurrentUser, subscribeToSource, unsubscribeFromSource } from '@/services/user.service';
 import { getSources } from '@/services/source.service';
 import { storyService } from '@/services/story.service';
+import { AdminService } from '@/services/admin.service';
 import { formatTimeAgo } from '@/lib/utils';
 
 interface SourceStory {
@@ -38,6 +39,7 @@ export default function AllSources() {
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   const [sourceStories, setSourceStories] = useState<Record<string, SourceStory[]>>({});
   const [loadingStories, setLoadingStories] = useState<Set<string>>(new Set());
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState<boolean>(false);
 
   const loadUserData = useCallback(async () => {
     try {
@@ -49,6 +51,9 @@ export default function AllSources() {
       const user = await getCurrentUser();
       if (user) {
         setCurrentUser(user);
+        // Check admin status
+        const isAdmin = await AdminService.isUserAdmin(user.id);
+        setIsCurrentUserAdmin(isAdmin);
       }
     } catch (error) {
       console.error('[AllSources] Error loading user data:', error);
@@ -244,7 +249,7 @@ export default function AllSources() {
       source: source?.name || 'new source', 
       currentUser: currentUser ? { 
         email: currentUser.email, 
-        isAdmin: currentUser.isAdmin 
+        isAdmin: isCurrentUserAdmin 
       } : null 
     });
     setEditingSource(source);
@@ -259,10 +264,23 @@ export default function AllSources() {
     setSearchTerm('');
   };
 
-  const filteredSources = sources.filter(source => 
-    source.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    source.homepageUrl.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSources = sources
+    .filter(source => 
+      source.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      source.homepageUrl.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Function to get sortable name (ignoring "The" prefix)
+      const getSortableName = (name: string): string => {
+        const lowerName = name.toLowerCase();
+        return lowerName.startsWith('the ') ? lowerName.slice(4) : lowerName;
+      };
+      
+      const nameA = getSortableName(a.name);
+      const nameB = getSortableName(b.name);
+      
+      return nameA.localeCompare(nameB);
+    });
 
 
 
@@ -335,7 +353,7 @@ export default function AllSources() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {currentUser?.isAdmin && (
+                  {isCurrentUserAdmin && (
                     <button onClick={() => handleEditSource(source)} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
                       <FontAwesomeIcon icon={faCog} className="h-5 w-5" />
                     </button>

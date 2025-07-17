@@ -8,7 +8,6 @@ interface AppState {
   currentUser: User | null;
   currentSources: Source[];
   friends: User[];
-  isAdmin: boolean;
   denseMode: boolean;
   darkMode: boolean;
   searchTerm: string;
@@ -40,7 +39,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentUser: null,
     currentSources: [],
     friends: [],
-    isAdmin: false,
     denseMode: false,
     darkMode: false,
     searchTerm: '',
@@ -105,7 +103,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ 
       ...prev, 
       currentUser: user, 
-      isAdmin: user?.isAdmin || false,
       denseMode: user?.denseMode || false,
       darkMode: user?.darkMode || false,
     }));

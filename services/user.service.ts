@@ -104,7 +104,6 @@ export class UserService {
         phone: basebaseUser.phone,
         email: basebaseUser.email || "",
         imageUrl: basebaseUser.imageUrl,
-        isAdmin: false,
         sourceIds: newsUser.sourceIds || [],
         denseMode: newsUser.denseMode || false,
         darkMode: newsUser.darkMode || false,

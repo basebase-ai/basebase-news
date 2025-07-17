@@ -29,7 +29,7 @@ export default function OverlappingAvatars({
 
   // Check if user is a full User type or BasicUser
   const isFullUser = (user: User | BasicUser): user is User => {
-    return 'isAdmin' in user;
+    return 'sourceIds' in user;
   };
 
   return (

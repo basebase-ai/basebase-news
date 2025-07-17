@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppState } from '@/lib/state/AppContext';
 import type { Source } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { sourceService } from '@/services/source.service';
 import { isUserAuthenticated } from '@/services/basebase.service';
+import { AdminService } from '@/services/admin.service';
 
 interface SourceSettingsProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface SourceSettingsProps {
 
 export default function SourceSettings({ isOpen, onClose, editingSource, onSourceSave }: SourceSettingsProps) {
   const { currentUser, currentSources, setCurrentSources, setToast } = useAppState();
+  const [isUserAdmin, setIsUserAdmin] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,7 +82,20 @@ export default function SourceSettings({ isOpen, onClose, editingSource, onSourc
     }
   };
   
-  if (editingSource && !currentUser?.isAdmin) return null;
+  // Check admin status when component mounts or user changes
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (currentUser?.id) {
+        const isAdmin = await AdminService.isUserAdmin(currentUser.id);
+        setIsUserAdmin(isAdmin);
+      } else {
+        setIsUserAdmin(false);
+      }
+    };
+    checkAdminStatus();
+  }, [currentUser?.id]);
+
+  if (editingSource && !isUserAdmin) return null;
   if (!isOpen) return null;
 
   return (

@@ -33,6 +33,8 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
   const [error, setError] = useState<string | null>(null);
   const [sourceSettingsOpen, setSourceSettingsOpen] = useState<boolean>(false);
   const [editingSource, setEditingSource] = useState<Source | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const sensors = useSensors(useSensor(PointerSensor));
 
   const loadUserData = useCallback(async () => {
@@ -53,25 +55,48 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    setIsDragging(false);
 
-    if (active.id !== over?.id && currentUser && over) {
+    if (active.id !== over?.id && currentUser && over && !isUpdating) {
       const oldIndex = currentUser.sourceIds.indexOf(active.id as string);
       const newIndex = currentUser.sourceIds.indexOf(over.id as string);
       
+      // Validate indices
+      if (oldIndex === -1 || newIndex === -1) {
+        console.warn('Invalid drag operation - source not found in current sources');
+        return;
+      }
+      
+      // Store original order for potential revert
+      const originalSourceIds = [...currentUser.sourceIds];
       const newSourceIds = arrayMove(currentUser.sourceIds, oldIndex, newIndex);
 
+      // Update UI optimistically
       setCurrentUser({ ...currentUser, sourceIds: newSourceIds });
+      setIsUpdating(true);
 
       try {
         // Update source order via userService directly
         if (isUserAuthenticated()) {
-          await updateUserSources(newSourceIds);
+          const success = await updateUserSources(newSourceIds);
+          if (!success) {
+            throw new Error('Update failed');
+          }
+          console.log('Source order updated successfully');
         }
       } catch (error) {
         console.error('Failed to save source order:', error);
-        // Revert on error
-        setCurrentUser({ ...currentUser, sourceIds: currentUser.sourceIds });
+        // Revert to original order on error
+        setCurrentUser({ ...currentUser, sourceIds: originalSourceIds });
+      } finally {
+        setIsUpdating(false);
       }
+    }
+  }
+
+  function handleDragStart() {
+    if (!isUpdating) {
+      setIsDragging(true);
     }
   }
 
@@ -143,6 +168,7 @@ export default function SourceGrid({ friendsListOpen }: SourceGridProps) {
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
