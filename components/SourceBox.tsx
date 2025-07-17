@@ -190,21 +190,19 @@ export default function SourceBox({
           })
         );
 
-        // Update cache using functional setState
-        updateCache(prevCache => {
-          const newCache = new Map(prevCache);
-          const cachedStories = newCache.get(source.id);
-          if (cachedStories) {
-            const updatedStories = cachedStories.map(story => {
-              if (story.id === storyId) {
-                return { ...story, status: 'read' as const };
-              }
-              return story;
-            });
-            newCache.set(source.id, updatedStories);
-          }
-          return newCache;
-        });
+        // Update cache directly
+        const newCache = new Map(sourceHeadlines);
+        const cachedStories = newCache.get(source.id);
+        if (cachedStories) {
+          const updatedStories = cachedStories.map(story => {
+            if (story.id === storyId) {
+              return { ...story, status: 'READ' as const };
+            }
+            return story;
+          });
+          newCache.set(source.id, updatedStories);
+          setSourceHeadlines(newCache);
+        }
       }
     } catch (error) {
       console.error('Error marking story as read:', error);
@@ -237,21 +235,19 @@ export default function SourceBox({
           })
         );
 
-        // Update cache using functional setState
-        updateCache(prevCache => {
-          const newCache = new Map(prevCache);
-          const cachedStories = newCache.get(source.id);
-          if (cachedStories) {
-            const updatedStories = cachedStories.map(s => {
-              if (s.id === story.id) {
-                return { ...s, starred: newStarredState };
-              }
-              return s;
-            });
-            newCache.set(source.id, updatedStories);
-          }
-          return newCache;
-        });
+        // Update cache directly
+        const newCache = new Map(sourceHeadlines);
+        const cachedStories = newCache.get(source.id);
+        if (cachedStories) {
+          const updatedStories = cachedStories.map(s => {
+            if (s.id === story.id) {
+              return { ...s, starred: newStarredState };
+            }
+            return s;
+          });
+          newCache.set(source.id, updatedStories);
+          setSourceHeadlines(newCache);
+        }
       }
     } catch (error) {
       console.error('Error starring story:', error);

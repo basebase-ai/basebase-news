@@ -6,6 +6,7 @@ import {
   setDoc,
   updateDoc,
   addDoc,
+  query,
   db,
 } from "basebase-js";
 import { Source } from "@/types";
@@ -18,7 +19,7 @@ export class SourceService {
       console.log("[SourceService] Getting all sources");
 
       const sourcesCollection = collection(db, "newswithfriends/newsSources");
-      const sourcesSnap = await getDocs(sourcesCollection);
+      const sourcesSnap = await getDocs(query(sourcesCollection));
 
       const sources: Source[] = [];
       sourcesSnap.forEach((docSnap) => {
@@ -40,7 +41,7 @@ export class SourceService {
       console.log("[SourceService] Getting source:", id);
 
       const sourcesCollection = collection(db, "newswithfriends/newsSources");
-      const sourcesSnap = await getDocs(sourcesCollection);
+      const sourcesSnap = await getDocs(query(sourcesCollection));
 
       let foundSource: Source | null = null;
       sourcesSnap.forEach((docSnap) => {
