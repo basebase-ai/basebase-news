@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc, getAuthState, db } from "basebase";
+import { doc, getDoc, updateDoc, getAuthState, db } from "basebase-js";
 import { User } from "@/types";
 
 interface BaseBaseUser {

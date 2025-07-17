@@ -7,7 +7,7 @@ import {
   query,
   where,
   db,
-} from "basebase";
+} from "basebase-js";
 
 export interface IUser {
   id: string;

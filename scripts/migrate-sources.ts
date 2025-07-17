@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
-import { getDatabase, doc, setDoc } from "basebase";
+import { getDatabase, doc, setDoc } from "basebase-js";
 
 // Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });

@@ -9,7 +9,7 @@ import {
   getDocs,
   collection,
   QueryDocumentSnapshot,
-} from "basebase";
+} from "basebase-js";
 
 // Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });

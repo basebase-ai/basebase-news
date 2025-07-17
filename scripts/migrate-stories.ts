@@ -1,19 +1,17 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 import dotenv from "dotenv";
 import path from "path";
-import { doc, setDoc, db } from "basebase";
+import { getDatabase, doc, setDoc } from "basebase-js";
 
 // Load environment variables from .env.local FIRST
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
+// Suppress BaseBase SDK debug output
+process.env.DEBUG = "";
+
 console.log("Starting migration script...");
 
-// Debug: Check if environment variables are loaded
-console.log("Environment variables loaded:");
-console.log("MONGODB_URI:", process.env.MONGODB_URI);
-console.log("BASEBASE_TOKEN:", process.env.BASEBASE_TOKEN);
-console.log("BASEBASE_API_KEY:", process.env.BASEBASE_API_KEY);
-console.log("BASEBASE_PROJECT_ID:", process.env.BASEBASE_PROJECT_ID);
+// Validate environment variables silently
 
 // Check required environment variables
 if (!process.env.MONGODB_URI) {
@@ -29,19 +27,8 @@ if (!process.env.BASEBASE_PROJECT_ID) {
   throw new Error("BASEBASE_PROJECT_ID environment variable is required");
 }
 
-console.log("Environment variables loaded");
-
-// Debug: Check if token is configured
-console.log("BaseBase initialized with token:", !!process.env.BASEBASE_TOKEN);
-
-// Test BaseBase connection by trying to get a document
-console.log("Testing BaseBase connection...");
-try {
-  const testDoc = doc(db, "newswithfriends/test/test");
-  console.log("✓ BaseBase connection test passed");
-} catch (error) {
-  console.error("✗ BaseBase connection test failed:", error);
-}
+// Create database instance with JWT token for server environment
+const basebaseDb = getDatabase(process.env.BASEBASE_TOKEN!);
 
 interface MongoStory {
   _id: string;
@@ -58,47 +45,97 @@ interface MongoStory {
   updatedAt?: Date;
 }
 
-async function connectToMongo(): Promise<{ client: MongoClient; db: any }> {
+async function connectToMongo(): Promise<{ client: MongoClient; mongoDB: Db }> {
   const client = new MongoClient(process.env.MONGODB_URI!);
   await client.connect();
-  const db = client.db("newsWithFriends");
-  return { client, db };
+  const mongoDB = client.db("storylist");
+  return { client, mongoDB };
 }
 
-async function migrateStories() {
+async function migrateStories(): Promise<void> {
   let mongoClient: MongoClient | undefined;
+  const startTime: number = Date.now();
 
   try {
     // Connect to MongoDB and get stories
     console.log("\nStep 1: Connecting to MongoDB");
-    const { client, db } = await connectToMongo();
+    const { client, mongoDB } = await connectToMongo();
     mongoClient = client;
+
+    // Check total count of stories
+    const totalCount = await mongoDB.collection("stories").countDocuments();
+
+    if (totalCount === 0) {
+      console.log("❌ No stories found in database. Migration cannot proceed.");
+      return;
+    }
 
     // Get stories from the last 24 hours
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
     console.log("\nStep 2: Fetching stories from MongoDB");
-    console.log(`Fetching stories created after: ${oneDayAgo.toISOString()}`);
 
-    const rawStories = await db
-      .collection("stories")
-      .find({
-        createdAt: { $gte: oneDayAgo },
-      })
-      .sort({ createdAt: -1 })
-      .toArray();
+    // Try different time ranges to find stories
+    const timeRanges = [
+      { days: 1, label: "24 hours" },
+      { days: 7, label: "7 days" },
+      { days: 30, label: "30 days" },
+      { days: 365, label: "365 days" },
+    ];
 
-    const stories: MongoStory[] = rawStories;
+    let stories: MongoStory[] = [];
+    let selectedRange = "";
+
+    for (const range of timeRanges) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - range.days);
+
+      const count = await mongoDB.collection("stories").countDocuments({
+        createdAt: { $gte: cutoffDate },
+      });
+
+      if (count > 0 && stories.length === 0) {
+        // Use the first range that has stories
+        const rawStories = await mongoDB
+          .collection<MongoStory>("stories")
+          .find({
+            createdAt: { $gte: cutoffDate },
+          })
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        stories = rawStories;
+        selectedRange = range.label;
+        break;
+      }
+    }
+
+    if (stories.length === 0) {
+      const rawStories = await mongoDB
+        .collection<MongoStory>("stories")
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(100) // Limit to 100 for safety
+        .toArray();
+
+      stories = rawStories;
+      selectedRange = "all time (limited to 100)";
+    }
 
     console.log(
-      `Found ${stories.length} stories to migrate from the last 24 hours`
+      `Found ${stories.length} stories to migrate from last ${selectedRange}`
     );
 
+    if (stories.length === 0) {
+      console.log("❌ No stories available for migration.");
+      return;
+    }
+
     console.log("\nStep 3: Starting story migration");
-    let successCount = 0;
-    let skipCount = 0;
-    let errorCount = 0;
+    let successCount: number = 0;
+    let skipCount: number = 0;
+    let errorCount: number = 0;
 
     console.log(
       `📊 Migration Progress: Processing ${stories.length} stories...`
@@ -108,36 +145,23 @@ async function migrateStories() {
       const story = stories[i];
       const progress = (((i + 1) / stories.length) * 100).toFixed(1);
 
-      // Show progress every 50 stories
-      if (i > 0 && i % 50 === 0) {
+      // Show progress every 100 stories
+      if (i > 0 && i % 100 === 0) {
         console.log(
-          `\n📈 Progress Update [${progress}%]: ${successCount} success, ${skipCount} skipped, ${errorCount} failed`
+          `[${progress}%] ${successCount} success, ${skipCount} skipped, ${errorCount} failed`
         );
       }
 
       try {
         if (!story.sourceId) {
-          console.log(
-            `[${progress}%] ✗ Skipping story "${story.fullHeadline}" - no sourceId`
-          );
           skipCount++;
           continue;
         }
 
         if (!story.fullHeadline || !story.articleUrl) {
-          console.log(
-            `[${progress}%] ✗ Skipping story "${story.fullHeadline || "Unknown"}" - missing required fields`
-          );
           skipCount++;
           continue;
         }
-
-        // console.log(
-        //   `\n[${progress}%] 🔄 Migrating story: ${story.fullHeadline}`
-        // );
-        // console.log(`  📊 Source ID: ${story.sourceId}`);
-        // console.log(`  🔗 URL: ${story.articleUrl}`);
-        // console.log(`  📅 Created: ${story.createdAt?.toISOString()}`);
 
         // Map MongoDB fields to BaseBase fields
         const basebaseStory = {
@@ -156,29 +180,15 @@ async function migrateStories() {
           updatedAt: story.updatedAt?.toISOString() || new Date().toISOString(),
         };
 
-        // console.log(`  📝 Story data prepared:`, {
-        //   headline: basebaseStory.headline.substring(0, 50) + "...",
-        //   summaryLength: basebaseStory.summary.length,
-        //   url: basebaseStory.url,
-        //   imageUrl: basebaseStory.imageUrl.substring(0, 50) + "...",
-        //   sourceId: basebaseStory.sourceId,
-        //   publishedAt: basebaseStory.publishedAt,
-        // });
-
         // Create story in newsStories collection, preserving MongoDB ObjectId
-        const storyRef = doc(db, `newswithfriends/newsStories/${story._id}`);
+        const storyRef = doc(
+          basebaseDb,
+          `newswithfriends/newsStories/${story._id}`
+        );
         await setDoc(storyRef, basebaseStory);
-        // console.log(`  ✅ Story created successfully`);
-        // console.log(
-        //   `[${progress}%] ✓ Successfully migrated "${story.fullHeadline}"`
-        // );
 
         successCount++;
       } catch (error) {
-        console.error(
-          `[${progress}%] ✗ Error migrating story "${story.fullHeadline}":`,
-          error
-        );
         errorCount++;
       }
     }
@@ -190,7 +200,7 @@ async function migrateStories() {
     console.log(`📈 Total processed: ${stories.length} stories`);
 
     // Performance summary
-    const totalTime = Date.now() - (global as any).startTime;
+    const totalTime: number = Date.now() - startTime;
     console.log(`⏱️  Total time: ${(totalTime / 1000).toFixed(2)}s`);
     console.log(
       `⚡ Average: ${(totalTime / stories.length).toFixed(2)}ms per story`
@@ -204,9 +214,6 @@ async function migrateStories() {
     }
   }
 }
-
-// Set start time for performance tracking
-(global as any).startTime = Date.now();
 
 // Run the migration
 migrateStories().then(() => {

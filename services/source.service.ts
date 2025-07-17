@@ -7,7 +7,7 @@ import {
   updateDoc,
   addDoc,
   db,
-} from "basebase";
+} from "basebase-js";
 import { Source } from "@/types";
 
 export interface ISource extends Source {}

@@ -10,7 +10,7 @@ import {
   orderBy,
   limit,
   db,
-} from "basebase";
+} from "basebase-js";
 
 // Define interfaces based on BaseBase types
 export interface IStory {
@@ -84,7 +84,7 @@ export class StoryService {
       summary: story.summary || "No summary available",
       url: story.url,
       imageUrl: story.imageUrl || "https://via.placeholder.com/300",
-      newsSource: sourceId,
+      sourceId: sourceId,
       publishedAt: story.publishedAt,
       createdAt: new Date().toISOString(),
     };
@@ -93,7 +93,7 @@ export class StoryService {
   public async addStory(sourceId: string, story: IStory): Promise<IStory> {
     try {
       const storyData = this.prepareStoryData(story, sourceId);
-      const storiesCollection = collection(db, "newswithfriends/stories");
+      const storiesCollection = collection(db, "newswithfriends/newsStories");
       const docRef = await addDoc(storiesCollection, storyData);
 
       return {
@@ -111,25 +111,35 @@ export class StoryService {
     try {
       console.log("getStories called for sourceId:", sourceId);
 
-      const storiesCollection = collection(db, "newswithfriends/stories");
+      const storiesCollection = collection(db, "newswithfriends/newsStories");
+
+      // Use query with where clause to filter by sourceId
       const q = query(
         storiesCollection,
-        where("newsSource", "==", sourceId),
+        where("sourceId", "==", sourceId),
         orderBy("publishedAt", "desc"),
-        limit(20)
+        limit(50)
       );
 
-      const storiesSnap = await q.get();
-      const stories: IStory[] = [];
+      const storiesSnap = await getDocs(q);
+      const storyList: IStory[] = [];
 
-      storiesSnap.forEach((docSnap) => {
-        stories.push({
+      storiesSnap.forEach((docSnap: any) => {
+        const data = docSnap.data();
+        storyList.push({
           id: docSnap.id,
-          ...docSnap.data(),
+          headline: data.headline || data.title || "",
+          summary: data.summary || data.description || "",
+          url: data.url || data.link || "",
+          imageUrl: data.imageUrl || data.image || "",
+          newsSource: data.sourceId || sourceId,
+          publishedAt:
+            data.publishedAt || data.createdAt || new Date().toISOString(),
+          createdAt: data.createdAt || new Date().toISOString(),
         } as IStory);
       });
 
-      return stories;
+      return storyList;
     } catch (error) {
       console.error("Error getting stories:", error);
       return [];
@@ -143,10 +153,10 @@ export class StoryService {
     try {
       console.log("getStoriesForSource called for sourceId:", sourceId);
 
-      const storiesCollection = collection(db, "newswithfriends/stories");
+      const storiesCollection = collection(db, "newswithfriends/newsStories");
       const q = query(
         storiesCollection,
-        where("newsSource", "==", sourceId),
+        where("sourceId", "==", sourceId),
         orderBy("publishedAt", "desc"),
         limit(limitCount)
       );
@@ -358,13 +368,13 @@ export class StoryService {
         options
       );
 
-      const storiesCollection = collection(db, "newswithfriends/stories");
+      const storiesCollection = collection(db, "newswithfriends/newsStories");
 
       // Build query constraints
       const constraints = [];
 
       if (options.sourceId) {
-        constraints.push(where("newsSource", "==", options.sourceId));
+        constraints.push(where("sourceId", "==", options.sourceId));
       }
 
       constraints.push(orderBy("publishedAt", "desc"));
@@ -375,13 +385,21 @@ export class StoryService {
 
       const q = query(storiesCollection, ...constraints);
 
-      const storiesSnap = await q.get();
+      const storiesSnap = await getDocs(q);
       const stories: IStory[] = [];
 
-      storiesSnap.forEach((docSnap) => {
+      storiesSnap.forEach((docSnap: any) => {
+        const data = docSnap.data();
         stories.push({
           id: docSnap.id,
-          ...docSnap.data(),
+          headline: data.headline || data.title || "",
+          summary: data.summary || data.description || "",
+          url: data.url || data.link || "",
+          imageUrl: data.imageUrl || data.image || "",
+          newsSource: data.sourceId || "",
+          publishedAt:
+            data.publishedAt || data.createdAt || new Date().toISOString(),
+          createdAt: data.createdAt || new Date().toISOString(),
         } as IStory);
       });
 

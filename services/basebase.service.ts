@@ -1,4 +1,10 @@
-import { requestCode, verifyCode, getAuthState, signOut, db } from "basebase";
+import {
+  requestCode,
+  verifyCode,
+  getAuthState,
+  signOut,
+  db,
+} from "basebase-js";
 
 /**
  * Request SMS verification code

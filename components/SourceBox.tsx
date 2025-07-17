@@ -13,6 +13,7 @@ import PostComposer from './PostComposer';
 import StoryReactionModal from './StoryReactionModal';
 import { sourceService } from '@/services/source.service';
 import { storyService } from '@/services/story.service';
+import { useAppState } from '@/lib/state/AppContext';
 
 interface SourceBoxProps {
   source: Source;
@@ -85,6 +86,7 @@ export default function SourceBox({
   dragHandleAttributes,
   dragHandleListeners
 }: SourceBoxInternalProps) {
+  const { sourceHeadlines, setSourceHeadlines } = useAppState();
   const [headlines, setHeadlines] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -97,17 +99,22 @@ export default function SourceBox({
   const [showReactionModal, setShowReactionModal] = useState<boolean>(false);
   const [reactionStory, setReactionStory] = useState<Story | null>(null);
 
-  const loadHeadlines = useCallback(async () => {
+  const loadHeadlines = useCallback(async (forceRefresh: boolean = false) => {
     try {
-      const stories = await storyService.getStories(source.id);
-      const sortedStories = [...stories].sort((a, b) => {
-        const dateA = new Date(a.publishedAt || '');
-        const dateB = new Date(b.publishedAt || '');
-        return dateB.getTime() - dateA.getTime();
-      });
+      // Check cache first unless forcing refresh
+      const cachedStories = sourceHeadlines.get(source.id);
+      if (!forceRefresh && cachedStories && cachedStories.length > 0) {
+        setHeadlines(cachedStories);
+        setIsLoading(false);
+        return;
+      }
 
+      setIsLoading(!forceRefresh); // Don't show loading if refreshing
+
+      const stories = await storyService.getStories(source.id);
+      
       // Transform stories to match UI format
-      const transformedStories = sortedStories.map(story => ({
+      const transformedStories: Story[] = stories.map(story => ({
         id: story.id || '',
         articleUrl: story.url || '',
         fullHeadline: story.headline,
@@ -120,16 +127,26 @@ export default function SourceBox({
         publishedAt: story.publishedAt || '',
       }));
 
-      setHeadlines(transformedStories as Story[]);
+      // Sort by published date
+      const sortedStories = transformedStories.sort((a, b) => {
+        const dateA = new Date(a.publishedAt || '');
+        const dateB = new Date(b.publishedAt || '');
+        return dateB.getTime() - dateA.getTime();
+      });
 
-      // Skip source metadata update to prevent infinite loop
-      // The source data is already up-to-date from the parent component
+      setHeadlines(sortedStories);
+      
+      // Update cache
+      const newCache = new Map(sourceHeadlines);
+      newCache.set(source.id, sortedStories);
+      setSourceHeadlines(newCache);
+
     } catch (error) {
       console.error(`Error fetching stories for source ${source.id}:`, error);
     } finally {
       setIsLoading(false);
     }
-  }, [source.id]); // Only depend on source.id to prevent infinite loop
+  }, [source.id, source.name, source.homepageUrl]);
 
   useEffect(() => {
     loadHeadlines();
@@ -138,11 +155,7 @@ export default function SourceBox({
   const handleRefreshSource = async () => {
     try {
       setIsRefreshing(true);
-      setHeadlines([]);
-
-      // TODO: Implement source refresh in BaseBase
-      // For now, just reload headlines
-      await loadHeadlines();
+      await loadHeadlines(true); // Force refresh
     } catch (error) {
       console.error('Failed to refresh source:', error);
     } finally {
