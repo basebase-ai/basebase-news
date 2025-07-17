@@ -74,6 +74,15 @@ export default function RootLayout({
           <AuthWrapper>
             {children}
           </AuthWrapper>
+          {/* Floating Action Button */}
+          <a
+            href="https://editor.basebase.us/?repo=https://github.com/grenager/basebase-news"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-orange-500 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium text-sm"
+          >
+            <span>✨ Edit This</span>
+          </a>
         </AppProvider>
       </body>
     </html>
