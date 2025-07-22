@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/admin/rescrape",
-      "schedule": "0 * * * *"
+      "schedule": "* * * * *"
     }
   ]
 }

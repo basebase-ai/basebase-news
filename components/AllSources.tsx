@@ -6,12 +6,12 @@ import { useAppState } from '@/lib/state/AppContext';
 import LoadingSpinner from './LoadingSpinner';
 import OverlappingAvatars from './OverlappingAvatars';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faCog, faSearch, faChevronRight, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
-// import SourceSettings from './SourceSettings'; // Component no longer exists
+import { faPlus, faCog, faSearch, faChevronRight, faChevronDown, faXmark, faEllipsisV, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import SourceSettings from './SourceSettings';
 
 import { isUserAuthenticated } from '@/services/basebase.service';
 import { getCurrentUser, subscribeToSource, unsubscribeFromSource } from '@/services/user.service';
-import { getSources } from '@/services/source.service';
+import { getSources, sourceService } from '@/services/source.service';
 import { storyService } from '@/services/story.service';
 import { AdminService } from '@/services/admin.service';
 import { formatTimeAgo } from '@/lib/utils';
@@ -40,6 +40,7 @@ export default function AllSources() {
   const [sourceStories, setSourceStories] = useState<Record<string, SourceStory[]>>({});
   const [loadingStories, setLoadingStories] = useState<Set<string>>(new Set());
   const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState<boolean>(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   const loadUserData = useCallback(async () => {
     try {
@@ -85,15 +86,21 @@ export default function AllSources() {
           return;
         }
         
-        const sourcesData = await getSources();
-        const sourcesArray = Array.isArray(sourcesData) ? sourcesData : [];
-        // Map ISource to Source format with id
-        const sources = sourcesArray.map(source => ({
-          ...source,
-          id: source.id || '',
-        }));
-        
-        setSources(sources);
+        // Load user data (including admin status) and sources in parallel
+        await Promise.all([
+          loadUserData(),
+          (async () => {
+            const sourcesData = await getSources();
+            const sourcesArray = Array.isArray(sourcesData) ? sourcesData : [];
+            // Map ISource to Source format with id
+            const sources = sourcesArray.map(source => ({
+              ...source,
+              id: source.id || '',
+            }));
+            
+            setSources(sources);
+          })()
+        ]);
       } catch (error) {
         console.error('[AllSources] Error loading sources:', error);
         setError('Failed to load sources');
@@ -103,7 +110,25 @@ export default function AllSources() {
     };
 
     loadData();
-  }, []);
+  }, [loadUserData]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdown) {
+        const target = event.target as Element;
+        // Check if the click is outside the dropdown and its trigger button
+        if (!target.closest('[data-dropdown-id]') && !target.closest('[data-dropdown-trigger]')) {
+          setOpenDropdown(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdown]);
 
   const fetchSourceStories = async (sourceId: string) => {
     if (!isSourceAdded(sourceId)) return;
@@ -256,8 +281,42 @@ export default function AllSources() {
     setSourceSettingsOpen(true);
   };
 
-  const handleSourceSave = () => {
+  const handleSourceSave = async () => {
     setSourceListVersion(v => v + 1);
+    // Reload sources to show the newly created/updated source
+    await loadSources();
+  };
+
+  const handleDeleteSource = async (sourceId: string) => {
+    if (!confirm('Are you sure you want to delete this source? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      if (!isUserAuthenticated()) {
+        console.warn('[AllSources] User not authenticated');
+        return;
+      }
+
+      await sourceService.deleteSource(sourceId);
+      
+      // Remove from local state
+      setSources(prev => prev.filter(s => s.id !== sourceId));
+      
+      // If user was subscribed to this source, remove it from their subscriptions
+      if (currentUser?.sourceIds.includes(sourceId)) {
+        await unsubscribeFromSource(sourceId);
+        await loadUserData();
+      }
+      
+      setOpenDropdown(null);
+    } catch (error) {
+      console.error('[AllSources] Error deleting source:', error);
+    }
+  };
+
+  const toggleDropdown = (sourceId: string) => {
+    setOpenDropdown(openDropdown === sourceId ? null : sourceId);
   };
 
   const handleClearSearch = () => {
@@ -324,7 +383,7 @@ export default function AllSources() {
       {!loading && !error && (
         <div className="space-y-2">
           {filteredSources.map(source => (
-            <div key={source.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
+            <div key={source.id} className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg relative ${openDropdown === source.id ? 'overflow-visible' : 'overflow-hidden'}`}>
               <div className="flex items-center justify-between p-3">
                 <div className="flex items-center space-x-3 flex-1">
                   {isSourceAdded(source.id) && (
@@ -354,9 +413,47 @@ export default function AllSources() {
                 </div>
                 <div className="flex items-center space-x-2">
                   {isCurrentUserAdmin && (
-                    <button onClick={() => handleEditSource(source)} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
-                      <FontAwesomeIcon icon={faCog} className="h-5 w-5" />
-                    </button>
+                    <div className={`relative ${openDropdown === source.id ? 'z-30' : ''}`}>
+                      <button 
+                        onClick={() => toggleDropdown(source.id)} 
+                        className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
+                        data-dropdown-trigger
+                      >
+                        <FontAwesomeIcon icon={faEllipsisV} className="h-5 w-5" />
+                      </button>
+                      {openDropdown === source.id && (
+                        <div 
+                          className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-600 z-40"
+                          data-dropdown-id={source.id}
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Edit clicked for source:', source.name);
+                              handleEditSource(source);
+                              setOpenDropdown(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 rounded-t-md"
+                          >
+                            <FontAwesomeIcon icon={faEdit} className="h-4 w-4" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Delete clicked for source:', source.name);
+                              handleDeleteSource(source.id);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 rounded-b-md"
+                          >
+                            <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                   {isSourceAdded(source.id) ? (
                     <button onClick={() => handleRemoveSource(source.id)} className="px-3 py-1 text-sm font-medium text-white bg-red-600 rounded-full hover:bg-red-700">
@@ -459,7 +556,15 @@ export default function AllSources() {
         </div>
       )}
 
-      {/* SourceSettings component no longer exists */}
+      <SourceSettings
+        isOpen={sourceSettingsOpen}
+        onClose={() => {
+          setSourceSettingsOpen(false);
+          setEditingSource(null);
+        }}
+        editingSource={editingSource}
+        onSourceSave={handleSourceSave}
+      />
     </>
   );
 } 

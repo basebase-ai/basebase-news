@@ -1,7 +1,6 @@
 // import { ScrapingBeeClient } from "scrapingbee";
 import * as cheerio from "cheerio";
 import axios, { AxiosResponse } from "axios";
-import { langChainService } from "./langchain.service";
 import { ISource, sourceService } from "./source.service";
 import { storyService, IStory } from "./story.service";
 import { previewService } from "./preview.service";
@@ -34,7 +33,6 @@ export class ScraperService {
   // private readonly client: ScrapingBeeClient;
   // private readonly apiKey: string;
   private readonly MAX_TOKENS: number = 100000;
-  private readonly langChainService = langChainService;
   private readonly MAX_RETRIES: number = 3;
   private readonly RETRY_DELAY: number = 1000; // 1 second
 
@@ -135,7 +133,7 @@ ${html}`;
 
     let response: string = "";
     try {
-      response = await this.langChainService.askAi(prompt);
+      response = ""; // await this.langChainService.askAi(prompt);
       console.log(`Got response from AI with length ${response.length}`);
 
       const stories = this.cleanJsonResponse(response);

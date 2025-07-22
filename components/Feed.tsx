@@ -6,8 +6,8 @@ import PostBox from './PostBox';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { storyService } from '@/services/story.service';
-import { sourceService } from '@/services/source.service';
-import { IStory } from '@/services/story.service';
+import { friendsService } from '@/services/friends.service';
+import { useAppState } from '@/lib/state/AppContext';
 
 interface CommentData {
   id: string;
@@ -52,60 +52,51 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const { currentUser } = useAppState();
 
   const fetchStories = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
-      console.log('[Feed] Fetching recommended stories...');
       
-      const result = await storyService.searchStories(null, {
-        limit: 50,
-        page: 1,
-      });
-      console.log('[Feed] API response:', result);
+      if (!currentUser) {
+        console.log('[Feed] No current user, showing empty feed');
+        setStories([]);
+        return;
+      }
 
-      // Transform stories to match the UI's expected format
-      const transformedStories = await Promise.all(result.stories.map(async story => {
-        let source = {
-          id: story.newsSource || '',
-          name: '', // Default value
-          homepageUrl: '',
-          imageUrl: undefined as string | undefined,
-        };
+      console.log('[Feed] Fetching recently starred stories by friends...');
+      
+      // Get user's friends
+      const friends = await friendsService.getFriends(currentUser.id);
+      const friendIds = friends.map(friend => friend.id);
+      
+      console.log(`[Feed] Found ${friends.length} friends:`, friendIds);
+      
+      if (friendIds.length === 0) {
+        console.log('[Feed] No friends found, showing empty feed');
+        setStories([]);
+        return;
+      }
 
-        // Fetch source details if we have a source ID
-        if (story.newsSource) {
-          try {
-            const sourceDetails = await sourceService.getSource(story.newsSource);
-            if (sourceDetails) {
-              source = {
-                id: sourceDetails.id,
-                name: sourceDetails.name,
-                homepageUrl: sourceDetails.homepageUrl,
-                imageUrl: sourceDetails.imageUrl,
-              };
-            }
-          } catch (error) {
-            console.error(`Failed to fetch source details for ${story.newsSource}:`, error);
-          }
-        }
-
-        return {
-          id: story.id || '',
-          fullHeadline: story.headline,
-          articleUrl: story.url || '',
-          summary: story.summary,
-          imageUrl: story.imageUrl,
-          createdAt: story.publishedAt,
-          source,
-          starCount: 0, // We'll need to implement star functionality in BaseBase
-          starredBy: [], // We'll need to implement star functionality in BaseBase
-          comments: [], // We'll need to implement comments in BaseBase
-        };
+      // Get recently starred stories by friends
+      const storiesWithDetails = await storyService.getRecentlyStarredStoriesByFriends(friendIds, 50);
+      
+             // Transform to match UI expected format
+       const transformedStories: StoryData[] = storiesWithDetails.map(story => ({
+        id: story.id || '',
+        fullHeadline: story.headline,
+        articleUrl: story.url || '',
+        summary: story.summary,
+        imageUrl: story.imageUrl,
+        createdAt: story.publishedAt,
+        source: story.source,
+        starCount: story.starCount,
+        starredBy: story.starredBy || [],
+        comments: story.comments || [],
       }));
 
-      console.log('[Feed] Setting stories:', transformedStories.length);
+      console.log(`[Feed] Setting ${transformedStories.length} stories from friends`);
       setStories(transformedStories);
     } catch (err) {
       console.error('[Feed] Error:', err);
@@ -145,7 +136,12 @@ export default function Feed() {
       ) : error ? (
         <div className="text-red-500">Error: {error}</div>
       ) : stories.length === 0 ? (
-        <p className="text-gray-500 dark:text-gray-400">No stories yet.</p>
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">No recommended stories yet.</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm">
+            Stories your friends recommend will appear here.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
           {stories
@@ -154,11 +150,7 @@ export default function Feed() {
               story.fullHeadline.toLowerCase().includes(searchTerm.toLowerCase()) ||
               story.summary?.toLowerCase().includes(searchTerm.toLowerCase())
             )
-            .sort((a, b) => {
-              const dateA = new Date(a.createdAt || '').getTime();
-              const dateB = new Date(b.createdAt || '').getTime();
-              return dateB - dateA; // Most recent first
-            })
+
             .map((story) => (
               <PostBox key={story.id} story={story} onCommentAdded={fetchStories} />
             ))}

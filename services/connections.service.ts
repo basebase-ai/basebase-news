@@ -21,11 +21,86 @@ export interface IUser {
 }
 
 export class ConnectionsService {
+  private friendsCache = new Map<
+    string,
+    { friends: IUser[]; timestamp: number }
+  >();
+  private friendRequestsCache = new Map<
+    string,
+    { requests: IUser[]; timestamp: number }
+  >();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  private isCacheValid(timestamp: number): boolean {
+    return Date.now() - timestamp < this.CACHE_TTL;
+  }
+
+  private getCachedFriends(userId: string): IUser[] | null {
+    const cached = this.friendsCache.get(userId);
+    if (cached && this.isCacheValid(cached.timestamp)) {
+      return cached.friends;
+    }
+    return null;
+  }
+
+  private setCachedFriends(userId: string, friends: IUser[]): void {
+    this.friendsCache.set(userId, {
+      friends,
+      timestamp: Date.now(),
+    });
+  }
+
+  private getCachedFriendRequests(userId: string): IUser[] | null {
+    const cached = this.friendRequestsCache.get(userId);
+    if (cached && this.isCacheValid(cached.timestamp)) {
+      return cached.requests;
+    }
+    return null;
+  }
+
+  private setCachedFriendRequests(userId: string, requests: IUser[]): void {
+    this.friendRequestsCache.set(userId, {
+      requests,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Clear all caches (useful for testing or forced refresh)
+   */
+  public clearCache(): void {
+    this.friendsCache.clear();
+    this.friendRequestsCache.clear();
+  }
+
+  /**
+   * Clear cache for specific users (called when connections change)
+   */
+  private clearCacheForUsers(userIds: string[]): void {
+    userIds.forEach((userId) => {
+      this.friendsCache.delete(userId);
+      this.friendRequestsCache.delete(userId);
+    });
+  }
+
   /**
    * Get mutual friends for a user (users who have friended each other)
    */
   async getMutualFriends(userId: string): Promise<IUser[]> {
     try {
+      // Check cache first
+      const cached = this.getCachedFriends(userId);
+      if (cached) {
+        console.log(
+          `[ConnectionsService] Returning cached friends for user ${userId}`
+        );
+        return cached;
+      }
+
+      console.log(
+        `[ConnectionsService] Fetching mutual friends for user ${userId}`
+      );
+
       // Get users I've friended
       const myConnectionsQuery = query(
         collection(db, "public/user_connections"),
@@ -55,7 +130,15 @@ export class ConnectionsService {
       );
 
       // Fetch user details from basebase/users
-      return await this.getUsersByIds(mutualUserIds);
+      const friends = await this.getUsersByIds(mutualUserIds);
+
+      // Cache the results
+      this.setCachedFriends(userId, friends);
+
+      console.log(
+        `[ConnectionsService] Found ${friends.length} mutual friends for user ${userId}`
+      );
+      return friends;
     } catch (error) {
       console.error("Error getting mutual friends:", error);
       throw error;
@@ -67,6 +150,19 @@ export class ConnectionsService {
    */
   async getFriendRequests(userId: string): Promise<IUser[]> {
     try {
+      // Check cache first
+      const cached = this.getCachedFriendRequests(userId);
+      if (cached) {
+        console.log(
+          `[ConnectionsService] Returning cached friend requests for user ${userId}`
+        );
+        return cached;
+      }
+
+      console.log(
+        `[ConnectionsService] Fetching friend requests for user ${userId}`
+      );
+
       // Get users who've friended me
       const incomingConnectionsQuery = query(
         collection(db, "public/user_connections"),
@@ -91,7 +187,15 @@ export class ConnectionsService {
         .map((doc) => doc.data().from)
         .filter((userId) => !myFriendIds.has(userId));
 
-      return await this.getUsersByIds(requestUserIds);
+      const friendRequests = await this.getUsersByIds(requestUserIds);
+
+      // Cache the results
+      this.setCachedFriendRequests(userId, friendRequests);
+
+      console.log(
+        `[ConnectionsService] Found ${friendRequests.length} friend requests for user ${userId}`
+      );
+      return friendRequests;
     } catch (error) {
       console.error("Error getting friend requests:", error);
       throw error;
@@ -216,6 +320,9 @@ export class ConnectionsService {
       };
 
       await addDoc(collection(db, "public/user_connections"), connectionData);
+
+      // Clear cache for both users since their friend lists changed
+      this.clearCacheForUsers([fromUserId, toUserId]);
     } catch (error) {
       console.error("Error adding friend:", error);
       throw error;
@@ -238,6 +345,9 @@ export class ConnectionsService {
       // Delete all matching connections
       const deletePromises = connections.docs.map((doc) => deleteDoc(doc.ref));
       await Promise.all(deletePromises);
+
+      // Clear cache for both users since their friend lists changed
+      this.clearCacheForUsers([fromUserId, toUserId]);
     } catch (error) {
       console.error("Error removing friend:", error);
       throw error;
@@ -316,6 +426,9 @@ export class ConnectionsService {
       };
 
       await addDoc(collection(db, "public/user_connections"), blockData);
+
+      // Clear cache for both users since their connection status changed
+      this.clearCacheForUsers([fromUserId, toUserId]);
     } catch (error) {
       console.error("Error blocking user:", error);
       throw error;

@@ -72,6 +72,10 @@ export class StoryService {
     string,
     { status: IStoryStatus | null; timestamp: number }
   >();
+  private friendStarredCache = new Map<
+    string,
+    { stories: IStoryWithDetails[]; timestamp: number }
+  >();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
@@ -121,12 +125,35 @@ export class StoryService {
     });
   }
 
+  private getCachedFriendStarredStories(
+    friendIds: string[]
+  ): IStoryWithDetails[] | null {
+    const key = friendIds.sort().join(","); // Sort for consistent key
+    const cached = this.friendStarredCache.get(key);
+    if (cached && this.isCacheValid(cached.timestamp)) {
+      return cached.stories;
+    }
+    return null;
+  }
+
+  private setCachedFriendStarredStories(
+    friendIds: string[],
+    stories: IStoryWithDetails[]
+  ): void {
+    const key = friendIds.sort().join(","); // Sort for consistent key
+    this.friendStarredCache.set(key, {
+      stories,
+      timestamp: Date.now(),
+    });
+  }
+
   /**
    * Clear all caches (useful for testing or forced refresh)
    */
   public clearCache(): void {
     this.storyCache.clear();
     this.statusCache.clear();
+    this.friendStarredCache.clear();
   }
 
   private prepareStoryData(story: IStory, sourceId: string): any {
@@ -704,6 +731,193 @@ export class StoryService {
       return statuses;
     } catch (error) {
       console.error("Error getting starred stories:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get recently starred stories by friends for the discover feed
+   */
+  public async getRecentlyStarredStoriesByFriends(
+    friendIds: string[],
+    limitCount: number = 50
+  ): Promise<IStoryWithDetails[]> {
+    try {
+      if (friendIds.length === 0) {
+        return [];
+      }
+
+      // Check cache first
+      const cached = this.getCachedFriendStarredStories(friendIds);
+      if (cached) {
+        console.log("[Story Service] Returning cached friend starred stories");
+        return cached.slice(0, limitCount); // Apply limit to cached results
+      }
+
+      console.log(
+        "[Story Service] Getting recently starred stories for friends:",
+        friendIds
+      );
+
+      // Get recent starred story statuses by friends
+      const statusCollection = collection(db, "newswithfriends/storyStatus");
+      const q = query(
+        statusCollection,
+        where("starred", "==", true),
+        orderBy("updatedAt", "desc"),
+        limit(limitCount * 2) // Get more to filter by friends
+      );
+
+      const statusSnap = await getDocs(q);
+      const friendStarredStatuses: (IStoryStatus & { starredByUser?: any })[] =
+        [];
+
+      // Filter by friends and add user info
+      for (const statusDoc of statusSnap.docs) {
+        const statusData = statusDoc.data() as IStoryStatus;
+
+        if (friendIds.includes(statusData.userId)) {
+          // Get user info for the friend who starred this
+          const userDoc = await getDoc(
+            doc(db, `basebase/users/${statusData.userId}`)
+          );
+          const userData = userDoc.exists ? userDoc.data() : null;
+
+          if (userData) {
+            const nameParts = userData.name.split(" ");
+            friendStarredStatuses.push({
+              ...statusData,
+              starredByUser: {
+                id: statusData.userId,
+                first: nameParts[0] || "",
+                last: nameParts.slice(1).join(" ") || "",
+                email: userData.email || "",
+                imageUrl: userData.imageUrl,
+              },
+            });
+          }
+        }
+      }
+
+      // Limit to requested count
+      const limitedStatuses = friendStarredStatuses.slice(0, limitCount);
+
+      console.log(
+        `[Story Service] Found ${limitedStatuses.length} recently starred stories by friends`
+      );
+
+      // Fetch story details for each starred story
+      const storiesWithDetails: IStoryWithDetails[] = [];
+
+      for (const status of limitedStatuses) {
+        try {
+          // Get the story
+          const storyDoc = await getDoc(
+            doc(db, `newswithfriends/newsStories/${status.storyId}`)
+          );
+
+          if (!storyDoc.exists) {
+            console.warn(`[Story Service] Story ${status.storyId} not found`);
+            continue;
+          }
+
+          const storyData = storyDoc.data();
+
+          if (!storyData) {
+            console.warn(
+              `[Story Service] Story data is null for ${status.storyId}`
+            );
+            continue;
+          }
+
+          // Get source info
+          const sourceDoc = await getDoc(
+            doc(db, `newswithfriends/newsSources/${storyData.sourceId}`)
+          );
+          const sourceData = sourceDoc.exists ? sourceDoc.data() : null;
+
+          // Get comments for this story
+          const commentsCollection = collection(db, "newswithfriends/comments");
+          const commentsQuery = query(
+            commentsCollection,
+            where("storyId", "==", status.storyId),
+            orderBy("createdAt", "desc")
+          );
+          const commentsSnap = await getDocs(commentsQuery);
+
+          const comments: IComment[] = [];
+          for (const commentDoc of commentsSnap.docs) {
+            const commentData = commentDoc.data();
+            const userDoc = await getDoc(
+              doc(db, `basebase/users/${commentData.userId}`)
+            );
+            const userData = userDoc.exists ? userDoc.data() : null;
+
+            if (userData) {
+              const nameParts = userData.name.split(" ");
+              comments.push({
+                id: commentDoc.id,
+                text: commentData.text,
+                createdAt: commentData.createdAt,
+                updatedAt: commentData.updatedAt,
+                userId: {
+                  id: commentData.userId,
+                  first: nameParts[0] || "",
+                  last: nameParts.slice(1).join(" ") || "",
+                  email: userData.email || "",
+                  imageUrl: userData.imageUrl,
+                },
+                storyId: status.storyId,
+              });
+            }
+          }
+
+          // Build the story with details
+          const storyWithDetails: IStoryWithDetails = {
+            id: status.storyId,
+            headline: storyData.headline || "",
+            summary: storyData.summary || "",
+            url: storyData.url || "",
+            imageUrl: storyData.imageUrl,
+            newsSource: storyData.sourceId || "",
+            publishedAt:
+              storyData.publishedAt ||
+              storyData.createdAt ||
+              new Date().toISOString(),
+            createdAt: storyData.createdAt || new Date().toISOString(),
+            starCount: 1, // At least this friend starred it
+            starredBy: [status.starredByUser], // The friend who starred it
+            comments,
+            source: {
+              id: storyData.sourceId || "",
+              name: sourceData?.name || "Unknown Source",
+              homepageUrl: sourceData?.homepageUrl || "",
+              imageUrl: sourceData?.imageUrl,
+            },
+          };
+
+          storiesWithDetails.push(storyWithDetails);
+        } catch (error) {
+          console.error(
+            `[Story Service] Error fetching story details for ${status.storyId}:`,
+            error
+          );
+        }
+      }
+
+      console.log(
+        `[Story Service] Returning ${storiesWithDetails.length} stories with details`
+      );
+
+      // Cache the results
+      this.setCachedFriendStarredStories(friendIds, storiesWithDetails);
+
+      return storiesWithDetails;
+    } catch (error) {
+      console.error(
+        "Error getting recently starred stories by friends:",
+        error
+      );
       return [];
     }
   }

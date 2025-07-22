@@ -14,7 +14,7 @@ export default function GlobalNavigationBar({
 }: GlobalNavigationBarProps) {
   const { sidebarMinimized } = useAppState();
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 z-10 border-b border-gray-200 dark:border-gray-700 shadow-sm lg:hidden">
+    <header className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 z-50 border-b border-gray-200 dark:border-gray-700 shadow-sm lg:hidden">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <button onClick={onToggleSidebar} className="lg:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">

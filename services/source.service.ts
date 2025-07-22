@@ -6,6 +6,7 @@ import {
   setDoc,
   updateDoc,
   addDoc,
+  deleteDoc,
   query,
   db,
 } from "basebase-js";
@@ -125,6 +126,18 @@ export class SourceService {
       return await this.getSource(id);
     } catch (error) {
       console.error("[SourceService] Error updating source:", error);
+      throw error;
+    }
+  }
+
+  async deleteSource(id: string): Promise<void> {
+    try {
+      console.log("[SourceService] Deleting source:", id);
+
+      const sourceRef = doc(db, `newswithfriends/newsSources/${id}`);
+      await deleteDoc(sourceRef);
+    } catch (error) {
+      console.error("[SourceService] Error deleting source:", error);
       throw error;
     }
   }

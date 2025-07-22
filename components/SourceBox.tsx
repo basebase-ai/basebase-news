@@ -159,9 +159,39 @@ export default function SourceBox({
   const handleRefreshSource = async () => {
     try {
       setIsRefreshing(true);
-      await loadHeadlines(true); // Force refresh
+      
+      // First trigger a fresh scrape of this source
+      const response = await fetch('/api/admin/scrape-source', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sourceId: source.id }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to scrape source');
+      }
+      
+      const result = await response.json();
+      console.log('Source scraped successfully:', result);
+      
+      // Update the source's lastScrapedAt if we have an onSourceUpdate callback
+      if (onSourceUpdate) {
+        onSourceUpdate({
+          ...source,
+          lastScrapedAt: result.lastScrapedAt
+        });
+      }
+      
+      // Then load the fresh headlines from the database
+      await loadHeadlines(true);
+      
     } catch (error) {
       console.error('Failed to refresh source:', error);
+      // Still try to reload existing headlines even if scraping failed
+      await loadHeadlines(true);
     } finally {
       setIsRefreshing(false);
     }
@@ -268,15 +298,17 @@ export default function SourceBox({
 
   const handleMouseEnter = useCallback((e: React.MouseEvent, story: Story) => {
     // Clear any existing timer to prevent multiple tooltips
-    if (hoverTimer) {
-      clearTimeout(hoverTimer);
-    }
+    setHoverTimer(prevTimer => {
+      if (prevTimer) {
+        clearTimeout(prevTimer);
+      }
+      return null;
+    });
     
     setHoveredStory(story);
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
     setTooltipPosition({
-      x: rect.left + window.scrollX,
-      y: rect.bottom + window.scrollY
+      x: e.clientX,
+      y: e.clientY
     });
 
     const timer = setTimeout(() => {
@@ -284,16 +316,18 @@ export default function SourceBox({
     }, 500);
 
     setHoverTimer(timer);
-  }, [hoverTimer]);
+  }, []); // Remove hoverTimer dependency
 
   const handleMouseLeave = useCallback(() => {
-    if (hoverTimer) {
-      clearTimeout(hoverTimer);
-      setHoverTimer(null);
-    }
+    setHoverTimer(prevTimer => {
+      if (prevTimer) {
+        clearTimeout(prevTimer);
+      }
+      return null;
+    });
     setShowTooltip(false);
     setHoveredStory(null);
-  }, [hoverTimer]);
+  }, []); // Remove hoverTimer dependency
 
   const handleStoryClick = useCallback(async (story: Story) => {
     // Mark as read
@@ -516,7 +550,7 @@ export default function SourceBox({
           className="fixed bg-black text-white text-sm rounded-lg p-3 shadow-lg z-50 max-w-sm"
           style={{
             left: `${tooltipPosition.x}px`,
-            top: `${tooltipPosition.y}px`,
+            top: `${tooltipPosition.y - 10}px`,
             transform: 'translate(-50%, -100%)',
           }}
         >
