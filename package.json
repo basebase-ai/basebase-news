@@ -17,7 +17,9 @@
     "introspect-schema": "npx ts-node scripts/introspect-schema.ts",
     "build-source-mapping": "npx ts-node scripts/build-source-mapping.ts",
     "list-sources": "npx ts-node scripts/list-sources.ts",
-    "list-stories": "npx ts-node scripts/list-stories.ts"
+    "list-stories": "npx ts-node scripts/list-stories.ts",
+    "setup-basebase-scraper": "npx ts-node scripts/setup-basebase-scraper.ts",
+    "test-basebase-scraper": "npx ts-node scripts/test-basebase-scraper.ts"
   },
   "repository": {
     "type": "git",
@@ -50,7 +52,7 @@
     "@types/react-dom": "^18.3.7",
     "@types/sortablejs": "^1.15.0",
     "autoprefixer": "^10.4.21",
-    "basebase-js": "^0.1.6",
+    "basebase-js": "^0.1.10",
     "cheerio": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

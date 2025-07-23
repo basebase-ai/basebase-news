@@ -19,7 +19,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Getting all sources");
 
-      const sourcesCollection = collection(db, "newswithfriends/newsSources");
+      const sourcesCollection = collection(db, "newswithfriends/news_sources");
       const sourcesSnap = await getDocs(query(sourcesCollection));
 
       const sources: Source[] = [];
@@ -41,7 +41,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Getting source:", id);
 
-      const sourcesCollection = collection(db, "newswithfriends/newsSources");
+      const sourcesCollection = collection(db, "newswithfriends/news_sources");
       const sourcesSnap = await getDocs(query(sourcesCollection));
 
       let foundSource: Source | null = null;
@@ -99,7 +99,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Adding source:", sourceData.name);
 
-      const sourcesCollection = collection(db, "newswithfriends/newsSources");
+      const sourcesCollection = collection(db, "newswithfriends/news_sources");
       const docRef = await addDoc(sourcesCollection, sourceData);
 
       return {
@@ -119,7 +119,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Updating source:", id);
 
-      const sourceRef = doc(db, `newswithfriends/newsSources/${id}`);
+      const sourceRef = doc(db, `newswithfriends/news_sources/${id}`);
       await updateDoc(sourceRef, sourceData);
 
       // Return the updated source
@@ -134,7 +134,7 @@ export class SourceService {
     try {
       console.log("[SourceService] Deleting source:", id);
 
-      const sourceRef = doc(db, `newswithfriends/newsSources/${id}`);
+      const sourceRef = doc(db, `newswithfriends/news_sources/${id}`);
       await deleteDoc(sourceRef);
     } catch (error) {
       console.error("[SourceService] Error deleting source:", error);

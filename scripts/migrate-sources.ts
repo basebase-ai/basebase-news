@@ -99,7 +99,7 @@ async function migrateSources() {
         };
 
         // Add to BaseBase directly using the original MongoDB ID
-        const sourceDoc = doc(db, `newswithfriends/newsSources/${source._id}`);
+        const sourceDoc = doc(db, `newswithfriends/news_sources/${source._id}`);
         await setDoc(sourceDoc, basebaseSource);
         console.log(
           `✓ Successfully migrated ${source.name} with ID: ${source._id}`

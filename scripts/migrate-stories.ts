@@ -180,10 +180,10 @@ async function migrateStories(): Promise<void> {
           updatedAt: story.updatedAt?.toISOString() || new Date().toISOString(),
         };
 
-        // Create story in newsStories collection, preserving MongoDB ObjectId
+        // Create story in news_stories collection, preserving MongoDB ObjectId
         const storyRef = doc(
           basebaseDb,
-          `newswithfriends/newsStories/${story._id}`
+          `newswithfriends/news_stories/${story._id}`
         );
         await setDoc(storyRef, basebaseStory);
 

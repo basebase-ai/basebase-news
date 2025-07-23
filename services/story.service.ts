@@ -171,7 +171,7 @@ export class StoryService {
   public async addStory(sourceId: string, story: IStory): Promise<IStory> {
     try {
       const storyData = this.prepareStoryData(story, sourceId);
-      const storiesCollection = collection(db, "newswithfriends/newsStories");
+      const storiesCollection = collection(db, "newswithfriends/news_stories");
       const docRef = await addDoc(storiesCollection, storyData);
 
       return {
@@ -200,7 +200,7 @@ export class StoryService {
         return cached;
       }
 
-      const storiesCollection = collection(db, "newswithfriends/newsStories");
+      const storiesCollection = collection(db, "newswithfriends/news_stories");
 
       // Use query with where clause to filter by sourceId
       const q = query(
@@ -310,7 +310,7 @@ export class StoryService {
 
       // Get source info
       const sourceDoc = await getDoc(
-        doc(db, `newswithfriends/newsSources/${sourceId}`)
+        doc(db, `newswithfriends/news_sources/${sourceId}`)
       );
       const sourceData = sourceDoc.exists ? sourceDoc.data() : null;
 
@@ -515,7 +515,7 @@ export class StoryService {
         options
       );
 
-      const storiesCollection = collection(db, "newswithfriends/newsStories");
+      const storiesCollection = collection(db, "newswithfriends/news_stories");
 
       // Build query constraints
       const constraints = [];
@@ -583,7 +583,7 @@ export class StoryService {
       const now = new Date().toISOString();
 
       // Check if status already exists
-      const statusDoc = doc(db, `newswithfriends/storyStatus/${statusId}`);
+      const statusDoc = doc(db, `newswithfriends/story_status/${statusId}`);
       const existingStatus = await getDoc(statusDoc);
 
       if (existingStatus.exists) {
@@ -627,7 +627,7 @@ export class StoryService {
       const now = new Date().toISOString();
 
       // Check if status already exists
-      const statusDoc = doc(db, `newswithfriends/storyStatus/${statusId}`);
+      const statusDoc = doc(db, `newswithfriends/story_status/${statusId}`);
       const existingStatus = await getDoc(statusDoc);
 
       if (existingStatus.exists) {
@@ -667,7 +667,7 @@ export class StoryService {
   ): Promise<IStoryStatus | null> {
     try {
       const statusId = `${userId}-${storyId}`;
-      const statusDoc = doc(db, `newswithfriends/storyStatus/${statusId}`);
+      const statusDoc = doc(db, `newswithfriends/story_status/${statusId}`);
       const statusSnap = await getDoc(statusDoc);
 
       if (statusSnap.exists) {
@@ -687,7 +687,7 @@ export class StoryService {
    */
   public async getUserStoryStatuses(userId: string): Promise<IStoryStatus[]> {
     try {
-      const statusCollection = collection(db, "newswithfriends/storyStatus");
+      const statusCollection = collection(db, "newswithfriends/story_status");
       const q = query(
         statusCollection,
         where("userId", "==", userId),
@@ -713,7 +713,7 @@ export class StoryService {
    */
   public async getStarredStories(userId: string): Promise<IStoryStatus[]> {
     try {
-      const statusCollection = collection(db, "newswithfriends/storyStatus");
+      const statusCollection = collection(db, "newswithfriends/story_status");
       const q = query(
         statusCollection,
         where("userId", "==", userId),
@@ -760,7 +760,7 @@ export class StoryService {
       );
 
       // Get recent starred story statuses by friends
-      const statusCollection = collection(db, "newswithfriends/storyStatus");
+      const statusCollection = collection(db, "newswithfriends/story_status");
       const q = query(
         statusCollection,
         where("starred", "==", true),
@@ -813,7 +813,7 @@ export class StoryService {
         try {
           // Get the story
           const storyDoc = await getDoc(
-            doc(db, `newswithfriends/newsStories/${status.storyId}`)
+            doc(db, `newswithfriends/news_stories/${status.storyId}`)
           );
 
           if (!storyDoc.exists) {
@@ -832,7 +832,7 @@ export class StoryService {
 
           // Get source info
           const sourceDoc = await getDoc(
-            doc(db, `newswithfriends/newsSources/${storyData.sourceId}`)
+            doc(db, `newswithfriends/news_sources/${storyData.sourceId}`)
           );
           const sourceData = sourceDoc.exists ? sourceDoc.data() : null;
 
