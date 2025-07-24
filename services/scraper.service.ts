@@ -239,32 +239,6 @@ ${html}`;
     }
   }
 
-  public async scrapeAllSources(): Promise<void> {
-    try {
-      // Get all sources from BaseBase
-      const sources = await sourceService.getSources();
-
-      // const sources = response.getAllNewsSources.map((source) => ({
-      //   ...source,
-      //   ...JSON.parse(source.metadata || "{}"),
-      // }));
-
-      console.log(`Found ${sources.length} sources to collect from`);
-
-      // Scrape each source one at a time
-      for (const source of sources) {
-        if (source.id) {
-          // Type guard for source.id
-          await this.scrapeSource(source.id);
-        }
-      }
-      console.log("Completed collecting from all sources");
-    } catch (error) {
-      console.error("Error in collectAll:", error);
-      throw error;
-    }
-  }
-
   public async scrapeSource(sourceId: string): Promise<void> {
     // Get source from BaseBase
     const source = await sourceService.getSource(sourceId);
@@ -282,6 +256,11 @@ ${html}`;
       for (const story of stories) {
         await storyService.addStory(sourceId, story);
       }
+
+      // Update the lastScrapedAt timestamp
+      await sourceService.updateSource(sourceId, {
+        lastScrapedAt: new Date().toISOString(),
+      });
     } catch (error) {
       console.error("Error scraping source:", error);
       throw error;
@@ -441,6 +420,169 @@ ${html}`;
       console.error("Error reading RSS feed:", error);
       throw error;
     }
+  }
+
+  /**
+   * Scrapes a single source with full validation and timestamp updates
+   * @param sourceId - The ID of the source to scrape
+   * @returns Object with scraping results and metadata
+   */
+  public async scrapeSingleSourceWithValidation(sourceId: string): Promise<{
+    sourceId: string;
+    sourceName: string;
+    lastScrapedAt: string;
+  }> {
+    if (!sourceId) {
+      throw new Error("sourceId is required");
+    }
+
+    console.log(`[Scraper Service] Starting scrape for source: ${sourceId}`);
+
+    // Get the source to validate it exists
+    const source = await sourceService.getSource(sourceId);
+    if (!source) {
+      throw new Error("Source not found");
+    }
+
+    // Scrape the source (this will also update the lastScrapedAt timestamp)
+    await this.scrapeSource(sourceId);
+
+    const lastScrapedAt = new Date().toISOString();
+
+    console.log(
+      `[Scraper Service] Successfully scraped source: ${source.name}`
+    );
+
+    return {
+      sourceId,
+      sourceName: source.name,
+      lastScrapedAt,
+    };
+  }
+
+  /**
+   * Performs a scheduled rescrape job on stale sources
+   * @returns Object with detailed results of the rescrape operation
+   */
+  public async performScheduledRescrape(): Promise<{
+    totalSources: number;
+    sourcesNeedingScraping: number;
+    sourcesScraped: number;
+    successCount: number;
+    errorCount: number;
+    results: Array<{
+      sourceId: string;
+      sourceName: string;
+      status: "success" | "error";
+      error?: string;
+    }>;
+  }> {
+    console.log("[Scraper Service] Starting scheduled rescrape job");
+
+    // Get all sources
+    const allSources = await sourceService.getSources();
+    console.log(`[Scraper Service] Found ${allSources.length} total sources`);
+
+    // Filter sources that need scraping (haven't been scraped in the past 30 minutes)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const sourcesToScrape = allSources
+      .filter((source) => {
+        if (!source.lastScrapedAt) {
+          return true; // Never scraped before
+        }
+        const lastScraped = new Date(source.lastScrapedAt);
+        return lastScraped < thirtyMinutesAgo;
+      })
+      .sort((a, b) => {
+        // Sources that have never been scraped get highest priority
+        if (!a.lastScrapedAt && !b.lastScrapedAt) return 0;
+        if (!a.lastScrapedAt) return -1;
+        if (!b.lastScrapedAt) return 1;
+
+        // Sort by lastScrapedAt ascending (oldest first)
+        return (
+          new Date(a.lastScrapedAt).getTime() -
+          new Date(b.lastScrapedAt).getTime()
+        );
+      });
+
+    console.log(
+      `[Scraper Service] Found ${sourcesToScrape.length} sources that need scraping`
+    );
+
+    // Take only the first 5 sources (which are now the most stale)
+    const sourcesToScrapeNow = sourcesToScrape.slice(0, 5);
+
+    if (sourcesToScrapeNow.length === 0) {
+      console.log("[Scraper Service] No sources need scraping at this time");
+      return {
+        totalSources: allSources.length,
+        sourcesNeedingScraping: 0,
+        sourcesScraped: 0,
+        successCount: 0,
+        errorCount: 0,
+        results: [],
+      };
+    }
+
+    console.log(
+      `[Scraper Service] Scraping ${sourcesToScrapeNow.length} sources:`,
+      sourcesToScrapeNow.map((s) => s.name).join(", ")
+    );
+
+    const results: Array<{
+      sourceId: string;
+      sourceName: string;
+      status: "success" | "error";
+      error?: string;
+    }> = [];
+
+    // Scrape each source
+    for (const source of sourcesToScrapeNow) {
+      try {
+        console.log(
+          `[Scraper Service] Scraping source: ${source.name} (${source.id})`
+        );
+
+        // Scrape the source (this will also update the lastScrapedAt timestamp)
+        await this.scrapeSource(source.id);
+
+        results.push({
+          sourceId: source.id,
+          sourceName: source.name,
+          status: "success",
+        });
+
+        console.log(`[Scraper Service] Successfully scraped ${source.name}`);
+      } catch (error) {
+        console.error(
+          `[Scraper Service] Error scraping source ${source.name}:`,
+          error
+        );
+        results.push({
+          sourceId: source.id,
+          sourceName: source.name,
+          status: "error",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
+    const successCount = results.filter((r) => r.status === "success").length;
+    const errorCount = results.filter((r) => r.status === "error").length;
+
+    console.log(
+      `[Scraper Service] Completed: ${successCount} successful, ${errorCount} errors`
+    );
+
+    return {
+      totalSources: allSources.length,
+      sourcesNeedingScraping: sourcesToScrape.length,
+      sourcesScraped: sourcesToScrapeNow.length,
+      successCount,
+      errorCount,
+      results,
+    };
   }
 }
 
