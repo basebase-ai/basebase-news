@@ -3,16 +3,28 @@
 import { useState, useEffect } from 'react';
 
 export default function EditThisButton() {
-  const [editUrl, setEditUrl] = useState<string>('https://editor.basebase.us/?repo=https://github.com/grenager/basebase-news');
+  const [editUrl, setEditUrl] = useState<string>('https://editor.basebase.us/');
 
   useEffect(() => {
+    // Get project from environment variable
+    const project = process.env.BASEBASE_PROJECT;
     // Get Basebase token from localStorage
     const basebaseToken = localStorage.getItem('basebase_token');
     
-    if (basebaseToken) {
-      const baseUrl = 'https://editor.basebase.us/?repo=https://github.com/grenager/basebase-news';
-      setEditUrl(`${baseUrl}&token=${encodeURIComponent(basebaseToken)}`);
+    // Build query parameters with project first for readability
+    const params = new URLSearchParams();
+    
+    if (project) {
+      params.append('project', project);
     }
+    
+    params.append('repo', 'https://github.com/grenager/basebase-news');
+    
+    if (basebaseToken) {
+      params.append('token', basebaseToken);
+    }
+    
+    setEditUrl(`https://editor.basebase.us/?${params.toString()}`);
   }, []);
 
   return (
