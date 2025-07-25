@@ -190,12 +190,16 @@ export default function SourceBox({
         });
       }
       
+      // Clear the cache for this source to ensure fresh data
+      storyService.clearSourceCache(source.id);
+      
       // Then load the fresh headlines from the database
       await loadHeadlines(true);
       
     } catch (error) {
       console.error('Failed to refresh source:', error);
-      // Still try to reload existing headlines even if scraping failed
+      // Clear cache and still try to reload existing headlines even if scraping failed
+      storyService.clearSourceCache(source.id);
       await loadHeadlines(true);
     } finally {
       setIsRefreshing(false);

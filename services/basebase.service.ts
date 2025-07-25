@@ -10,19 +10,19 @@ import {
 console.log("[BaseBase Startup] Environment variables check:");
 console.log(
   "[BaseBase Startup] BASEBASE_PROJECT length:",
-  process.env.BASEBASE_PROJECT?.length || 0
+  process.env.NEXT_PUBLIC_BASEBASE_PROJECT?.length || 0
 );
 console.log(
   "[BaseBase Startup] BASEBASE_TOKEN length:",
-  process.env.BASEBASE_TOKEN?.length || 0
+  process.env.NEXT_PUBLIC_BASEBASE_TOKEN?.length || 0
 );
 console.log(
   "[BaseBase Startup] BASEBASE_PROJECT configured:",
-  !!process.env.BASEBASE_PROJECT
+  !!process.env.NEXT_PUBLIC_BASEBASE_PROJECT
 );
 console.log(
   "[BaseBase Startup] BASEBASE_TOKEN configured:",
-  !!process.env.BASEBASE_TOKEN
+  !!process.env.NEXT_PUBLIC_BASEBASE_TOKEN
 );
 
 /**

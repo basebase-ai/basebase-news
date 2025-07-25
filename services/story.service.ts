@@ -156,6 +156,13 @@ export class StoryService {
     this.friendStarredCache.clear();
   }
 
+  /**
+   * Clear cache for a specific source (useful after scraping)
+   */
+  public clearSourceCache(sourceId: string): void {
+    this.storyCache.delete(sourceId);
+  }
+
   private prepareStoryData(story: IStory, sourceId: string): any {
     return {
       headline: story.headline,

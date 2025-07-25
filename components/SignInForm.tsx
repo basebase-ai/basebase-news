@@ -164,7 +164,7 @@ export default function SignInForm({
               inputMode="numeric"
               pattern="[0-9]*"
               name="verification-code"
-              placeholder="Enter the code we sent you"
+              placeholder="Code"
               required
               autoComplete="off"
               disabled={isLoading}

@@ -15,13 +15,13 @@ import { Source } from "@/types";
 export interface ISource extends Source {}
 
 // Create database instance with JWT token for server environment
-if (!process.env.BASEBASE_TOKEN) {
+if (!process.env.NEXT_PUBLIC_BASEBASE_TOKEN) {
   throw new Error(
     "BASEBASE_TOKEN environment variable is required for server-side services"
   );
 }
 
-const db = getDatabase(process.env.BASEBASE_TOKEN!);
+const db = getDatabase(process.env.NEXT_PUBLIC_BASEBASE_TOKEN!);
 
 export class SourceServerService {
   async getSources(): Promise<Source[]> {

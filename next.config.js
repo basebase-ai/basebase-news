@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
-    BASEBASE_PROJECT: process.env.BASEBASE_PROJECT,
-    BASEBASE_TOKEN: process.env.BASEBASE_TOKEN,
+    BASEBASE_PROJECT: process.env.NEXT_PUBLIC_BASEBASE_PROJECT,
+    BASEBASE_TOKEN: process.env.NEXT_PUBLIC_BASEBASE_TOKEN,
   },
   basePath: "",
   async rewrites() {

@@ -19,8 +19,8 @@ The Basebase scraper is a cloud-based task that automatically scrapes news sourc
 ### Prerequisites
 
 1. Ensure you have a Basebase account and project set up
-2. Set the `BASEBASE_TOKEN` environment variable in your `.env.local` file
-3. For setup operations, also set `BASEBASE_PROJECT_ID` in your `.env.local` file
+2. Set the `NEXT_PUBLIC_BASEBASE_TOKEN` environment variable in your `.env.local` file
+3. For setup operations, also set `NEXT_PUBLIC_BASEBASE_PROJECT` in your `.env.local` file
 
 ### Installation
 
@@ -141,8 +141,8 @@ await deleteTask("scrapeStaleSourcesTask");
 ### Common Issues
 
 1. **"Task not found" error**: Make sure you've run the setup script first
-2. **Authentication errors**: Verify your `BASEBASE_TOKEN` is set correctly in `.env.local`
-3. **Setup errors**: For the setup script, ensure `BASEBASE_PROJECT_ID` is also set
+2. **Authentication errors**: Verify your `NEXT_PUBLIC_BASEBASE_TOKEN` is set correctly in `.env.local`
+3. **Setup errors**: For the setup script, ensure `NEXT_PUBLIC_BASEBASE_PROJECT` is also set
 4. **Sources not being scraped**: Check that sources have valid RSS URLs configured
 
 ### Debugging
