@@ -354,8 +354,8 @@ export default function SourceBox({
     <>
       <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${denseMode ? 'h-[250px]' : 'h-[400px]'} flex flex-col`}>
         <div className="p-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
-          <div className="flex items-center space-x-3">
-            <div {...dragHandleAttributes} {...dragHandleListeners} className="cursor-grab active:cursor-grabbing p-2">
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div {...dragHandleAttributes} {...dragHandleListeners} className="cursor-grab active:cursor-grabbing p-2 shrink-0">
               <FontAwesomeIcon 
                 icon={faGripVertical} 
                 className="w-4 h-4 text-gray-400 dark:text-gray-500"
@@ -365,16 +365,16 @@ export default function SourceBox({
               <img 
                 src={source.imageUrl} 
                 alt={source.name} 
-                className="w-6 h-6 object-contain"
+                className="w-6 h-6 object-contain shrink-0"
               />
             ) : (
-              <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+              <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center shrink-0">
                 <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
                   {source.name.charAt(0)}
                 </span>
               </div>
             )}
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col min-w-0 flex-1">
               <a 
                 href={source.homepageUrl}
                 target="_blank"
@@ -384,13 +384,13 @@ export default function SourceBox({
                 {source.name}
               </a>
               {source.lastScrapedAt && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   Updated <TimeAgo date={source.lastScrapedAt} />
                 </div>
               )}
             </div>
           </div>
-          <Menu as="div" className="relative">
+          <Menu as="div" className="relative shrink-0">
             <Menu.Button className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
               <FontAwesomeIcon icon={faEllipsisV} className="w-4 h-4" />
             </Menu.Button>
