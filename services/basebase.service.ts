@@ -17,11 +17,11 @@ export async function requestCodeSMS(
     console.log("[BaseBase] Calling requestCode with:", { username, phone });
     console.log(
       "[BaseBase] API Key configured:",
-      !!process.env.BASEBASE_API_KEY
+      !!process.env.BASEBASE_PROJECT
     );
     console.log(
       "[BaseBase] API Key length:",
-      process.env.BASEBASE_API_KEY?.length || 0
+      process.env.BASEBASE_PROJECT?.length || 0
     );
 
     const response = await requestCode(username, phone);
@@ -71,7 +71,7 @@ export async function verifyCodeSMS(
 ): Promise<boolean> {
   try {
     console.log("[BaseBase] Calling verifyCode with:", { phone, code });
-    const result = await verifyCode(phone, code, process.env.BASEBASE_API_KEY!);
+    const result = await verifyCode(phone, code, process.env.BASEBASE_PROJECT!);
     console.log("[BaseBase] verifyCode response:", result);
     console.log(
       "[BaseBase] Authentication state after verify:",

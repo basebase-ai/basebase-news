@@ -78,7 +78,7 @@ Services in `/services/` handle external integrations:
 ### Environment Setup
 
 - Environment variables managed via `.env` files (not visible in repository)
-- Required: `BASEBASE_API_KEY`, `JWT_SECRET`, SMTP configuration
+- Required: `BASEBASE_PROJECT`, `JWT_SECRET`, SMTP configuration
 
 ### Code Conventions
 

@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 console.log("Environment variables loaded:");
 console.log("MONGODB_URI:", !!process.env.MONGODB_URI);
 console.log("BASEBASE_TOKEN:", !!process.env.BASEBASE_TOKEN);
-console.log("BASEBASE_API_KEY:", !!process.env.BASEBASE_API_KEY);
+console.log("BASEBASE_PROJECT:", !!process.env.BASEBASE_PROJECT);
 console.log("BASEBASE_PROJECT_ID:", !!process.env.BASEBASE_PROJECT_ID);
 
 // Check required environment variables
@@ -20,8 +20,8 @@ if (!process.env.MONGODB_URI) {
 if (!process.env.BASEBASE_TOKEN) {
   throw new Error("BASEBASE_TOKEN environment variable is required");
 }
-if (!process.env.BASEBASE_API_KEY) {
-  throw new Error("BASEBASE_API_KEY environment variable is required");
+if (!process.env.BASEBASE_PROJECT) {
+  throw new Error("BASEBASE_PROJECT environment variable is required");
 }
 if (!process.env.BASEBASE_PROJECT_ID) {
   throw new Error("BASEBASE_PROJECT_ID environment variable is required");
