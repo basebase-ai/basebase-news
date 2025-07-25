@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { ScrapingBeeClient } from "scrapingbee";
+import axios from "axios";
 
 export interface IPageMetadata {
   imageUrl: string | null;
@@ -7,18 +7,8 @@ export interface IPageMetadata {
 }
 
 export class PreviewService {
-  private readonly client: ScrapingBeeClient;
-  private readonly apiKey: string;
   private readonly MAX_RETRIES: number = 3;
   private readonly RETRY_DELAY: number = 1000; // 1 second
-
-  constructor() {
-    this.apiKey = process.env.SCRAPING_BEE_API_KEY ?? "";
-    if (!this.apiKey) {
-      throw new Error("SCRAPING_BEE_API_KEY environment variable is required");
-    }
-    this.client = new ScrapingBeeClient(this.apiKey);
-  }
 
   /**
    * Extracts metadata from a webpage
@@ -48,10 +38,7 @@ export class PreviewService {
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        const response = await this.retryableRequest(url, {
-          render_js: false,
-          premium_proxy: true,
-        });
+        const response = await this.retryableRequest(url, {});
 
         return response.data.toString("utf-8");
       } catch (error) {
@@ -72,26 +59,30 @@ export class PreviewService {
   }
 
   /**
-   * Makes a retryable request to ScrapingBee
+   * Makes a retryable request using axios
    * @param url URL to fetch
-   * @param params Request parameters
+   * @param params Request parameters (unused but kept for compatibility)
    * @returns Response data
    */
   private async retryableRequest(
     url: string,
-    params: Record<string, boolean>
+    params: Record<string, any>
   ): Promise<{ data: Buffer }> {
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        return await this.client.get({ url, params });
+        const response = await axios.get(url, {
+          timeout: 10000,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          },
+        });
+        return { data: Buffer.from(response.data, "utf-8") };
       } catch (error) {
         lastError = error as Error;
-        console.error(
-          `ScrapingBee attempt ${attempt} failed:`,
-          lastError.message
-        );
+        console.error(`Request attempt ${attempt} failed:`, lastError.message);
 
         if (attempt < this.MAX_RETRIES) {
           await new Promise((resolve) =>
@@ -102,7 +93,7 @@ export class PreviewService {
     }
 
     throw new Error(
-      `Failed after ${this.MAX_RETRIES} ScrapingBee attempts. Last error: ${lastError?.message}`
+      `Failed after ${this.MAX_RETRIES} attempts. Last error: ${lastError?.message}`
     );
   }
 

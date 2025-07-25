@@ -65,11 +65,6 @@ A modern news headline aggregation web application that brings the world's headl
 
 See `.env.example` for all required environment variables. The essential ones are:
 
-- `JWT_SECRET`: Secret key for JWT token generation
-- `SMTP_*`: Email configuration for sending login links
-- `SCRAPING_BEE_API_KEY`: API key for web scraping (optional)
-- `ANTHROPIC_API_KEY`: API key for content analysis (optional)
-
 ## Contributing
 
 We welcome contributions to NewsWithFriends! Please follow these steps:

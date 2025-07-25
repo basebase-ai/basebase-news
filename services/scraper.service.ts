@@ -1,8 +1,8 @@
 // import { ScrapingBeeClient } from "scrapingbee";
 import * as cheerio from "cheerio";
 import axios, { AxiosResponse } from "axios";
-import { ISource, sourceService } from "./source.service";
-import { storyService, IStory } from "./story.service";
+import { ISource, sourceServerService } from "./source.server.service";
+import { storyServerService, IStory } from "./story.server.service";
 import { previewService } from "./preview.service";
 import Parser from "rss-parser";
 import * as he from "he";
@@ -35,14 +35,6 @@ export class ScraperService {
   private readonly MAX_TOKENS: number = 100000;
   private readonly MAX_RETRIES: number = 3;
   private readonly RETRY_DELAY: number = 1000; // 1 second
-
-  // constructor() {
-  //   this.apiKey = process.env.SCRAPING_BEE_API_KEY ?? "";
-  //   if (!this.apiKey) {
-  //     throw new Error("SCRAPING_BEE_API_KEY environment variable is required");
-  //   }
-  //   this.client = new ScrapingBeeClient(this.apiKey);
-  // }
 
   private cleanJsonResponse(response: string): any {
     // Remove markdown code block markers if any
@@ -241,7 +233,7 @@ ${html}`;
 
   public async scrapeSource(sourceId: string): Promise<void> {
     // Get source from BaseBase
-    const source = await sourceService.getSource(sourceId);
+    const source = await sourceServerService.getSource(sourceId);
 
     if (!source || !source.rssUrl) {
       throw new Error(
@@ -254,11 +246,11 @@ ${html}`;
 
       // Process each story
       for (const story of stories) {
-        await storyService.addStory(sourceId, story);
+        await storyServerService.addStory(sourceId, story);
       }
 
       // Update the lastScrapedAt timestamp
-      await sourceService.updateSource(sourceId, {
+      await sourceServerService.updateSource(sourceId, {
         lastScrapedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -269,7 +261,7 @@ ${html}`;
 
   public async scrapeHomepage(sourceId: string): Promise<IStory[]> {
     // Get source from BaseBase
-    const source = await sourceService.getSource(sourceId);
+    const source = await sourceServerService.getSource(sourceId);
 
     if (!source) {
       throw new Error(`Unknown source: ${sourceId}`);
@@ -293,7 +285,7 @@ ${html}`;
 
   public async readRss(sourceId: string): Promise<IStory[]> {
     // Get source from BaseBase
-    const source = await sourceService.getSource(sourceId);
+    const source = await sourceServerService.getSource(sourceId);
 
     if (!source || !source.rssUrl) {
       throw new Error(
@@ -439,7 +431,7 @@ ${html}`;
     console.log(`[Scraper Service] Starting scrape for source: ${sourceId}`);
 
     // Get the source to validate it exists
-    const source = await sourceService.getSource(sourceId);
+    const source = await sourceServerService.getSource(sourceId);
     if (!source) {
       throw new Error("Source not found");
     }
@@ -480,20 +472,20 @@ ${html}`;
     console.log("[Scraper Service] Starting scheduled rescrape job");
 
     // Get all sources
-    const allSources = await sourceService.getSources();
+    const allSources = await sourceServerService.getSources();
     console.log(`[Scraper Service] Found ${allSources.length} total sources`);
 
     // Filter sources that need scraping (haven't been scraped in the past 30 minutes)
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     const sourcesToScrape = allSources
-      .filter((source) => {
+      .filter((source: ISource) => {
         if (!source.lastScrapedAt) {
           return true; // Never scraped before
         }
         const lastScraped = new Date(source.lastScrapedAt);
         return lastScraped < thirtyMinutesAgo;
       })
-      .sort((a, b) => {
+      .sort((a: ISource, b: ISource) => {
         // Sources that have never been scraped get highest priority
         if (!a.lastScrapedAt && !b.lastScrapedAt) return 0;
         if (!a.lastScrapedAt) return -1;
@@ -527,7 +519,7 @@ ${html}`;
 
     console.log(
       `[Scraper Service] Scraping ${sourcesToScrapeNow.length} sources:`,
-      sourcesToScrapeNow.map((s) => s.name).join(", ")
+      sourcesToScrapeNow.map((s: ISource) => s.name).join(", ")
     );
 
     const results: Array<{

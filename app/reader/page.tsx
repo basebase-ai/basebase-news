@@ -94,13 +94,25 @@ export default function ReaderPage() {
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
-      // TODO: Implement refresh functionality in BaseBase
-      // For now, just reload sources
+      // Trigger a rescrape of stale sources
+      const response = await fetch('/api/admin/rescrape', {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to refresh sources');
+      }
+      
+      const result = await response.json();
+      console.log('Rescrape completed:', result);
+      
+      // Also reload the user's sources to pick up any changes
       if (currentUser) {
         await loadSources(currentUser);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to refresh sources:', err);
     } finally {
       setRefreshing(false);
     }
