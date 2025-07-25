@@ -47,8 +47,8 @@ export class StoryServerService {
       url: story.url,
       imageUrl: story.imageUrl,
       sourceId: sourceId,
-      publishedAt: story.publishedAt,
-      createdAt: new Date().toISOString(),
+      publishedAt: new Date(story.publishedAt),
+      createdAt: new Date(),
     };
   }
 

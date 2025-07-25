@@ -129,11 +129,16 @@ export default function SourceBox({
         publishedAt: story.publishedAt || '',
       }));
 
-      // Sort by published date
+      // Sort by published date (most recent first)
       const sortedStories = transformedStories.sort((a, b) => {
-        const dateA = new Date(a.publishedAt || '');
-        const dateB = new Date(b.publishedAt || '');
-        return dateB.getTime() - dateA.getTime();
+        const dateA = new Date(a.publishedAt || '1970-01-01');
+        const dateB = new Date(b.publishedAt || '1970-01-01');
+        
+        // Handle invalid dates
+        const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+        const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+        
+        return timeB - timeA;
       });
 
       setHeadlines(sortedStories);
