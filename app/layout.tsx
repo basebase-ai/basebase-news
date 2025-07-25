@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/lib/state/AppContext';
 import AuthWrapper from '@/components/AuthWrapper';
+import EditThisButton from '@/components/EditThisButton';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -75,14 +76,7 @@ export default function RootLayout({
             {children}
           </AuthWrapper>
           {/* Floating Action Button */}
-          <a
-            href="https://editor.basebase.us/?repo=https://github.com/grenager/basebase-news"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-orange-500 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium text-sm"
-          >
-            <span>Edit This</span>
-          </a>
+          <EditThisButton />
         </AppProvider>
       </body>
     </html>

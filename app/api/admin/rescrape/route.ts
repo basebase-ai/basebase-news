@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scraperService } from "@/services/scraper.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const result = await scraperService.performScheduledRescrape();
