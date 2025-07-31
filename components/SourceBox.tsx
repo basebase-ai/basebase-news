@@ -246,7 +246,7 @@ export default function SourceBox({
     } catch (error) {
       console.error('Error marking story as read:', error);
     }
-  }, [currentUser?.id, source.id, updateCache]);
+  }, [currentUser?.id, source.id, sourceHeadlines, setSourceHeadlines]);
 
   const handleStar = useCallback(async (e: React.MouseEvent, story: Story) => {
     e.preventDefault();
@@ -291,7 +291,7 @@ export default function SourceBox({
     } catch (error) {
       console.error('Error starring story:', error);
     }
-  }, [currentUser?.id, source.id, updateCache]);
+  }, [currentUser?.id, source.id, sourceHeadlines, setSourceHeadlines]);
 
   const handleShare = useCallback(async (e: React.MouseEvent, story: Story) => {
     e.preventDefault();
