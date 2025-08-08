@@ -14,21 +14,37 @@ import { Source } from "@/types";
 
 export interface ISource extends Source {}
 
-// Create database instance with JWT token for server environment
-if (!process.env.NEXT_PUBLIC_BASEBASE_TOKEN) {
-  throw new Error(
-    "BASEBASE_TOKEN environment variable is required for server-side services"
-  );
-}
+// Lazily initialize the database at runtime to avoid build-time env access
+let dbInstance: ReturnType<typeof getDatabase> | null = null;
 
-const db = getDatabase(process.env.NEXT_PUBLIC_BASEBASE_TOKEN!);
+function getServerDb(): ReturnType<typeof getDatabase> {
+  // Prefer BASEBASE_TOKEN; fall back to NEXT_PUBLIC for backwards compatibility
+  const token: string | undefined =
+    process.env.BASEBASE_TOKEN || process.env.NEXT_PUBLIC_BASEBASE_TOKEN;
+
+  if (!token) {
+    throw new Error(
+      "BASEBASE_TOKEN environment variable is required for server-side services"
+    );
+  }
+
+  if (dbInstance) {
+    return dbInstance;
+  }
+
+  dbInstance = getDatabase(token);
+  return dbInstance;
+}
 
 export class SourceServerService {
   async getSources(): Promise<Source[]> {
     try {
       console.log("[SourceServerService] Getting all sources");
 
-      const sourcesCollection = collection(db, "newswithfriends/news_sources");
+      const sourcesCollection = collection(
+        getServerDb(),
+        "newswithfriends/news_sources"
+      );
       const sourcesSnap = await getDocs(query(sourcesCollection));
 
       const sources: Source[] = [];
@@ -51,7 +67,10 @@ export class SourceServerService {
     try {
       console.log("[SourceServerService] Getting source:", id);
 
-      const sourcesCollection = collection(db, "newswithfriends/news_sources");
+      const sourcesCollection = collection(
+        getServerDb(),
+        "newswithfriends/news_sources"
+      );
       const sourcesSnap = await getDocs(query(sourcesCollection));
 
       for (const docSnap of sourcesSnap.docs) {
@@ -114,7 +133,10 @@ export class SourceServerService {
     try {
       console.log("[SourceServerService] Adding source:", sourceData.name);
 
-      const sourcesCollection = collection(db, "newswithfriends/news_sources");
+      const sourcesCollection = collection(
+        getServerDb(),
+        "newswithfriends/news_sources"
+      );
       const docRef = await addDoc(sourcesCollection, sourceData);
 
       return {
@@ -134,7 +156,10 @@ export class SourceServerService {
     try {
       console.log("[SourceServerService] Updating source:", id);
 
-      const sourceRef = doc(db, `newswithfriends/news_sources/${id}`);
+      const sourceRef = doc(
+        getServerDb(),
+        `newswithfriends/news_sources/${id}`
+      );
       await updateDoc(sourceRef, sourceData);
 
       console.log(
@@ -154,7 +179,10 @@ export class SourceServerService {
     try {
       console.log("[SourceServerService] Deleting source:", id);
 
-      const sourceRef = doc(db, `newswithfriends/news_sources/${id}`);
+      const sourceRef = doc(
+        getServerDb(),
+        `newswithfriends/news_sources/${id}`
+      );
       await deleteDoc(sourceRef);
     } catch (error) {
       console.error("[SourceServerService] Error deleting source:", error);

@@ -30,14 +30,27 @@ export interface IStory {
   createdAt?: string;
 }
 
-// Create database instance with JWT token for server environment
-if (!process.env.NEXT_PUBLIC_BASEBASE_TOKEN) {
-  throw new Error(
-    "BASEBASE_TOKEN environment variable is required for server-side services"
-  );
-}
+// Lazily initialize the database at runtime to avoid build-time env access
+let dbInstance: ReturnType<typeof getDatabase> | null = null;
 
-const db = getDatabase(process.env.NEXT_PUBLIC_BASEBASE_TOKEN!);
+function getServerDb(): ReturnType<typeof getDatabase> {
+  // Prefer BASEBASE_TOKEN; fall back to NEXT_PUBLIC for backwards compatibility
+  const token: string | undefined =
+    process.env.BASEBASE_TOKEN || process.env.NEXT_PUBLIC_BASEBASE_TOKEN;
+
+  if (!token) {
+    throw new Error(
+      "BASEBASE_TOKEN environment variable is required for server-side services"
+    );
+  }
+
+  if (dbInstance) {
+    return dbInstance;
+  }
+
+  dbInstance = getDatabase(token);
+  return dbInstance;
+}
 
 export class StoryServerService {
   private prepareStoryData(story: IStory, sourceId: string): any {
@@ -59,7 +72,10 @@ export class StoryServerService {
       );
 
       const storyData = this.prepareStoryData(story, sourceId);
-      const storiesCollection = collection(db, "newswithfriends/news_stories");
+      const storiesCollection = collection(
+        getServerDb(),
+        "newswithfriends/news_stories"
+      );
       const docRef = await addDoc(storiesCollection, storyData);
 
       console.log(`[StoryServerService] Added story with ID: ${docRef.id}`);
@@ -85,7 +101,10 @@ export class StoryServerService {
         sourceId
       );
 
-      const storiesCollection = collection(db, "newswithfriends/news_stories");
+      const storiesCollection = collection(
+        getServerDb(),
+        "newswithfriends/news_stories"
+      );
 
       // Use query with where clause to filter by sourceId
       const q = query(
@@ -147,7 +166,10 @@ export class StoryServerService {
         options
       );
 
-      const storiesCollection = collection(db, "newswithfriends/news_stories");
+      const storiesCollection = collection(
+        getServerDb(),
+        "newswithfriends/news_stories"
+      );
 
       // Build query constraints
       const constraints = [];
@@ -215,7 +237,10 @@ export class StoryServerService {
       const now = new Date().toISOString();
 
       // Check if status already exists
-      const statusDoc = doc(db, `newswithfriends/story_status/${statusId}`);
+      const statusDoc = doc(
+        getServerDb(),
+        `newswithfriends/story_status/${statusId}`
+      );
       const existingStatus = await getDoc(statusDoc);
 
       if (existingStatus.exists) {
@@ -259,7 +284,10 @@ export class StoryServerService {
       const now = new Date().toISOString();
 
       // Check if status already exists
-      const statusDoc = doc(db, `newswithfriends/story_status/${statusId}`);
+      const statusDoc = doc(
+        getServerDb(),
+        `newswithfriends/story_status/${statusId}`
+      );
       const existingStatus = await getDoc(statusDoc);
 
       if (existingStatus.exists) {
@@ -302,7 +330,10 @@ export class StoryServerService {
   ): Promise<IStoryStatus | null> {
     try {
       const statusId = `${userId}-${storyId}`;
-      const statusDoc = doc(db, `newswithfriends/story_status/${statusId}`);
+      const statusDoc = doc(
+        getServerDb(),
+        `newswithfriends/story_status/${statusId}`
+      );
       const statusSnap = await getDoc(statusDoc);
 
       if (statusSnap.exists) {
